@@ -163,25 +163,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Video Section */}
-      {videoUrl && (
-        <section className="py-8 px-4">
-          <div className="container mx-auto max-w-3xl">
-            <Card className="glass overflow-hidden">
-              <CardContent className="p-0">
-                <div className="aspect-video">
-                  <iframe
-                    src={videoUrl}
-                    className="w-full h-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-      )}
 
       {/* Menu Grid */}
       <section className="py-12 px-4">
