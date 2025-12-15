@@ -14,6 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      age_groups: {
+        Row: {
+          color_code: string | null
+          created_at: string
+          group_id: number
+          group_name_ar: string
+          group_name_en: string
+          icon: string | null
+          id: string
+          max_age: number
+          min_age: number
+          updated_at: string
+          visit_frequency: string | null
+        }
+        Insert: {
+          color_code?: string | null
+          created_at?: string
+          group_id: number
+          group_name_ar: string
+          group_name_en: string
+          icon?: string | null
+          id?: string
+          max_age: number
+          min_age: number
+          updated_at?: string
+          visit_frequency?: string | null
+        }
+        Update: {
+          color_code?: string | null
+          created_at?: string
+          group_id?: number
+          group_name_ar?: string
+          group_name_en?: string
+          icon?: string | null
+          id?: string
+          max_age?: number
+          min_age?: number
+          updated_at?: string
+          visit_frequency?: string | null
+        }
+        Relationships: []
+      }
+      health_education: {
+        Row: {
+          age_group: string
+          created_at: string
+          format: string | null
+          id: string
+          is_active: boolean
+          priority: string
+          topic_id: string
+          topic_name_ar: string
+          topic_name_en: string
+          updated_at: string
+        }
+        Insert: {
+          age_group: string
+          created_at?: string
+          format?: string | null
+          id?: string
+          is_active?: boolean
+          priority: string
+          topic_id: string
+          topic_name_ar: string
+          topic_name_en: string
+          updated_at?: string
+        }
+        Update: {
+          age_group?: string
+          created_at?: string
+          format?: string | null
+          id?: string
+          is_active?: boolean
+          priority?: string
+          topic_id?: string
+          topic_name_ar?: string
+          topic_name_en?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      immunizations: {
+        Row: {
+          created_at: string
+          doses: number
+          id: string
+          is_active: boolean
+          max_age_years: number
+          min_age_months: number
+          priority: string
+          schedule: string | null
+          updated_at: string
+          vaccine_id: string
+          vaccine_name_ar: string
+          vaccine_name_en: string
+        }
+        Insert: {
+          created_at?: string
+          doses?: number
+          id?: string
+          is_active?: boolean
+          max_age_years: number
+          min_age_months: number
+          priority: string
+          schedule?: string | null
+          updated_at?: string
+          vaccine_id: string
+          vaccine_name_ar: string
+          vaccine_name_en: string
+        }
+        Update: {
+          created_at?: string
+          doses?: number
+          id?: string
+          is_active?: boolean
+          max_age_years?: number
+          min_age_months?: number
+          priority?: string
+          schedule?: string | null
+          updated_at?: string
+          vaccine_id?: string
+          vaccine_name_ar?: string
+          vaccine_name_en?: string
+        }
+        Relationships: []
+      }
       medications: {
         Row: {
           compliance_percent: number | null
@@ -48,6 +174,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      patient_eligibility: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          id: string
+          is_eligible: boolean
+          last_completed_date: string | null
+          patient_age: number
+          patient_gender: string
+          patient_id: string
+          patient_name: string
+          priority: string
+          service_code: string
+          service_id: string
+          service_name_ar: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          is_eligible?: boolean
+          last_completed_date?: string | null
+          patient_age: number
+          patient_gender: string
+          patient_id: string
+          patient_name: string
+          priority: string
+          service_code: string
+          service_id: string
+          service_name_ar: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          is_eligible?: boolean
+          last_completed_date?: string | null
+          patient_age?: number
+          patient_gender?: string
+          patient_id?: string
+          patient_name?: string
+          priority?: string
+          service_code?: string
+          service_id?: string
+          service_name_ar?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       patients: {
         Row: {
@@ -124,6 +304,66 @@ export type Database = {
           updated_at?: string
           urgency_status?: string | null
           visit_window_text?: string | null
+        }
+        Relationships: []
+      }
+      preventive_services: {
+        Row: {
+          category: string
+          created_at: string
+          description_ar: string | null
+          frequency_months: number
+          gender: string
+          id: string
+          is_active: boolean
+          max_age: number
+          min_age: number
+          priority: string
+          risk_factors: string | null
+          service_code: string
+          service_id: string
+          service_name_ar: string
+          service_name_en: string
+          updated_at: string
+          uspstf_grade: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description_ar?: string | null
+          frequency_months?: number
+          gender: string
+          id?: string
+          is_active?: boolean
+          max_age: number
+          min_age: number
+          priority: string
+          risk_factors?: string | null
+          service_code: string
+          service_id: string
+          service_name_ar: string
+          service_name_en: string
+          updated_at?: string
+          uspstf_grade?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description_ar?: string | null
+          frequency_months?: number
+          gender?: string
+          id?: string
+          is_active?: boolean
+          max_age?: number
+          min_age?: number
+          priority?: string
+          risk_factors?: string | null
+          service_code?: string
+          service_id?: string
+          service_name_ar?: string
+          service_name_en?: string
+          updated_at?: string
+          uspstf_grade?: string | null
         }
         Relationships: []
       }
