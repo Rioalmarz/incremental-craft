@@ -26,74 +26,113 @@ serve(async (req) => {
 
     const { action, ...data } = await req.json();
 
-    // Allow init_superadmins without authentication (bootstrap action)
-    if (action === "init_superadmins") {
-      console.log("Starting init_superadmins...");
+    // Allow init_all_users without authentication (bootstrap action)
+    if (action === "init_superadmins" || action === "init_all_users") {
+      console.log("Starting user initialization...");
       
-      // Create the 3 default superadmin accounts
-      const superadmins = [
-        { username: "mahdi", password: "116140", name_ar: "Mahdi" },
-        { username: "rayan", password: "116140", name_ar: "Rayan" },
-        { username: "firas", password: "116140", name_ar: "Firas" },
+      // 25 Health Centers
+      const CENTERS = [
+        { id: 'obhur', nameAr: 'أبحر الشمالية' },
+        { id: 'salhiyah', nameAr: 'الصالحية' },
+        { id: 'majed', nameAr: 'الماجد' },
+        { id: 'shatea', nameAr: 'الشاطئ' },
+        { id: 'sheraa', nameAr: 'الشراع' },
+        { id: 'wafa', nameAr: 'الوفاء' },
+        { id: 'rayyan', nameAr: 'الريان' },
+        { id: 'khalid', nameAr: 'خالد النموذجي' },
+        { id: 'briman', nameAr: 'بريمان' },
+        { id: 'firdous', nameAr: 'الفردوس' },
+        { id: 'thuwal', nameAr: 'ثول' },
+        { id: 'dhahban', nameAr: 'ذهبان' },
+        { id: 'sawari', nameAr: 'الصواري' },
+        { id: 'rehab', nameAr: 'الرحاب' },
+        { id: 'bawadi1', nameAr: 'البوادي 1' },
+        { id: 'bawadi2', nameAr: 'البوادي 2' },
+        { id: 'safa2', nameAr: 'الصفا 2' },
+        { id: 'safa1', nameAr: 'الصفا 1' },
+        { id: 'salamah', nameAr: 'السلامة' },
+        { id: 'marwah', nameAr: 'المروة' },
+        { id: 'naeem', nameAr: 'النعيم' },
+        { id: 'nahda', nameAr: 'النهضة' },
+        { id: 'faisaliyah', nameAr: 'الفيصلية' },
+        { id: 'mushrifah', nameAr: 'مشرفة' },
+        { id: 'rabwah', nameAr: 'الربوة' }
       ];
 
+      // 3 Super Admins
+      const superadmins = [
+        { username: "mahdi", password: "116140", name_ar: "مهدي", role: "superadmin", center_id: null },
+        { username: "rayan", password: "116140", name_ar: "ريان", role: "superadmin", center_id: null },
+        { username: "firas", password: "116140", name_ar: "فراس", role: "superadmin", center_id: null },
+      ];
+
+      // 25 Center Users
+      const centerUsers = CENTERS.map(c => ({
+        username: c.id,
+        password: "123456",
+        name_ar: c.nameAr,
+        role: "center",
+        center_id: c.id
+      }));
+
+      const allUsers = [...superadmins, ...centerUsers];
       const results = [];
 
-      for (const admin of superadmins) {
-        const email = `${admin.username}@tbc.local`;
-        console.log(`Processing ${admin.username}...`);
+      for (const user of allUsers) {
+        const email = `${user.username}@tbc.local`;
+        console.log(`Processing ${user.username}...`);
 
         // Check if user already exists
         const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
         const existingUser = existingUsers?.users?.find(u => u.email === email);
 
         if (existingUser) {
-          console.log(`${admin.username} already exists`);
-          results.push({ username: admin.username, status: "already_exists" });
+          console.log(`${user.username} already exists`);
+          results.push({ username: user.username, status: "already_exists" });
           continue;
         }
 
         // Create user
         const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email,
-          password: admin.password,
+          password: user.password,
           email_confirm: true,
         });
 
         if (createError) {
-          console.error(`Error creating ${admin.username}:`, createError);
-          results.push({ username: admin.username, status: "error", error: createError.message });
+          console.error(`Error creating ${user.username}:`, createError);
+          results.push({ username: user.username, status: "error", error: createError.message });
           continue;
         }
 
-        console.log(`Created auth user for ${admin.username}: ${newUser.user.id}`);
+        console.log(`Created auth user for ${user.username}: ${newUser.user.id}`);
 
         // Create profile
         const { error: profileError } = await supabaseAdmin.from("profiles").insert({
           user_id: newUser.user.id,
-          username: admin.username,
-          name_ar: admin.name_ar,
-          center_id: null,
+          username: user.username,
+          name_ar: user.name_ar,
+          center_id: user.center_id,
         });
 
         if (profileError) {
-          console.error(`Error creating profile for ${admin.username}:`, profileError);
+          console.error(`Error creating profile for ${user.username}:`, profileError);
         }
 
         // Create role
         const { error: roleError } = await supabaseAdmin.from("user_roles").insert({
           user_id: newUser.user.id,
-          role: "superadmin",
+          role: user.role,
         });
 
         if (roleError) {
-          console.error(`Error creating role for ${admin.username}:`, roleError);
+          console.error(`Error creating role for ${user.username}:`, roleError);
         }
 
-        results.push({ username: admin.username, status: "created" });
+        results.push({ username: user.username, status: "created", role: user.role });
       }
 
-      console.log("init_superadmins completed:", results);
+      console.log("User initialization completed:", results);
 
       return new Response(
         JSON.stringify({ success: true, results }),
