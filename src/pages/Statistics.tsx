@@ -724,7 +724,7 @@ const Statistics = () => {
               <ChartCard title="الفئات العمرية" id="chart-age">
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={ageChartData} layout="vertical" margin={{ top: 5, right: 50, left: 10, bottom: 5 }}>
+                    <BarChart data={ageChartData} layout="vertical" margin={{ top: 5, right: 50, left: 80, bottom: 5 }}>
                       <defs>
                         <linearGradient id="ageGradient" x1="0" y1="0" x2="1" y2="0">
                           <stop offset="0%" stopColor="#00BCD4" />
@@ -736,10 +736,11 @@ const Statistics = () => {
                       <YAxis 
                         dataKey="name" 
                         type="category" 
-                        width={80} 
-                        tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} 
+                        width={70} 
+                        tick={{ fontSize: 12, fill: 'hsl(var(--foreground))', textAnchor: 'end' }} 
                         tickLine={false}
                         axisLine={false}
+                        orientation="left"
                       />
                       <Tooltip 
                         formatter={(value: number) => [`${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`, 'العدد']}
@@ -894,7 +895,7 @@ const Statistics = () => {
                       <BarChart 
                         data={topMeds} 
                         layout="vertical" 
-                        margin={{ top: 10, right: 60, left: 10, bottom: 10 }}
+                        margin={{ top: 10, right: 60, left: 160, bottom: 10 }}
                       >
                         <defs>
                           <linearGradient id="medGradient" x1="0" y1="0" x2="1" y2="0">
@@ -913,15 +914,17 @@ const Statistics = () => {
                         <YAxis 
                           dataKey="name" 
                           type="category" 
-                          width={180}
+                          width={150}
                           tick={{ 
                             fontSize: 11, 
                             fill: 'hsl(var(--foreground))',
-                            fontWeight: 500
+                            fontWeight: 500,
+                            textAnchor: 'end'
                           }}
                           tickLine={false}
                           axisLine={false}
                           interval={0}
+                          orientation="left"
                         />
                         <Tooltip 
                           formatter={(value: number, name: string, props: any) => [
