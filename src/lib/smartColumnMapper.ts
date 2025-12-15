@@ -255,7 +255,7 @@ export const getAllFieldMappings = (importType: "patients" | "preventive"): Fiel
   
   // Also get custom fields for related tables
   const relatedTables = importType === "patients" 
-    ? ["medications", "screening_data", "virtual_clinic_data"]
+    ? ["medications", "screening_data", "virtual_clinic_data", "patient_eligibility"]
     : [];
   
   const relatedCustomMappings = relatedTables.flatMap(table => convertCustomFieldsToMappings(table));
