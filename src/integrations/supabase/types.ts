@@ -403,6 +403,39 @@ export type Database = {
         }
         Relationships: []
       }
+      schedules: {
+        Row: {
+          center_name: string
+          created_at: string
+          date: string
+          doctor_id: string
+          doctor_name: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          center_name: string
+          created_at?: string
+          date: string
+          doctor_id: string
+          doctor_name: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          center_name?: string
+          created_at?: string
+          date?: string
+          doctor_id?: string
+          doctor_name?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       screening_data: {
         Row: {
           appointment_date: string | null

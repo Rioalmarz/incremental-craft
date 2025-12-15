@@ -16,6 +16,7 @@ import PreventiveCare from "./pages/PreventiveCare";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
 import Profile from "./pages/Profile";
+import DoctorScheduling from "./pages/DoctorScheduling";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/completed" element={<Completed />} />
             <Route path="/all-patients" element={<AllPatients />} />
             <Route path="/preventive-care" element={<PreventiveCare />} />
+            <Route path="/doctor-scheduling" element={<DoctorScheduling />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/profile" element={<Profile />} />
