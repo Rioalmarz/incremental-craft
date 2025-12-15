@@ -724,21 +724,34 @@ const Statistics = () => {
               <ChartCard title="الفئات العمرية" id="chart-age">
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={ageChartData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    <BarChart data={ageChartData} layout="vertical" margin={{ top: 5, right: 50, left: 10, bottom: 5 }}>
                       <defs>
                         <linearGradient id="ageGradient" x1="0" y1="0" x2="1" y2="0">
                           <stop offset="0%" stopColor="#00BCD4" />
                           <stop offset="100%" stopColor="#009688" />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                      <XAxis type="number" tick={{ fontSize: 12 }} />
-                      <YAxis dataKey="name" type="category" width={50} tick={{ fontSize: 12 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={true} vertical={false} />
+                      <XAxis type="number" tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={80} 
+                        tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }} 
+                        tickLine={false}
+                        axisLine={false}
+                      />
                       <Tooltip 
                         formatter={(value: number) => [`${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`, 'العدد']}
                         contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }} 
                       />
-                      <Bar dataKey="value" fill="url(#ageGradient)" radius={[0, 8, 8, 0]} name="العدد" />
+                      <Bar 
+                        dataKey="value" 
+                        fill="url(#ageGradient)" 
+                        radius={[0, 8, 8, 0]} 
+                        name="العدد"
+                        label={{ position: 'right', fill: 'hsl(var(--foreground))', fontSize: 11 }}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -881,7 +894,7 @@ const Statistics = () => {
                       <BarChart 
                         data={topMeds} 
                         layout="vertical" 
-                        margin={{ top: 10, right: 80, left: 20, bottom: 10 }}
+                        margin={{ top: 10, right: 60, left: 10, bottom: 10 }}
                       >
                         <defs>
                           <linearGradient id="medGradient" x1="0" y1="0" x2="1" y2="0">
@@ -900,14 +913,14 @@ const Statistics = () => {
                         <YAxis 
                           dataKey="name" 
                           type="category" 
-                          width={200}
+                          width={180}
                           tick={{ 
                             fontSize: 11, 
                             fill: 'hsl(var(--foreground))',
                             fontWeight: 500
                           }}
                           tickLine={false}
-                          axisLine={{ stroke: 'hsl(var(--border))' }}
+                          axisLine={false}
                           interval={0}
                         />
                         <Tooltip 
