@@ -14,6 +14,7 @@ import Completed from "./pages/Completed";
 import AllPatients from "./pages/AllPatients";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/all-patients" element={<AllPatients />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/profile" element={<Profile />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
