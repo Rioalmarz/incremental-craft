@@ -57,6 +57,7 @@ interface Patient {
   predicted_visit_date: string | null;
   days_until_visit: number | null;
   created_at: string;
+  prediction_accuracy: number | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; icon: any; color: string }> = {
@@ -98,13 +99,45 @@ const AllPatients = () => {
   const fetchPatients = async () => {
     setLoadingData(true);
     try {
-      const { data, error } = await supabase
+      // Fetch patients with their medications to get prediction_accuracy
+      const { data: patientsData, error: patientsError } = await supabase
         .from("patients")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*");
 
-      if (error) throw error;
-      setPatients(data || []);
+      if (patientsError) throw patientsError;
+
+      // Fetch medications to get prediction_accuracy
+      const { data: medicationsData, error: medsError } = await supabase
+        .from("medications")
+        .select("patient_id, prediction_accuracy");
+
+      if (medsError) throw medsError;
+
+      // Calculate max prediction_accuracy for each patient
+      const accuracyMap: Record<string, number> = {};
+      medicationsData?.forEach((med) => {
+        if (med.prediction_accuracy !== null) {
+          if (!accuracyMap[med.patient_id] || med.prediction_accuracy > accuracyMap[med.patient_id]) {
+            accuracyMap[med.patient_id] = med.prediction_accuracy;
+          }
+        }
+      });
+
+      // Merge accuracy into patients and sort by accuracy (highest first)
+      const patientsWithAccuracy = (patientsData || []).map((p) => ({
+        ...p,
+        prediction_accuracy: accuracyMap[p.id] ?? null,
+      }));
+
+      // Sort by prediction_accuracy descending (nulls last)
+      patientsWithAccuracy.sort((a, b) => {
+        if (a.prediction_accuracy === null && b.prediction_accuracy === null) return 0;
+        if (a.prediction_accuracy === null) return 1;
+        if (b.prediction_accuracy === null) return -1;
+        return b.prediction_accuracy - a.prediction_accuracy;
+      });
+
+      setPatients(patientsWithAccuracy);
     } catch (error) {
       console.error("Error fetching patients:", error);
       toast({
@@ -165,12 +198,11 @@ const AllPatients = () => {
     );
   };
 
-  const getPredictionBadge = (daysUntilVisit: number | null) => {
-    if (daysUntilVisit === null) {
-      return <Badge variant="outline" className="text-xs">غير متاح</Badge>;
+  const getPredictionBadge = (accuracy: number | null) => {
+    // Don't show if accuracy is null or less than 10%
+    if (accuracy === null || accuracy < 10) {
+      return <span className="text-muted-foreground text-xs">-</span>;
     }
-    // Simple accuracy calculation based on days until visit
-    const accuracy = Math.max(0, Math.min(100, 100 - Math.abs(daysUntilVisit) * 2));
     
     if (accuracy >= 85) {
       return <Badge className="bg-green-600 hover:bg-green-700 text-xs">{accuracy}%</Badge>;
@@ -386,7 +418,7 @@ const AllPatients = () => {
                           <TableCell>
                             <div className="flex items-center gap-1">
                               <Activity size={14} className="text-muted-foreground" />
-                              {getPredictionBadge(patient.days_until_visit)}
+                              {getPredictionBadge(patient.prediction_accuracy)}
                             </div>
                           </TableCell>
                         </TableRow>
