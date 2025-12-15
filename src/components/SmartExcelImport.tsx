@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   transformValue,
   ColumnMapping 
 } from "@/lib/smartColumnMapper";
+import { CustomFieldManager } from "@/components/CustomFieldManager";
 
 interface SmartExcelImportProps {
   importType: "patients" | "preventive";
@@ -43,8 +44,19 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
   const [isImporting, setIsImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ImportResult[]>([]);
+  const [fieldsVersion, setFieldsVersion] = useState(0);
 
   const availableFields = getAvailableFields(importType);
+  
+  // Callback when custom fields are updated
+  const handleFieldsUpdated = useCallback(() => {
+    setFieldsVersion(v => v + 1);
+    // Re-map columns if we have data
+    if (excelColumns.length > 0) {
+      const newMappings = mapExcelColumns(excelColumns, importType);
+      setColumnMappings(newMappings);
+    }
+  }, [excelColumns, importType]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -433,14 +445,17 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
         {/* Step 2: Mapping */}
         {step === "mapping" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="text-primary" size={18} />
                 <h3 className="font-semibold">ربط الأعمدة (تم الاستنتاج التلقائي)</h3>
               </div>
-              <Button variant="ghost" size="sm" onClick={resetImport}>
-                إلغاء
-              </Button>
+              <div className="flex items-center gap-2">
+                <CustomFieldManager onFieldsUpdated={handleFieldsUpdated} />
+                <Button variant="ghost" size="sm" onClick={resetImport}>
+                  إلغاء
+                </Button>
+              </div>
             </div>
             
             <p className="text-sm text-muted-foreground">
