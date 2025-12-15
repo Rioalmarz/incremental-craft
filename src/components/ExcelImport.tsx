@@ -86,6 +86,15 @@ const ExcelImport = () => {
     return normalized === "yes" || normalized === "نعم" || normalized === "1" || normalized === "true";
   };
 
+  const convertBurden = (value: string | undefined): string | null => {
+    if (!value) return null;
+    const normalized = value.toString().toLowerCase().trim();
+    if (normalized.includes("high") || normalized === "عالي") return "عالي";
+    if (normalized.includes("moderate") || normalized === "متوسط") return "متوسط";
+    if (normalized.includes("low") || normalized === "منخفض") return "منخفض";
+    return null; // Return null for unrecognized values to avoid constraint violation
+  };
+
   const handleImport = async () => {
     if (allData.length === 0) {
       toast({
@@ -136,7 +145,7 @@ const ExcelImport = () => {
           has_dm: convertYesNo(row.IsDiabetic),
           has_htn: convertYesNo(row.IsHypertensive),
           has_dyslipidemia: convertYesNo(row.IsDyslipidemic),
-          burden: row.Burden_Category?.toString().trim() || null,
+          burden: convertBurden(row.Burden_Category),
           days_until_visit: row.LIVE_days_until_visit ? Number(row.LIVE_days_until_visit) : null,
           urgency_status: row.urgency_status?.toString().trim() || null,
           team: row.Team?.toString().trim() || null,
