@@ -257,23 +257,41 @@ serve(async (req) => {
       }
 
       case "get_all_users": {
-        const { data: profiles, error } = await supabaseAdmin
+        // Query profiles and roles separately to avoid relationship issues
+        const { data: profiles, error: profilesError } = await supabaseAdmin
           .from("profiles")
-          .select(`
-            *,
-            user_roles (role)
-          `)
+          .select("*")
           .order("created_at", { ascending: false });
 
-        if (error) {
+        if (profilesError) {
           return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({ error: profilesError.message }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
+        const { data: roles, error: rolesError } = await supabaseAdmin
+          .from("user_roles")
+          .select("*");
+
+        if (rolesError) {
+          return new Response(
+            JSON.stringify({ error: rolesError.message }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Join data in code
+        const usersWithRoles = profiles?.map(profile => {
+          const userRole = roles?.find(r => r.user_id === profile.user_id);
+          return {
+            ...profile,
+            role: userRole?.role || "center",
+          };
+        }) || [];
+
         return new Response(
-          JSON.stringify({ users: profiles }),
+          JSON.stringify({ users: usersWithRoles }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
