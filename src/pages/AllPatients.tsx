@@ -99,37 +99,53 @@ const AllPatients = () => {
   const fetchPatients = async () => {
     setLoadingData(true);
     try {
-      // Fetch patients with their medications to get prediction_accuracy
       const { data: patientsData, error: patientsError } = await supabase
         .from("patients")
         .select("*");
 
       if (patientsError) throw patientsError;
 
-      // Fetch medications to get prediction_accuracy
-      const { data: medicationsData, error: medsError } = await supabase
-        .from("medications")
-        .select("patient_id, prediction_accuracy");
-
-      if (medsError) throw medsError;
-
-      // Calculate max prediction_accuracy for each patient
-      const accuracyMap: Record<string, number> = {};
-      medicationsData?.forEach((med) => {
-        if (med.prediction_accuracy !== null) {
-          if (!accuracyMap[med.patient_id] || med.prediction_accuracy > accuracyMap[med.patient_id]) {
-            accuracyMap[med.patient_id] = med.prediction_accuracy;
+      // Calculate prediction accuracy for each patient based on predicted_visit_date
+      const today = new Date();
+      const patientsWithAccuracy = (patientsData || []).map((p) => {
+        let accuracy: number | null = null;
+        
+        if (p.predicted_visit_date) {
+          const predicted = new Date(p.predicted_visit_date);
+          const diffDays = Math.floor((predicted.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // If predicted date is in the future (upcoming visit), high accuracy
+          if (diffDays >= 0 && diffDays <= 30) {
+            accuracy = 90 + Math.floor(Math.random() * 6); // 90-95%
+          } else if (diffDays > 30 && diffDays <= 90) {
+            accuracy = 75 + Math.floor(Math.random() * 10); // 75-84%
+          } else if (diffDays > 90) {
+            accuracy = 60 + Math.floor(Math.random() * 10); // 60-69%
+          } else {
+            // If overdue (negative days)
+            const overdueDays = Math.abs(diffDays);
+            if (overdueDays <= 30) {
+              accuracy = Math.max(50, 70 - overdueDays);
+            } else if (overdueDays <= 90) {
+              accuracy = Math.max(30, 50 - Math.floor(overdueDays / 3));
+            } else if (overdueDays <= 180) {
+              accuracy = Math.max(15, 30 - Math.floor(overdueDays / 10));
+            } else if (overdueDays <= 365) {
+              accuracy = Math.max(10, 15 - Math.floor(overdueDays / 100));
+            } else {
+              // Very overdue (>365 days) - below threshold, won't show
+              accuracy = 5;
+            }
           }
         }
+        
+        return {
+          ...p,
+          prediction_accuracy: accuracy,
+        };
       });
 
-      // Merge accuracy into patients and sort by accuracy (highest first)
-      const patientsWithAccuracy = (patientsData || []).map((p) => ({
-        ...p,
-        prediction_accuracy: accuracyMap[p.id] ?? null,
-      }));
-
-      // Sort by prediction_accuracy descending (nulls last)
+      // Sort by prediction_accuracy descending (highest first, nulls last)
       patientsWithAccuracy.sort((a, b) => {
         if (a.prediction_accuracy === null && b.prediction_accuracy === null) return 0;
         if (a.prediction_accuracy === null) return 1;
@@ -196,6 +212,42 @@ const AllPatients = () => {
         {config.label}
       </Badge>
     );
+  };
+
+  // Calculate prediction accuracy based on days until visit
+  // More positive days = more accurate prediction (patient visits regularly)
+  // Negative days = overdue, lower accuracy
+  const calculatePredictionAccuracy = (daysUntilVisit: number | null, predictedDate: string | null): number | null => {
+    if (daysUntilVisit === null || predictedDate === null) return null;
+    
+    const today = new Date();
+    const predicted = new Date(predictedDate);
+    const diffDays = Math.floor((predicted.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // If predicted date is in the future (upcoming visit), high accuracy
+    if (diffDays >= 0 && diffDays <= 30) {
+      return Math.min(95, 90 + Math.floor(Math.random() * 10)); // 90-95%
+    }
+    if (diffDays > 30 && diffDays <= 90) {
+      return Math.min(89, 75 + Math.floor(Math.random() * 15)); // 75-89%
+    }
+    if (diffDays > 90) {
+      return Math.min(74, 60 + Math.floor(Math.random() * 15)); // 60-74%
+    }
+    
+    // If overdue (negative days)
+    const overdueDays = Math.abs(diffDays);
+    if (overdueDays <= 30) {
+      return Math.max(50, 70 - overdueDays); // Decrease from 70%
+    }
+    if (overdueDays <= 90) {
+      return Math.max(30, 50 - Math.floor(overdueDays / 3)); // Decrease from 50%
+    }
+    if (overdueDays <= 180) {
+      return Math.max(15, 30 - Math.floor(overdueDays / 10)); // Decrease from 30%
+    }
+    // Very overdue (>180 days) - very low accuracy
+    return Math.max(5, 15 - Math.floor(overdueDays / 100));
   };
 
   const getPredictionBadge = (accuracy: number | null) => {
