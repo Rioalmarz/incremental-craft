@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Settings as SettingsIcon, Save, Video, Webhook, Loader2 } from "lucide-react";
 import SmartExcelImport from "@/components/SmartExcelImport";
 import ExcelExport from "@/components/ExcelExport";
+import AdminDataCleaner from "@/components/AdminDataCleaner";
 
 const AdminSettings = () => {
   const { user, loading, isSuperAdmin } = useAuth();
@@ -236,6 +237,14 @@ const AdminSettings = () => {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Data Cleaner - Danger Zone */}
+        <div className="pt-8 border-t border-destructive/20">
+          <h2 className="text-lg font-semibold text-destructive mb-4 flex items-center gap-2">
+            ⚠️ منطقة الخطر
+          </h2>
+          <AdminDataCleaner />
+        </div>
       </main>
     </div>
   );
