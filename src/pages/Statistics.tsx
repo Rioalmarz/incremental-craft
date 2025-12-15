@@ -876,32 +876,67 @@ const Statistics = () => {
                   ))}
                 </div>
                 {topMeds.length > 0 ? (
-                  <div className="h-[400px]">
+                  <div className="h-[500px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={topMeds} layout="vertical" margin={{ top: 5, right: 30, left: 160, bottom: 5 }}>
+                      <BarChart 
+                        data={topMeds} 
+                        layout="vertical" 
+                        margin={{ top: 10, right: 80, left: 20, bottom: 10 }}
+                      >
                         <defs>
                           <linearGradient id="medGradient" x1="0" y1="0" x2="1" y2="0">
                             <stop offset="0%" stopColor="#009688" />
                             <stop offset="100%" stopColor="#00BCD4" />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                        <XAxis type="number" tick={{ fontSize: 11 }} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} horizontal={true} vertical={false} />
+                        <XAxis 
+                          type="number" 
+                          tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
+                          tickLine={{ stroke: 'hsl(var(--border))' }}
+                          axisLine={{ stroke: 'hsl(var(--border))' }}
+                          domain={[0, 'auto']}
+                        />
                         <YAxis 
                           dataKey="name" 
                           type="category" 
-                          width={155} 
-                          tick={{ fontSize: 10, textAnchor: 'end' }} 
+                          width={200}
+                          tick={{ 
+                            fontSize: 11, 
+                            fill: 'hsl(var(--foreground))',
+                            fontWeight: 500
+                          }}
+                          tickLine={false}
+                          axisLine={{ stroke: 'hsl(var(--border))' }}
                           interval={0}
                         />
                         <Tooltip 
                           formatter={(value: number, name: string, props: any) => [
-                            `${value} (${props.payload.percent}%)`, 
-                            'العدد'
+                            `${value} مريض (${props.payload.percent}%)`, 
+                            props.payload.name
                           ]}
-                          contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }} 
+                          labelFormatter={(label) => `💊 ${label}`}
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))', 
+                            borderRadius: '12px',
+                            direction: 'rtl',
+                            textAlign: 'right',
+                            fontSize: '13px'
+                          }} 
                         />
-                        <Bar dataKey="count" fill="url(#medGradient)" radius={[0, 8, 8, 0]} name="العدد" />
+                        <Bar 
+                          dataKey="count" 
+                          fill="url(#medGradient)" 
+                          radius={[0, 8, 8, 0]} 
+                          name="العدد"
+                          label={{ 
+                            position: 'right', 
+                            fill: 'hsl(var(--foreground))', 
+                            fontSize: 11,
+                            formatter: (value: number) => value
+                          }}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
