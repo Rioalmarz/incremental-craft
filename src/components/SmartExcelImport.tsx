@@ -336,7 +336,7 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
         identifier: patientId || "غير معروف",
         name: patientName,
         status: "failed",
-        error: "رقم المريض ورمز الخدمة مطلوبان",
+        error: "رقم المستفيد ورمز الخدمة مطلوبان",
       });
       return;
     }
@@ -413,7 +413,7 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileSpreadsheet size={20} />
-          {importType === "patients" ? "استيراد بيانات المرضى" : "استيراد بيانات الرعاية الوقائية"}
+          {importType === "patients" ? "استيراد بيانات المستفيدين" : "استيراد بيانات الرعاية الوقائية"}
         </CardTitle>
         <CardDescription>
           رفع ملف Excel (.xlsx) - النظام يستنتج الأعمدة تلقائياً

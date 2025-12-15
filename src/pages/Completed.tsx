@@ -139,7 +139,7 @@ const Completed = () => {
       console.error("Error fetching patients:", error);
       toast({
         title: "خطأ",
-        description: "فشل في تحميل بيانات المرضى",
+        description: "فشل في تحميل بيانات المستفيدين",
         variant: "destructive",
       });
     } finally {
@@ -244,7 +244,7 @@ const Completed = () => {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {filteredPatients.length} مريض
+              {filteredPatients.length} مستفيد
             </Badge>
           </div>
         </div>
@@ -293,14 +293,14 @@ const Completed = () => {
               ) : filteredPatients.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
                   <CheckCircle size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>لا يوجد مرضى مكتملين</p>
+                  <p>لا يوجد مستفيدين مكتملين</p>
                 </div>
               ) : (
                 <>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">المريض</TableHead>
+                        <TableHead className="text-right">المستفيد</TableHead>
                         <TableHead className="text-right">الأمراض المزمنة</TableHead>
                         <TableHead className="text-right">الإجراء المتخذ</TableHead>
                         <TableHead className="text-right">الموعد المتوقع</TableHead>

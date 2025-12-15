@@ -236,14 +236,14 @@ const Home = () => {
       title: "الفرز الأولي", 
       icon: ClipboardList, 
       path: "/screening",
-      description: "فرز المرضى الجدد وتحديد الأولويات",
+      description: "فرز المستفيدين الجدد وتحديد الأولويات",
       gradient: "from-[hsl(var(--primary))] to-[hsl(var(--accent))]"
     },
     { 
       title: "العيادة الافتراضية", 
       icon: Stethoscope, 
       path: "/virtual-clinic",
-      description: "متابعة المرضى المحولين للعيادة",
+      description: "متابعة المستفيدين المحولين للعيادة",
       gradient: "from-[hsl(var(--accent))] to-[hsl(180,70%,35%)]"
     },
     { 
@@ -271,7 +271,7 @@ const Home = () => {
       title: "جميع البيانات", 
       icon: Database, 
       path: "/all-patients",
-      description: "عرض جميع بيانات المرضى",
+      description: "عرض جميع بيانات المستفيدين",
       gradient: "from-[hsl(var(--muted-foreground))] to-[hsl(220,10%,50%)]"
     },
     { 

@@ -29,7 +29,7 @@ export interface CustomField {
 }
 
 const AVAILABLE_TABLES = [
-  { id: 'patients', nameAr: 'جدول المرضى', icon: '👤', description: 'بيانات المرضى الأساسية' },
+  { id: 'patients', nameAr: 'جدول المستفيدين', icon: '👤', description: 'بيانات المستفيدين الأساسية' },
   { id: 'medications', nameAr: 'جدول الأدوية', icon: '💊', description: 'الأدوية والجرعات' },
   { id: 'screening_data', nameAr: 'جدول بيانات الفحص', icon: '🏥', description: 'التحاليل والفحوصات' },
   { id: 'virtual_clinic_data', nameAr: 'جدول العيادة الافتراضية', icon: '🩺', description: 'بيانات الفحص الطبي' },

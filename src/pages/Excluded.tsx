@@ -115,7 +115,7 @@ const Excluded = () => {
       console.error("Error fetching patients:", error);
       toast({
         title: "خطأ",
-        description: "فشل في تحميل بيانات المرضى",
+        description: "فشل في تحميل بيانات المستفيدين",
         variant: "destructive",
       });
     } finally {
@@ -181,7 +181,7 @@ const Excluded = () => {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {filteredPatients.length} مريض
+              {filteredPatients.length} مستفيد
             </Badge>
           </div>
         </div>
@@ -241,14 +241,14 @@ const Excluded = () => {
               ) : filteredPatients.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
                   <XCircle size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>لا يوجد مرضى مستبعدين</p>
+                  <p>لا يوجد مستفيدين مستبعدين</p>
                 </div>
               ) : (
                 <>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">المريض</TableHead>
+                        <TableHead className="text-right">المستفيد</TableHead>
                         <TableHead className="text-right">المركز / الفريق</TableHead>
                         <TableHead className="text-right">سبب الاستبعاد</TableHead>
                         <TableHead className="text-right">ملاحظات</TableHead>

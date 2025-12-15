@@ -454,7 +454,7 @@ const PreventiveCare = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground">إجمالي المرضى</p>
+                  <p className="text-xs text-muted-foreground">إجمالي المستفيدين</p>
                 </div>
               </div>
             </CardContent>
@@ -578,8 +578,8 @@ const PreventiveCare = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>المرضى والخدمات المؤهلين لها</span>
-              <Badge variant="secondary">{filteredPatients.length} مريض</Badge>
+              <span>المستفيدين والخدمات المؤهلين لها</span>
+              <Badge variant="secondary">{filteredPatients.length} مستفيد</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -587,7 +587,7 @@ const PreventiveCare = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="text-right">المريض</TableHead>
+                    <TableHead className="text-right">المستفيد</TableHead>
                     <TableHead className="text-right">العمر</TableHead>
                     <TableHead className="text-right">الجنس</TableHead>
                     <TableHead className="text-right">الفئة العمرية</TableHead>

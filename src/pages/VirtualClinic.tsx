@@ -245,7 +245,7 @@ const VirtualClinic = () => {
       console.error("Error fetching patients:", error);
       toast({
         title: "خطأ",
-        description: "فشل في تحميل بيانات المرضى",
+        description: "فشل في تحميل بيانات المستفيدين",
         variant: "destructive",
       });
     } finally {
@@ -358,7 +358,7 @@ const VirtualClinic = () => {
     if (hasEmergencySymptom()) {
       toast({
         title: "⚠️ تنبيه طارئ",
-        description: "يجب توجيه المريض فورًا للطوارئ أو التنسيق العاجل",
+        description: "يجب توجيه المستفيد فورًا للطوارئ أو التنسيق العاجل",
         variant: "destructive",
       });
       return;
@@ -491,7 +491,7 @@ const VirtualClinic = () => {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {filteredPatients.length} مريض
+              {filteredPatients.length} مستفيد
             </Badge>
           </div>
         </div>
@@ -538,14 +538,14 @@ const VirtualClinic = () => {
               ) : filteredPatients.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
                   <Stethoscope size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>لا يوجد مرضى في قائمة العيادة الافتراضية</p>
+                  <p>لا يوجد مستفيدين في قائمة العيادة الافتراضية</p>
                 </div>
               ) : (
                 <>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">المريض</TableHead>
+                        <TableHead className="text-right">المستفيد</TableHead>
                         <TableHead className="text-right">الأمراض</TableHead>
                         <TableHead className="text-right">سبب التحويل</TableHead>
                         <TableHead className="text-right">الأولوية</TableHead>
@@ -723,7 +723,7 @@ const VirtualClinic = () => {
                   </div>
                   {hasEmergencySymptom() && (
                     <div className="mt-4 p-3 bg-destructive/20 rounded-lg text-destructive text-sm">
-                      ⚠️ تنبيه: في حال اختيار أي عرض طارئ، يجب توجيه المريض فورًا للطوارئ أو التنسيق العاجل
+                      ⚠️ تنبيه: في حال اختيار أي عرض طارئ، يجب توجيه المستفيد فورًا للطوارئ أو التنسيق العاجل
                     </div>
                   )}
                 </CardContent>
