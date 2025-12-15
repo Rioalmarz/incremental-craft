@@ -247,6 +247,13 @@ const Home = () => {
       gradient: "from-[hsl(var(--accent))] to-[hsl(180,70%,35%)]"
     },
     { 
+      title: "الرعاية الوقائية", 
+      icon: Shield, 
+      path: "/preventive-care",
+      description: "الفحوصات والتطعيمات والتثقيف الصحي",
+      gradient: "from-[hsl(var(--info))] to-[hsl(220,70%,50%)]"
+    },
+    { 
       title: "المكتملين", 
       icon: CheckCircle, 
       path: "/completed",

@@ -12,6 +12,7 @@ import Statistics from "./pages/Statistics";
 import Excluded from "./pages/Excluded";
 import Completed from "./pages/Completed";
 import AllPatients from "./pages/AllPatients";
+import PreventiveCare from "./pages/PreventiveCare";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
 import Profile from "./pages/Profile";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/excluded" element={<Excluded />} />
             <Route path="/completed" element={<Completed />} />
             <Route path="/all-patients" element={<AllPatients />} />
+            <Route path="/preventive-care" element={<PreventiveCare />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/profile" element={<Profile />} />
