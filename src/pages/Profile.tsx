@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import ExcelImport from "@/components/ExcelImport";
+import SmartExcelImport from "@/components/SmartExcelImport";
 import ExcelExport from "@/components/ExcelExport";
 
 const Profile = () => {
@@ -557,7 +557,7 @@ const Profile = () => {
         {/* Import/Export Section - Only for SuperAdmin */}
         {isSuperAdmin && (
           <>
-            <ExcelImport />
+            <SmartExcelImport importType="patients" />
             <ExcelExport />
           </>
         )}

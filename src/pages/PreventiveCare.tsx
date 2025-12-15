@@ -50,7 +50,7 @@ import {
   Save,
   Upload,
 } from "lucide-react";
-import PreventiveCareImport from "@/components/PreventiveCareImport";
+import SmartExcelImport from "@/components/SmartExcelImport";
 import {
   getEligibleServices,
   getEligibleImmunizations,
@@ -896,7 +896,8 @@ const PreventiveCare = () => {
           <DialogHeader>
             <DialogTitle>استيراد بيانات الرعاية الوقائية</DialogTitle>
           </DialogHeader>
-          <PreventiveCareImport
+          <SmartExcelImport
+            importType="preventive"
             onImportComplete={() => {
               fetchData();
             }}

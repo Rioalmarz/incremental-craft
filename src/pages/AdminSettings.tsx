@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Settings as SettingsIcon, Save, Video, Webhook, Loader2 } from "lucide-react";
-import ExcelImport from "@/components/ExcelImport";
+import SmartExcelImport from "@/components/SmartExcelImport";
 import ExcelExport from "@/components/ExcelExport";
 
 const AdminSettings = () => {
@@ -141,7 +141,7 @@ const AdminSettings = () => {
 
       <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
         {/* Excel Import */}
-        <ExcelImport />
+        <SmartExcelImport importType="patients" />
         
         {/* Excel Export */}
         <ExcelExport />
