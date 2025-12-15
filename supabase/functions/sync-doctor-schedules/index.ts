@@ -6,6 +6,87 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Base64URL encode helper
+function base64UrlEncode(data: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...data));
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Helper function to create JWT for Google Service Account
+async function createServiceAccountJWT(serviceAccount: any): Promise<string> {
+  const header = {
+    alg: "RS256",
+    typ: "JWT",
+  };
+
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iss: serviceAccount.client_email,
+    scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+    aud: "https://oauth2.googleapis.com/token",
+    exp: now + 3600,
+    iat: now,
+  };
+
+  const encodedHeader = base64UrlEncode(new TextEncoder().encode(JSON.stringify(header)));
+  const encodedPayload = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)));
+  const signatureInput = `${encodedHeader}.${encodedPayload}`;
+
+  // Import the private key
+  const privateKeyPem = serviceAccount.private_key;
+  const pemContents = privateKeyPem
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\s/g, "");
+  
+  const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8",
+    binaryKey,
+    {
+      name: "RSASSA-PKCS1-v1_5",
+      hash: "SHA-256",
+    },
+    false,
+    ["sign"]
+  );
+
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    cryptoKey,
+    new TextEncoder().encode(signatureInput)
+  );
+
+  const encodedSignature = base64UrlEncode(new Uint8Array(signature));
+  return `${signatureInput}.${encodedSignature}`;
+}
+
+// Get access token from Google OAuth
+async function getAccessToken(serviceAccount: any): Promise<string> {
+  const jwt = await createServiceAccountJWT(serviceAccount);
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("OAuth error:", errorText);
+    throw new Error(`Failed to get access token: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -15,20 +96,30 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sheetsApiKey = Deno.env.get("GOOGLE_SHEETS_API_KEY");
+    const serviceAccountJson = Deno.env.get("GOOGLE_SHEETS_API_KEY");
     const sheetId = Deno.env.get("DOCTOR_SCHEDULE_SHEET_ID");
 
-    if (!sheetsApiKey || !sheetId) {
+    if (!serviceAccountJson || !sheetId) {
       console.log("Google Sheets credentials not configured, using sample data");
       
       // Return sample data for testing
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       
-      const sampleData = [
-        { center_name: "الشاطئ", doctor_name: "د. أحمد محمد", doctor_id: "1234567890", date: new Date().toISOString().split("T")[0], status: "كامل اليوم" },
-        { center_name: "الشاطئ", doctor_name: "د. فاطمة علي", doctor_id: "0987654321", date: new Date().toISOString().split("T")[0], status: "افتراضي" },
-        { center_name: "النهضة", doctor_name: "د. خالد سعيد", doctor_id: "1122334455", date: new Date().toISOString().split("T")[0], status: "مسائي" },
-      ];
+      const today = new Date();
+      const sampleData = [];
+      
+      // Generate sample data for a week
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        const dateStr = date.toISOString().split("T")[0];
+        
+        sampleData.push(
+          { center_name: "الشاطئ", doctor_name: "د. أحمد محمد", doctor_id: "1234567890", date: dateStr, status: i % 2 === 0 ? "كامل اليوم" : "افتراضي" },
+          { center_name: "الشاطئ", doctor_name: "د. فاطمة علي", doctor_id: "0987654321", date: dateStr, status: i % 3 === 0 ? "اجازة" : "افتراضي" },
+          { center_name: "النهضة", doctor_name: "د. خالد سعيد", doctor_id: "1122334455", date: dateStr, status: i % 2 === 1 ? "مسائي" : "كامل اليوم" },
+        );
+      }
 
       const { error } = await supabase
         .from("schedules")
@@ -49,21 +140,42 @@ serve(async (req) => {
       );
     }
 
+    // Parse Service Account JSON
+    let serviceAccount;
+    try {
+      serviceAccount = JSON.parse(serviceAccountJson);
+    } catch (e) {
+      console.error("Failed to parse service account JSON:", e);
+      throw new Error("Invalid service account JSON format");
+    }
+
+    console.log("Service account email:", serviceAccount.client_email);
+
+    // Get access token using service account
+    const accessToken = await getAccessToken(serviceAccount);
+    console.log("Successfully obtained access token");
+
     // Fetch data from Google Sheets
     const range = "A:Z"; // Adjust range as needed
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${sheetsApiKey}`;
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`;
     
     console.log("Fetching data from Google Sheets...");
-    const sheetsResponse = await fetch(sheetsUrl);
+    const sheetsResponse = await fetch(sheetsUrl, {
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+      },
+    });
     
     if (!sheetsResponse.ok) {
       const errorText = await sheetsResponse.text();
       console.error("Google Sheets API error:", errorText);
-      throw new Error(`Google Sheets API error: ${sheetsResponse.status}`);
+      throw new Error(`Google Sheets API error: ${sheetsResponse.status} - ${errorText}`);
     }
 
     const sheetsData = await sheetsResponse.json();
     const rows = sheetsData.values || [];
+
+    console.log(`Fetched ${rows.length} rows from Google Sheets`);
 
     if (rows.length < 2) {
       return new Response(
@@ -122,10 +234,8 @@ serve(async (req) => {
           // Try to parse date from header (could be in various formats)
           let dateStr = dateCol.date;
           
-          // If header looks like a date, try to parse it
           // Handle formats like "2024/01/15", "15/01/2024", "2024-01-15", etc.
           try {
-            // Try different date parsing approaches
             let parsedDate: Date | null = null;
             
             // Try ISO format first
@@ -140,6 +250,11 @@ serve(async (req) => {
             else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
               const parts = dateStr.split("/");
               parsedDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+            }
+            // Try mm/dd/yyyy format
+            else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+              const parts = dateStr.split("/");
+              parsedDate = new Date(`${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`);
             }
 
             if (parsedDate && !isNaN(parsedDate.getTime())) {
