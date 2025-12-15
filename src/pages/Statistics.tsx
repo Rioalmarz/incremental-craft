@@ -639,7 +639,7 @@ const Statistics = () => {
                 <KPICard 
                   icon={Users} 
                   value={total} 
-                  label="إجمالي المرضى" 
+                  label="إجمالي المستفيدين" 
                   color="text-[#00BCD4]" 
                   gradient="bg-gradient-to-br from-[#00BCD4] to-[#009688]"
                   delay={0}
@@ -884,7 +884,7 @@ const Statistics = () => {
                 </div>
                 {polypharmacyPercent >= 30 && (
                   <div className="mt-4 p-3 bg-[#9C27B0]/10 rounded-xl text-center animate-pulse">
-                    <span className="text-sm text-[#9C27B0] font-semibold">⚠️ تنبيه: {polypharmacyPercent}% من المرضى يتناولون 5 أدوية أو أكثر</span>
+                    <span className="text-sm text-[#9C27B0] font-semibold">⚠️ تنبيه: {polypharmacyPercent}% من المستفيدين يتناولون 5 أدوية أو أكثر</span>
                   </div>
                 )}
               </ChartCard>
@@ -928,7 +928,7 @@ const Statistics = () => {
                         />
                         <Tooltip 
                           formatter={(value: number, name: string, props: any) => [
-                            `${value} مريض (${props.payload.percent}%)`, 
+                            `${value} مستفيد (${props.payload.percent}%)`, 
                             props.payload.name,
                           ]}
                           labelFormatter={(label) => `💊 ${label}`}

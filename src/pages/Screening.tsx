@@ -172,7 +172,7 @@ const Screening = () => {
       console.error("Error fetching patients:", error);
       toast({
         title: "خطأ",
-        description: "فشل في تحميل بيانات المرضى",
+        description: "فشل في تحميل بيانات المستفيدين",
         variant: "destructive",
       });
     } finally {
@@ -309,7 +309,7 @@ const Screening = () => {
 
       toast({
         title: "تم الحفظ",
-        description: "تم تحويل المريض للعيادة الافتراضية",
+        description: "تم تحويل المستفيد للعيادة الافتراضية",
       });
 
       setIsModalOpen(false);
@@ -405,7 +405,7 @@ const Screening = () => {
 
       toast({
         title: "تم الحفظ",
-        description: "تم استبعاد المريض",
+        description: "تم استبعاد المستفيد",
       });
 
       setIsModalOpen(false);
@@ -503,7 +503,7 @@ const Screening = () => {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {filteredPatients.length} مريض
+              {filteredPatients.length} مستفيد
             </Badge>
           </div>
         </div>
@@ -550,14 +550,14 @@ const Screening = () => {
               ) : filteredPatients.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
                   <ClipboardCheck size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>لا يوجد مرضى في قائمة الفرز</p>
+                  <p>لا يوجد مستفيدين في قائمة الفرز</p>
                 </div>
               ) : (
                 <>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">المريض</TableHead>
+                        <TableHead className="text-right">المستفيد</TableHead>
                         <TableHead className="text-right">الأمراض</TableHead>
                         <TableHead className="text-right">العبء</TableHead>
                         <TableHead className="text-right">الأولوية</TableHead>

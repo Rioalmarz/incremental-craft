@@ -24,7 +24,7 @@ export const patientFieldMappings: FieldMapping[] = [
   {
     dbField: "name",
     displayName: "الاسم",
-    keywords: ["full name", "name", "الاسم", "patient name", "اسم المريض", "full name (arabic)", "full_name_ar", "اسم"],
+    keywords: ["full name", "name", "الاسم", "patient name", "اسم المستفيد", "full name (arabic)", "full_name_ar", "اسم"],
     required: true,
   },
   {
@@ -39,17 +39,17 @@ export const patientFieldMappings: FieldMapping[] = [
   },
   {
     dbField: "has_dm",
-    displayName: "مريض سكري",
+    displayName: "مستفيد سكري",
     keywords: ["is diabetic", "diabetes", "dm", "سكري", "diabetic", "isdiabetic", "السكري"],
   },
   {
     dbField: "has_htn",
-    displayName: "مريض ضغط",
+    displayName: "مستفيد ضغط",
     keywords: ["is hypertensive", "hypertension", "htn", "ضغط", "blood pressure", "ishypertensive", "الضغط"],
   },
   {
     dbField: "has_dyslipidemia",
-    displayName: "مريض دهون",
+    displayName: "مستفيد دهون",
     keywords: ["is dyslipidemic", "dyslipidemia", "dlp", "دهون", "lipids", "isdyslipidemic", "الدهون"],
   },
   {
@@ -98,14 +98,14 @@ export const patientFieldMappings: FieldMapping[] = [
 export const preventiveCareFieldMappings: FieldMapping[] = [
   {
     dbField: "patient_id",
-    displayName: "رقم المريض",
-    keywords: ["patient id", "patient_id", "رقم المريض", "national number", "national_number", "رقم الهوية", "هوية"],
+    displayName: "رقم المستفيد",
+    keywords: ["patient id", "patient_id", "رقم المستفيد", "national number", "national_number", "رقم الهوية", "هوية"],
     required: true,
   },
   {
     dbField: "patient_name",
-    displayName: "اسم المريض",
-    keywords: ["patient name", "patient_name", "اسم المريض", "name", "الاسم", "full name"],
+    displayName: "اسم المستفيد",
+    keywords: ["patient name", "patient_name", "اسم المستفيد", "name", "الاسم", "full name"],
     required: true,
   },
   {

@@ -158,7 +158,7 @@ const AllPatients = () => {
       console.error("Error fetching patients:", error);
       toast({
         title: "خطأ",
-        description: "فشل في تحميل بيانات المرضى",
+        description: "فشل في تحميل بيانات المستفيدين",
         variant: "destructive",
       });
     } finally {
@@ -302,7 +302,7 @@ const AllPatients = () => {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {patients.length} مريض
+              {patients.length} مستفيد
             </Badge>
           </div>
         </div>
@@ -411,7 +411,7 @@ const AllPatients = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">المريض</TableHead>
+                        <TableHead className="text-right">المستفيد</TableHead>
                         <TableHead className="text-right">المركز / الطبيب</TableHead>
                         <TableHead className="text-right">الأمراض المزمنة</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>

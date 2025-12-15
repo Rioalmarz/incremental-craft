@@ -86,12 +86,12 @@ const ExcelExport = () => {
       // Create workbook
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "المرضى");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "المستفيدين");
 
       // Generate filename with date
       const date = new Date().toISOString().split("T")[0];
       const statusLabel = statusFilter === "all" ? "الكل" : statusFilter;
-      const filename = `تصدير_المرضى_${statusLabel}_${date}.xlsx`;
+      const filename = `تصدير_المستفيدين_${statusLabel}_${date}.xlsx`;
 
       // Download
       XLSX.writeFile(workbook, filename);
@@ -117,10 +117,10 @@ const ExcelExport = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Download size={20} />
-          تصدير بيانات المرضى
+          تصدير بيانات المستفيدين
         </CardTitle>
         <CardDescription>
-          تصدير بيانات المرضى إلى ملف Excel (.xlsx)
+          تصدير بيانات المستفيدين إلى ملف Excel (.xlsx)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

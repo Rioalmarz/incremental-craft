@@ -46,7 +46,7 @@ const AdminDataCleaner = () => {
       ]);
 
       setTableCounts([
-        { name: "patients", label: "المرضى", icon: <Users size={18} />, count: patients.count || 0 },
+        { name: "patients", label: "المستفيدين", icon: <Users size={18} />, count: patients.count || 0 },
         { name: "patient_eligibility", label: "أهلية الرعاية الوقائية", icon: <ClipboardList size={18} />, count: eligibility.count || 0 },
         { name: "medications", label: "الأدوية", icon: <Pill size={18} />, count: medications.count || 0 },
         { name: "screening_data", label: "بيانات الفرز", icon: <Search size={18} />, count: screening.count || 0 },
@@ -129,7 +129,7 @@ const AdminDataCleaner = () => {
           </CardTitle>
           <CardDescription className="flex items-center gap-2">
             <AlertTriangle size={16} className="text-destructive" />
-            تحذير: هذا الإجراء سيحذف جميع بيانات المرضى بشكل نهائي ولا يمكن التراجع عنه
+            تحذير: هذا الإجراء سيحذف جميع بيانات المستفيدين بشكل نهائي ولا يمكن التراجع عنه
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -198,7 +198,7 @@ const AdminDataCleaner = () => {
                 </p>
                 <p className="flex items-center gap-2">
                   <span className="text-destructive">✗</span>
-                  سيحذف جميع بيانات المرضى والأدوية والفرز
+                  سيحذف جميع بيانات المستفيدين والأدوية والفرز
                 </p>
                 <p className="flex items-center gap-2">
                   <span className="text-green-600">✓</span>
