@@ -89,7 +89,7 @@ const Home = () => {
     { 
       title: "جميع البيانات", 
       icon: Database, 
-      path: "/all-data",
+      path: "/all-patients",
       description: "عرض جميع بيانات المرضى",
       color: "text-muted-foreground"
     },
