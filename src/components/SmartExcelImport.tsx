@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -46,9 +46,7 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
   const [results, setResults] = useState<ImportResult[]>([]);
   const [fieldsVersion, setFieldsVersion] = useState(0);
 
-  const availableFields = useMemo(() => {
-    return getAvailableFields(importType);
-  }, [importType, fieldsVersion]);
+  const availableFields = getAvailableFields(importType);
   
   // Callback when custom fields are updated
   const handleFieldsUpdated = useCallback(() => {
