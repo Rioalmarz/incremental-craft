@@ -93,12 +93,12 @@ const ParticlesBackground = () => {
         const dy = mouse.y - particle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Attract particles towards mouse
+        // Repel particles away from mouse
         if (distance < interactionRadius && distance > 0) {
           const force = (interactionRadius - distance) / interactionRadius;
           const angle = Math.atan2(dy, dx);
-          particle.x += Math.cos(angle) * force * repelStrength * 0.03;
-          particle.y += Math.sin(angle) * force * repelStrength * 0.03;
+          particle.x -= Math.cos(angle) * force * repelStrength * 0.05;
+          particle.y -= Math.sin(angle) * force * repelStrength * 0.05;
         } else {
           // Normal floating movement
           particle.x += particle.vx;
