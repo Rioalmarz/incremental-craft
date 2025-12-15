@@ -86,13 +86,11 @@ interface ScreeningData {
   referral_reason: string;
 }
 
-// Action options
-const SCREENING_ACTIONS = [
-  { value: "طلب_تحليل", label: "طلب تحليل" },
-  { value: "إعادة_صرف", label: "إعادة صرف" },
-  { value: "فحص_وقائي", label: "فحص وقائي" },
-  { value: "خدمة_استباقية", label: "خدمة استباقية" },
-  { value: "استبعاد", label: "استبعاد" },
+// Transfer reasons (shown when choosing virtual clinic)
+const TRANSFER_REASONS = [
+  { value: "إعادة_صرف_علاج", label: "لإعادة صرف العلاج" },
+  { value: "عمل_تحاليل", label: "لعمل تحاليل" },
+  { value: "فحص_وقائي", label: "للفحص الوقائي" },
 ];
 
 // Exclusion reasons
@@ -125,9 +123,10 @@ const Screening = () => {
 
   // New fields state
   const [phoneInput, setPhoneInput] = useState("");
-  const [selectedAction, setSelectedAction] = useState("");
+  const [selectedTransferReason, setSelectedTransferReason] = useState("");
   const [selectedExclusionReason, setSelectedExclusionReason] = useState("");
   const [customExclusionReason, setCustomExclusionReason] = useState("");
+  const [showExclusionForm, setShowExclusionForm] = useState(false);
 
   // Coding/Web search modal
   const [codingModalOpen, setCodingModalOpen] = useState(false);
@@ -205,8 +204,9 @@ const Screening = () => {
   const openScreeningModal = async (patient: Patient) => {
     setSelectedPatient(patient);
     setPhoneInput(patient.phone || "");
-    setSelectedAction("");
+    setSelectedTransferReason("");
     setSelectedExclusionReason("");
+    setShowExclusionForm(false);
     setCustomExclusionReason("");
     
     // Check if screening data exists
@@ -242,44 +242,14 @@ const Screening = () => {
     }
   };
 
-  const saveScreening = async () => {
+  const saveScreeningToVirtualClinic = async () => {
     if (!selectedPatient || !screeningData) return;
 
-    // Validate phone number
-    if (!phoneInput.trim()) {
+    // Validate transfer reason
+    if (!selectedTransferReason) {
       toast({
         title: "خطأ",
-        description: "يرجى إدخال رقم الجوال",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate action selection
-    if (!selectedAction) {
-      toast({
-        title: "خطأ",
-        description: "يرجى اختيار الإجراء",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // If exclusion, validate reason
-    if (selectedAction === "استبعاد" && !selectedExclusionReason) {
-      toast({
-        title: "خطأ",
-        description: "يرجى اختيار سبب الاستبعاد",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // If custom exclusion reason, validate text
-    if (selectedAction === "استبعاد" && selectedExclusionReason === "سبب_آخر" && !customExclusionReason.trim()) {
-      toast({
-        title: "خطأ",
-        description: "يرجى كتابة سبب الاستبعاد",
+        description: "يرجى اختيار سبب التحويل",
         variant: "destructive",
       });
       return;
@@ -287,17 +257,15 @@ const Screening = () => {
 
     setIsSaving(true);
     try {
-      const isExclusion = selectedAction === "استبعاد";
-      const referralReason = isExclusion ? "" : selectedAction;
-      const exclusionReason = isExclusion 
-        ? (selectedExclusionReason === "سبب_آخر" ? customExclusionReason : EXCLUSION_REASONS.find(r => r.value === selectedExclusionReason)?.label || "")
-        : "";
+      const referralReason = selectedTransferReason;
 
-      // Update patient phone
-      await supabase
-        .from("patients")
-        .update({ phone: phoneInput })
-        .eq("id", selectedPatient.id);
+      // Update patient phone if provided
+      if (phoneInput.trim()) {
+        await supabase
+          .from("patients")
+          .update({ phone: phoneInput })
+          .eq("id", selectedPatient.id);
+      }
 
       // Save or update screening data
       if (screeningData.id) {
@@ -331,24 +299,113 @@ const Screening = () => {
       }
 
       // Update patient status
-      const updateData: any = { 
-        status: isExclusion ? "excluded" : "virtualClinic",
-        action: referralReason,
-      };
-      if (isExclusion) {
-        updateData.exclusion_reason = exclusionReason;
-      }
-
       await supabase
         .from("patients")
-        .update(updateData)
+        .update({ 
+          status: "virtualClinic",
+          action: referralReason,
+        })
         .eq("id", selectedPatient.id);
 
       toast({
         title: "تم الحفظ",
-        description: isExclusion 
-          ? "تم استبعاد المريض" 
-          : "تم تحويل المريض للعيادة الافتراضية",
+        description: "تم تحويل المريض للعيادة الافتراضية",
+      });
+
+      setIsModalOpen(false);
+      fetchPatients();
+    } catch (error) {
+      console.error("Error saving screening:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل في حفظ البيانات",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveScreeningAsExcluded = async () => {
+    if (!selectedPatient || !screeningData) return;
+
+    // Validate exclusion reason
+    if (!selectedExclusionReason) {
+      toast({
+        title: "خطأ",
+        description: "يرجى اختيار سبب الاستبعاد",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If custom exclusion reason, validate text
+    if (selectedExclusionReason === "سبب_آخر" && !customExclusionReason.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى كتابة سبب الاستبعاد",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const exclusionReason = selectedExclusionReason === "سبب_آخر" 
+        ? customExclusionReason 
+        : EXCLUSION_REASONS.find(r => r.value === selectedExclusionReason)?.label || "";
+
+      // Update patient phone if provided
+      if (phoneInput.trim()) {
+        await supabase
+          .from("patients")
+          .update({ phone: phoneInput })
+          .eq("id", selectedPatient.id);
+      }
+
+      // Save or update screening data
+      if (screeningData.id) {
+        await supabase
+          .from("screening_data")
+          .update({
+            prev_contact: screeningData.prev_contact,
+            last_lab: screeningData.last_lab,
+            rx_status: screeningData.rx_status,
+            residence: screeningData.residence,
+            visit_type: screeningData.visit_type,
+            appointment_date: screeningData.appointment_date,
+            notes: screeningData.notes,
+            screened_by: screeningData.screened_by,
+            referral_reason: "",
+          })
+          .eq("id", screeningData.id);
+      } else {
+        await supabase.from("screening_data").insert({
+          patient_id: selectedPatient.id,
+          prev_contact: screeningData.prev_contact,
+          last_lab: screeningData.last_lab,
+          rx_status: screeningData.rx_status,
+          residence: screeningData.residence,
+          visit_type: screeningData.visit_type,
+          appointment_date: screeningData.appointment_date,
+          notes: screeningData.notes,
+          screened_by: screeningData.screened_by,
+          referral_reason: "",
+        });
+      }
+
+      // Update patient status
+      await supabase
+        .from("patients")
+        .update({ 
+          status: "excluded",
+          exclusion_reason: exclusionReason,
+        })
+        .eq("id", selectedPatient.id);
+
+      toast({
+        title: "تم الحفظ",
+        description: "تم استبعاد المريض",
       });
 
       setIsModalOpen(false);
@@ -669,27 +726,55 @@ const Screening = () => {
                 />
               </div>
 
-              {/* Action Selection - Required */}
-              <div className="space-y-2">
-                <Label>
-                  الإجراء المطلوب <span className="text-destructive">*</span>
-                </Label>
-                <Select value={selectedAction} onValueChange={setSelectedAction}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الإجراء..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SCREENING_ACTIONS.map((action) => (
-                      <SelectItem key={action.value} value={action.value}>
-                        {action.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <Button
+                  variant={!showExclusionForm ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setShowExclusionForm(false)}
+                >
+                  <Stethoscope size={18} className="ml-2" />
+                  تحويل للعيادة الافتراضية
+                </Button>
+                <Button
+                  variant={showExclusionForm ? "destructive" : "outline"}
+                  className="flex-1"
+                  onClick={() => setShowExclusionForm(true)}
+                >
+                  <XCircle size={18} className="ml-2" />
+                  استبعاد
+                </Button>
               </div>
 
-              {/* Exclusion Reasons - Show only when exclusion is selected */}
-              {selectedAction === "استبعاد" && (
+              {/* Transfer Reasons - Show when virtual clinic is selected */}
+              {!showExclusionForm && (
+                <Card className="border-primary/30 bg-primary/5">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center gap-2 text-primary">
+                      <Stethoscope size={18} />
+                      <Label>سبب التحويل للعيادة الافتراضية <span className="text-destructive">*</span></Label>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {TRANSFER_REASONS.map((reason) => (
+                        <button
+                          key={reason.value}
+                          onClick={() => setSelectedTransferReason(reason.value)}
+                          className={`flex items-center gap-3 p-3 rounded-lg border transition-all text-right ${
+                            selectedTransferReason === reason.value
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border hover:border-primary/50 hover:bg-muted/50"
+                          }`}
+                        >
+                          <span>{reason.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Exclusion Reasons - Show when exclusion is selected */}
+              {showExclusionForm && (
                 <Card className="border-destructive/50 bg-destructive/5">
                   <CardContent className="p-4 space-y-4">
                     <div className="flex items-center gap-2 text-destructive">
@@ -833,14 +918,15 @@ const Screening = () => {
                 />
               </div>
 
-              {/* Actions */}
+              {/* Save Action */}
               <div className="flex gap-3 pt-4 border-t">
                 <Button
                   className="flex-1"
-                  onClick={saveScreening}
+                  variant={showExclusionForm ? "destructive" : "default"}
+                  onClick={showExclusionForm ? saveScreeningAsExcluded : saveScreeningToVirtualClinic}
                   disabled={isSaving}
                 >
-                  {selectedAction === "استبعاد" ? (
+                  {showExclusionForm ? (
                     <>
                       <XCircle size={18} className="ml-2" />
                       استبعاد المريض
@@ -848,7 +934,7 @@ const Screening = () => {
                   ) : (
                     <>
                       <Stethoscope size={18} className="ml-2" />
-                      تحويل للعيادة الافتراضية
+                      حفظ وتحويل للعيادة
                     </>
                   )}
                 </Button>
