@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -43,6 +44,10 @@ import {
   AlertCircle,
   CheckCircle2,
   Clock,
+  Calendar,
+  XCircle,
+  Loader2,
+  Save,
 } from "lucide-react";
 import {
   getEligibleServices,
@@ -51,9 +56,6 @@ import {
   getAgeGroup,
   calculatePriorityScore,
   getPriorityLabel,
-  PREVENTIVE_SERVICES,
-  IMMUNIZATIONS,
-  HEALTH_EDUCATION,
   AGE_GROUPS,
   type PreventiveService,
   type Immunization,
@@ -72,25 +74,60 @@ interface Patient {
   status: string | null;
 }
 
+interface EligibilityRecord {
+  id?: string;
+  patient_id: string;
+  patient_name: string;
+  patient_age: number;
+  patient_gender: string;
+  service_id: string;
+  service_code: string;
+  service_name_ar: string;
+  is_eligible: boolean;
+  status: 'pending' | 'scheduled' | 'completed' | 'declined';
+  priority: string;
+  due_date?: string | null;
+  last_completed_date?: string | null;
+}
+
+interface ServiceWithStatus extends PreventiveService {
+  eligibilityStatus: 'pending' | 'scheduled' | 'completed' | 'declined';
+  eligibilityId?: string;
+  dueDate?: string | null;
+  lastCompletedDate?: string | null;
+}
+
 interface PatientWithEligibility extends Patient {
-  eligibleServices: PreventiveService[];
+  eligibleServices: ServiceWithStatus[];
   eligibleImmunizations: Immunization[];
   healthEducation: HealthEducation[];
   priorityScore: number;
   priorityLabel: { label_ar: string; label_en: string; color: string };
   ageGroup: typeof AGE_GROUPS[0] | undefined;
+  completedCount: number;
+  pendingCount: number;
 }
+
+const STATUS_CONFIG = {
+  pending: { label: 'قيد الانتظار', icon: Clock, color: 'bg-muted text-muted-foreground' },
+  scheduled: { label: 'مجدول', icon: Calendar, color: 'bg-info/10 text-info' },
+  completed: { label: 'مكتمل', icon: CheckCircle2, color: 'bg-success/10 text-success' },
+  declined: { label: 'مرفوض', icon: XCircle, color: 'bg-destructive/10 text-destructive' },
+};
 
 const PreventiveCare = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [patients, setPatients] = useState<PatientWithEligibility[]>([]);
+  const [eligibilityRecords, setEligibilityRecords] = useState<Map<string, EligibilityRecord>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [ageGroupFilter, setAgeGroupFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPatient, setSelectedPatient] = useState<PatientWithEligibility | null>(null);
+  const [savingStatus, setSavingStatus] = useState<string | null>(null);
   const pageSize = 15;
 
   useEffect(() => {
@@ -101,32 +138,64 @@ const PreventiveCare = () => {
 
   useEffect(() => {
     if (user) {
-      fetchPatients();
+      fetchData();
     }
   }, [user]);
 
-  const fetchPatients = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("patients")
-        .select("id, name, national_id, age, gender, has_dm, has_htn, has_dyslipidemia, status")
-        .order("name");
+      // Fetch patients and eligibility records in parallel
+      const [patientsResult, eligibilityResult] = await Promise.all([
+        supabase
+          .from("patients")
+          .select("id, name, national_id, age, gender, has_dm, has_htn, has_dyslipidemia, status")
+          .order("name"),
+        supabase
+          .from("patient_eligibility")
+          .select("*")
+      ]);
 
-      if (error) throw error;
+      if (patientsResult.error) throw patientsResult.error;
+      if (eligibilityResult.error) throw eligibilityResult.error;
 
-      const patientsWithEligibility: PatientWithEligibility[] = (data || []).map((patient) => {
+      // Create a map of eligibility records by patient_id + service_id
+      const eligibilityMap = new Map<string, EligibilityRecord>();
+      (eligibilityResult.data || []).forEach((record) => {
+        const key = `${record.patient_id}_${record.service_id}`;
+        eligibilityMap.set(key, record as EligibilityRecord);
+      });
+      setEligibilityRecords(eligibilityMap);
+
+      const patientsWithEligibility: PatientWithEligibility[] = (patientsResult.data || []).map((patient) => {
         const age = patient.age || 0;
         const gender = patient.gender?.toLowerCase() === "ذكر" || patient.gender?.toLowerCase() === "male" 
           ? "male" as const 
           : "female" as const;
         
-        const eligibleServices = getEligibleServices(age, gender);
-        const eligibleImmunizations = getEligibleImmunizations(age * 12); // Convert years to months
+        const baseServices = getEligibleServices(age, gender);
+        
+        // Merge with eligibility records
+        const eligibleServices: ServiceWithStatus[] = baseServices.map((service) => {
+          const key = `${patient.national_id}_${service.service_id}`;
+          const record = eligibilityMap.get(key);
+          return {
+            ...service,
+            eligibilityStatus: (record?.status as ServiceWithStatus['eligibilityStatus']) || 'pending',
+            eligibilityId: record?.id,
+            dueDate: record?.due_date,
+            lastCompletedDate: record?.last_completed_date,
+          };
+        });
+
+        const eligibleImmunizations = getEligibleImmunizations(age * 12);
         const healthEducation = getHealthEducationTopics(age);
-        const priorityScore = calculatePriorityScore(eligibleServices);
+        const priorityScore = calculatePriorityScore(baseServices);
         const priorityLabel = getPriorityLabel(priorityScore);
         const ageGroup = getAgeGroup(age);
+
+        const completedCount = eligibleServices.filter(s => s.eligibilityStatus === 'completed').length;
+        const pendingCount = eligibleServices.filter(s => s.eligibilityStatus === 'pending').length;
 
         return {
           ...patient,
@@ -136,16 +205,127 @@ const PreventiveCare = () => {
           priorityScore,
           priorityLabel,
           ageGroup,
+          completedCount,
+          pendingCount,
         };
       });
 
-      // Sort by priority score descending
-      patientsWithEligibility.sort((a, b) => b.priorityScore - a.priorityScore);
+      // Sort by pending count descending (most pending first)
+      patientsWithEligibility.sort((a, b) => b.pendingCount - a.pendingCount);
       setPatients(patientsWithEligibility);
     } catch (error) {
-      console.error("Error fetching patients:", error);
+      console.error("Error fetching data:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء جلب البيانات",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateServiceStatus = async (
+    patient: PatientWithEligibility,
+    service: ServiceWithStatus,
+    newStatus: 'pending' | 'scheduled' | 'completed' | 'declined'
+  ) => {
+    setSavingStatus(`${patient.national_id}_${service.service_id}`);
+    
+    try {
+      const gender = patient.gender?.toLowerCase() === "ذكر" || patient.gender?.toLowerCase() === "male" 
+        ? "male" : "female";
+
+      const eligibilityData: Omit<EligibilityRecord, 'id'> = {
+        patient_id: patient.national_id,
+        patient_name: patient.name,
+        patient_age: patient.age || 0,
+        patient_gender: gender,
+        service_id: service.service_id,
+        service_code: service.service_code,
+        service_name_ar: service.service_name_ar,
+        is_eligible: true,
+        status: newStatus,
+        priority: service.priority,
+        last_completed_date: newStatus === 'completed' ? new Date().toISOString().split('T')[0] : service.lastCompletedDate,
+      };
+
+      const { error } = await supabase
+        .from("patient_eligibility")
+        .upsert(eligibilityData, {
+          onConflict: 'patient_id,service_id',
+        });
+
+      if (error) throw error;
+
+      // Update local state
+      const key = `${patient.national_id}_${service.service_id}`;
+      const updatedRecord: EligibilityRecord = {
+        ...eligibilityData,
+        id: service.eligibilityId,
+      };
+      
+      setEligibilityRecords(prev => {
+        const newMap = new Map(prev);
+        newMap.set(key, updatedRecord);
+        return newMap;
+      });
+
+      // Update patients state
+      setPatients(prev => prev.map(p => {
+        if (p.id !== patient.id) return p;
+        
+        const updatedServices = p.eligibleServices.map(s => {
+          if (s.service_id !== service.service_id) return s;
+          return {
+            ...s,
+            eligibilityStatus: newStatus,
+            lastCompletedDate: newStatus === 'completed' ? new Date().toISOString().split('T')[0] : s.lastCompletedDate,
+          };
+        });
+
+        return {
+          ...p,
+          eligibleServices: updatedServices,
+          completedCount: updatedServices.filter(s => s.eligibilityStatus === 'completed').length,
+          pendingCount: updatedServices.filter(s => s.eligibilityStatus === 'pending').length,
+        };
+      }));
+
+      // Update selected patient if open
+      if (selectedPatient?.id === patient.id) {
+        setSelectedPatient(prev => {
+          if (!prev) return null;
+          const updatedServices = prev.eligibleServices.map(s => {
+            if (s.service_id !== service.service_id) return s;
+            return {
+              ...s,
+              eligibilityStatus: newStatus,
+              lastCompletedDate: newStatus === 'completed' ? new Date().toISOString().split('T')[0] : s.lastCompletedDate,
+            };
+          });
+          return {
+            ...prev,
+            eligibleServices: updatedServices,
+            completedCount: updatedServices.filter(s => s.eligibilityStatus === 'completed').length,
+            pendingCount: updatedServices.filter(s => s.eligibilityStatus === 'pending').length,
+          };
+        });
+      }
+
+      toast({
+        title: "تم التحديث",
+        description: `تم تحديث حالة "${service.service_name_ar}" إلى "${STATUS_CONFIG[newStatus].label}"`,
+      });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحديث الحالة",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingStatus(null);
     }
   };
 
@@ -172,10 +352,14 @@ const PreventiveCare = () => {
   // Statistics
   const stats = {
     total: patients.length,
-    highPriority: patients.filter((p) => p.priorityLabel.label_en === "High").length,
-    mediumPriority: patients.filter((p) => p.priorityLabel.label_en === "Medium").length,
-    lowPriority: patients.filter((p) => p.priorityLabel.label_en === "Low").length,
+    totalServices: patients.reduce((acc, p) => acc + p.eligibleServices.length, 0),
+    completedServices: patients.reduce((acc, p) => acc + p.completedCount, 0),
+    pendingServices: patients.reduce((acc, p) => acc + p.pendingCount, 0),
   };
+
+  const completionRate = stats.totalServices > 0 
+    ? Math.round((stats.completedServices / stats.totalServices) * 100) 
+    : 0;
 
   const getPriorityBadge = (label: { label_ar: string; color: string }) => {
     const colorMap: Record<string, string> = {
@@ -196,6 +380,17 @@ const PreventiveCare = () => {
     if (g === "male" || g === "ذكر") return "ذكر";
     if (g === "female" || g === "أنثى") return "أنثى";
     return gender;
+  };
+
+  const getStatusBadge = (status: keyof typeof STATUS_CONFIG) => {
+    const config = STATUS_CONFIG[status];
+    const Icon = config.icon;
+    return (
+      <Badge variant="outline" className={`${config.color} gap-1`}>
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
+    );
   };
 
   if (authLoading || loading) {
@@ -254,29 +449,15 @@ const PreventiveCare = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-destructive/5 to-destructive/10 border-destructive/20">
+          <Card className="bg-gradient-to-br from-info/5 to-info/10 border-info/20">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-destructive/20 rounded-lg flex items-center justify-center">
-                  <AlertCircle className="h-5 w-5 text-destructive" />
+                <div className="w-10 h-10 bg-info/20 rounded-lg flex items-center justify-center">
+                  <ClipboardCheck className="h-5 w-5 text-info" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.highPriority}</p>
-                  <p className="text-xs text-muted-foreground">أولوية عالية</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.mediumPriority}</p>
-                  <p className="text-xs text-muted-foreground">أولوية متوسطة</p>
+                  <p className="text-2xl font-bold">{stats.totalServices}</p>
+                  <p className="text-xs text-muted-foreground">إجمالي الخدمات</p>
                 </div>
               </div>
             </CardContent>
@@ -289,13 +470,38 @@ const PreventiveCare = () => {
                   <CheckCircle2 className="h-5 w-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.lowPriority}</p>
-                  <p className="text-xs text-muted-foreground">أولوية منخفضة</p>
+                  <p className="text-2xl font-bold">{stats.completedServices}</p>
+                  <p className="text-xs text-muted-foreground">خدمات مكتملة</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.pendingServices}</p>
+                  <p className="text-xs text-muted-foreground">قيد الانتظار</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Completion Progress */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">نسبة إنجاز الخدمات الوقائية</span>
+              <span className="text-sm font-bold text-primary">{completionRate}%</span>
+            </div>
+            <Progress value={completionRate} className="h-2" />
+          </CardContent>
+        </Card>
 
         {/* Filters */}
         <Card>
@@ -374,9 +580,9 @@ const PreventiveCare = () => {
                     <TableHead className="text-right">العمر</TableHead>
                     <TableHead className="text-right">الجنس</TableHead>
                     <TableHead className="text-right">الفئة العمرية</TableHead>
-                    <TableHead className="text-center">الفحوصات</TableHead>
-                    <TableHead className="text-center">التطعيمات</TableHead>
-                    <TableHead className="text-center">التثقيف</TableHead>
+                    <TableHead className="text-center">الخدمات</TableHead>
+                    <TableHead className="text-center">مكتمل</TableHead>
+                    <TableHead className="text-center">قيد الانتظار</TableHead>
                     <TableHead className="text-center">الأولوية</TableHead>
                     <TableHead className="text-center">إجراء</TableHead>
                   </TableRow>
@@ -414,13 +620,13 @@ const PreventiveCare = () => {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary" className="bg-accent/10 text-accent-foreground">
-                            {patient.eligibleImmunizations.length}
+                          <Badge variant="secondary" className="bg-success/10 text-success">
+                            {patient.completedCount}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary" className="bg-info/10 text-info">
-                            {patient.healthEducation.length}
+                          <Badge variant="secondary" className="bg-warning/10 text-warning">
+                            {patient.pendingCount}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
@@ -500,67 +706,121 @@ const PreventiveCare = () => {
               </DialogHeader>
 
               <div className="space-y-6 mt-4">
+                {/* Progress Summary */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-4 rounded-xl bg-primary/5 text-center">
+                    <p className="text-2xl font-bold text-primary">{selectedPatient.eligibleServices.length}</p>
+                    <p className="text-xs text-muted-foreground">إجمالي الخدمات</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-success/5 text-center">
+                    <p className="text-2xl font-bold text-success">{selectedPatient.completedCount}</p>
+                    <p className="text-xs text-muted-foreground">مكتمل</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-warning/5 text-center">
+                    <p className="text-2xl font-bold text-warning">{selectedPatient.pendingCount}</p>
+                    <p className="text-xs text-muted-foreground">قيد الانتظار</p>
+                  </div>
+                </div>
+
                 {/* Priority Score */}
                 <div className="p-4 rounded-xl bg-muted/50">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">درجة الأولوية</span>
-                    {getPriorityBadge(selectedPatient.priorityLabel)}
+                    <span className="text-sm font-medium">نسبة الإنجاز</span>
+                    <span className="text-sm font-bold">
+                      {selectedPatient.eligibleServices.length > 0 
+                        ? Math.round((selectedPatient.completedCount / selectedPatient.eligibleServices.length) * 100)
+                        : 0}%
+                    </span>
                   </div>
                   <Progress
-                    value={Math.min(100, (selectedPatient.priorityScore / 30) * 100)}
+                    value={selectedPatient.eligibleServices.length > 0 
+                      ? (selectedPatient.completedCount / selectedPatient.eligibleServices.length) * 100
+                      : 0}
                     className="h-2"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selectedPatient.priorityScore} نقطة
-                  </p>
                 </div>
 
-                {/* Eligible Services */}
+                {/* Eligible Services with Status Update */}
                 <Card>
                   <CardHeader className="py-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <ClipboardCheck className="h-5 w-5 text-primary" />
-                      الفحوصات الوقائية المؤهل لها ({selectedPatient.eligibleServices.length})
+                      الفحوصات الوقائية ({selectedPatient.eligibleServices.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="grid gap-2">
-                      {selectedPatient.eligibleServices.map((service) => (
-                        <div
-                          key={service.service_id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{service.service_name_ar}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {service.description_ar}
-                            </p>
+                    <div className="space-y-3">
+                      {selectedPatient.eligibleServices.map((service) => {
+                        const isSaving = savingStatus === `${selectedPatient.national_id}_${service.service_id}`;
+                        return (
+                          <div
+                            key={service.service_id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors gap-3"
+                          >
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium text-sm">{service.service_name_ar}</p>
+                                {getStatusBadge(service.eligibilityStatus)}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {service.description_ar}
+                              </p>
+                              {service.lastCompletedDate && (
+                                <p className="text-xs text-success mt-1">
+                                  آخر إنجاز: {new Date(service.lastCompletedDate).toLocaleDateString('ar-SA')}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={service.eligibilityStatus}
+                                onValueChange={(value) => 
+                                  updateServiceStatus(
+                                    selectedPatient, 
+                                    service, 
+                                    value as 'pending' | 'scheduled' | 'completed' | 'declined'
+                                  )
+                                }
+                                disabled={isSaving}
+                              >
+                                <SelectTrigger className="w-36">
+                                  {isSaving ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <SelectValue />
+                                  )}
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="pending">
+                                    <span className="flex items-center gap-2">
+                                      <Clock className="h-4 w-4" />
+                                      قيد الانتظار
+                                    </span>
+                                  </SelectItem>
+                                  <SelectItem value="scheduled">
+                                    <span className="flex items-center gap-2">
+                                      <Calendar className="h-4 w-4" />
+                                      مجدول
+                                    </span>
+                                  </SelectItem>
+                                  <SelectItem value="completed">
+                                    <span className="flex items-center gap-2">
+                                      <CheckCircle2 className="h-4 w-4" />
+                                      مكتمل
+                                    </span>
+                                  </SelectItem>
+                                  <SelectItem value="declined">
+                                    <span className="flex items-center gap-2">
+                                      <XCircle className="h-4 w-4" />
+                                      مرفوض
+                                    </span>
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant="outline"
-                              className={
-                                service.priority === "high"
-                                  ? "bg-destructive/10 text-destructive border-destructive/30"
-                                  : service.priority === "medium"
-                                  ? "bg-warning/10 text-warning border-warning/30"
-                                  : "bg-success/10 text-success border-success/30"
-                              }
-                            >
-                              {service.priority === "high"
-                                ? "عالي"
-                                : service.priority === "medium"
-                                ? "متوسط"
-                                : "منخفض"}
-                            </Badge>
-                            {service.frequency_months > 0 && (
-                              <Badge variant="secondary" className="text-xs">
-                                كل {service.frequency_months} شهر
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
