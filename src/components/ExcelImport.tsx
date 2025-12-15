@@ -18,12 +18,12 @@ interface ExcelRow {
   IsHypertensive?: string;
   IsDyslipidemic?: string;
   Burden_Category?: string;
-  LIVE_days_until_visit?: number;
+  days_until_visit?: number;
   urgency_status?: string;
   Team?: string;
   Preferred_Doctor?: string;
   Preferred_Center?: string;
-  predicted_visit_date?: string;
+  new_predicted_visit?: number; // Excel serial number
   chronic_medications_list?: string;
 }
 
@@ -92,7 +92,16 @@ const ExcelImport = () => {
     if (normalized.includes("high") || normalized === "عالي") return "عالي";
     if (normalized.includes("moderate") || normalized === "متوسط") return "متوسط";
     if (normalized.includes("low") || normalized === "منخفض") return "منخفض";
-    return null; // Return null for unrecognized values to avoid constraint violation
+    return null;
+  };
+
+  // Convert Excel serial number to date string (YYYY-MM-DD)
+  const excelSerialToDate = (serial: number | undefined): string | null => {
+    if (!serial || isNaN(serial)) return null;
+    // Excel serial date: days since 1899-12-30
+    const excelEpoch = new Date(1899, 11, 30);
+    const date = new Date(excelEpoch.getTime() + serial * 24 * 60 * 60 * 1000);
+    return date.toISOString().split("T")[0];
   };
 
   const handleImport = async () => {
@@ -146,12 +155,12 @@ const ExcelImport = () => {
           has_htn: convertYesNo(row.IsHypertensive),
           has_dyslipidemia: convertYesNo(row.IsDyslipidemic),
           burden: convertBurden(row.Burden_Category),
-          days_until_visit: row.LIVE_days_until_visit ? Number(row.LIVE_days_until_visit) : null,
+          days_until_visit: row.days_until_visit ? Number(row.days_until_visit) : null,
           urgency_status: row.urgency_status?.toString().trim() || null,
           team: row.Team?.toString().trim() || null,
           doctor: row.Preferred_Doctor?.toString().trim() || null,
           center_id: row.Preferred_Center?.toString().trim() || "",
-          predicted_visit_date: row.predicted_visit_date ? new Date(row.predicted_visit_date).toISOString().split("T")[0] : null,
+          predicted_visit_date: excelSerialToDate(row.new_predicted_visit),
           status: "pending",
         };
 
