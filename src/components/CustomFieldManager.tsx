@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Edit2, Settings } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Trash2, Edit2, Settings, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 export interface CustomField {
   id: string;
@@ -13,8 +15,10 @@ export interface CustomField {
   nameEn: string;
   dbField: string;
   keywords: string[];
-  targetTable: string;
-  dataType: 'text' | 'number' | 'boolean' | 'date';
+  targetTables: string[]; // Changed from targetTable to support multiple tables
+  targetTable: string; // Keep for backward compatibility
+  dataType: 'text' | 'number' | 'boolean' | 'date' | 'select';
+  options?: string[]; // Custom options for select type
   createdAt: string;
 }
 
@@ -27,9 +31,10 @@ const AVAILABLE_TABLES = [
 ];
 
 const DATA_TYPES = [
-  { id: 'text', nameAr: 'نص' },
+  { id: 'text', nameAr: 'نص حر' },
   { id: 'number', nameAr: 'رقم' },
-  { id: 'boolean', nameAr: 'نعم/لا' },
+  { id: 'boolean', nameAr: 'نعم/لا/غير معروف' },
+  { id: 'select', nameAr: 'قائمة خيارات محددة' },
   { id: 'date', nameAr: 'تاريخ' },
 ];
 
@@ -62,8 +67,10 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
   const [nameAr, setNameAr] = useState('');
   const [nameEn, setNameEn] = useState('');
   const [keywords, setKeywords] = useState('');
-  const [targetTable, setTargetTable] = useState('');
-  const [dataType, setDataType] = useState<'text' | 'number' | 'boolean' | 'date'>('text');
+  const [targetTables, setTargetTables] = useState<string[]>([]);
+  const [dataType, setDataType] = useState<'text' | 'number' | 'boolean' | 'date' | 'select'>('text');
+  const [options, setOptions] = useState<string[]>([]);
+  const [newOption, setNewOption] = useState('');
 
   useEffect(() => {
     setCustomFields(getCustomFields());
@@ -73,14 +80,40 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
     setNameAr('');
     setNameEn('');
     setKeywords('');
-    setTargetTable('');
+    setTargetTables([]);
     setDataType('text');
+    setOptions([]);
+    setNewOption('');
     setEditingField(null);
   };
 
+  const handleAddOption = () => {
+    if (newOption.trim() && !options.includes(newOption.trim())) {
+      setOptions([...options, newOption.trim()]);
+      setNewOption('');
+    }
+  };
+
+  const handleRemoveOption = (optionToRemove: string) => {
+    setOptions(options.filter(opt => opt !== optionToRemove));
+  };
+
+  const handleToggleTable = (tableId: string) => {
+    setTargetTables(prev => 
+      prev.includes(tableId) 
+        ? prev.filter(t => t !== tableId)
+        : [...prev, tableId]
+    );
+  };
+
   const handleSaveField = () => {
-    if (!nameAr || !nameEn || !targetTable) {
-      toast.error('يرجى ملء جميع الحقول المطلوبة');
+    if (!nameAr || !nameEn || targetTables.length === 0) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة واختيار جدول واحد على الأقل');
+      return;
+    }
+
+    if (dataType === 'select' && options.length === 0) {
+      toast.error('يرجى إضافة خيار واحد على الأقل للقائمة');
       return;
     }
 
@@ -92,8 +125,10 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
       nameEn,
       dbField: nameEn.toLowerCase().replace(/\s+/g, '_'),
       keywords: [...keywordsList, nameAr.toLowerCase(), nameEn.toLowerCase()],
-      targetTable,
+      targetTables,
+      targetTable: targetTables[0], // For backward compatibility
       dataType,
+      options: dataType === 'select' ? options : (dataType === 'boolean' ? ['نعم', 'لا', 'غير معروف'] : undefined),
       createdAt: editingField?.createdAt || new Date().toISOString(),
     };
 
@@ -117,8 +152,9 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
     setNameAr(field.nameAr);
     setNameEn(field.nameEn);
     setKeywords(field.keywords.filter(k => k !== field.nameAr.toLowerCase() && k !== field.nameEn.toLowerCase()).join(', '));
-    setTargetTable(field.targetTable);
+    setTargetTables(field.targetTables || [field.targetTable]);
     setDataType(field.dataType);
+    setOptions(field.options || []);
     setIsAddDialogOpen(true);
   };
 
@@ -165,7 +201,7 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {customFields.map(field => {
-                  const tableInfo = getTableInfo(field.targetTable);
+                  const tables = field.targetTables || [field.targetTable];
                   return (
                     <div 
                       key={field.id}
@@ -173,12 +209,24 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
                     >
                       <div className="flex-1">
                         <div className="font-medium">{field.nameAr}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {tableInfo?.icon} {tableInfo?.nameAr} • {DATA_TYPES.find(d => d.id === field.dataType)?.nameAr}
+                        <div className="text-sm text-muted-foreground flex flex-wrap gap-1 mt-1">
+                          {tables.map(tableId => {
+                            const tableInfo = getTableInfo(tableId);
+                            return (
+                              <Badge key={tableId} variant="secondary" className="text-xs">
+                                {tableInfo?.icon} {tableInfo?.nameAr}
+                              </Badge>
+                            );
+                          })}
+                          <Badge variant="outline" className="text-xs">
+                            {DATA_TYPES.find(d => d.id === field.dataType)?.nameAr}
+                          </Badge>
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          الكلمات المفتاحية: {field.keywords.slice(0, 5).join(', ')}
-                        </div>
+                        {field.options && field.options.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            الخيارات: {field.options.join('، ')}
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -250,27 +298,26 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
             </div>
 
             <div className="space-y-2">
-              <Label>الجدول الهدف *</Label>
-              <Select value={targetTable} onValueChange={setTargetTable}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الجدول" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_TABLES.map(table => (
-                    <SelectItem key={table.id} value={table.id}>
-                      <div className="flex items-center gap-2">
-                        <span>{table.icon}</span>
-                        <span>{table.nameAr}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {targetTable && (
-                <p className="text-xs text-muted-foreground">
-                  {getTableInfo(targetTable)?.description}
-                </p>
-              )}
+              <Label>الجداول الهدف * (يمكن اختيار أكثر من جدول)</Label>
+              <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
+                {AVAILABLE_TABLES.map(table => (
+                  <div key={table.id} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`table-${table.id}`}
+                      checked={targetTables.includes(table.id)}
+                      onCheckedChange={() => handleToggleTable(table.id)}
+                    />
+                    <label 
+                      htmlFor={`table-${table.id}`}
+                      className="text-sm cursor-pointer flex items-center gap-2 flex-1"
+                    >
+                      <span>{table.icon}</span>
+                      <span>{table.nameAr}</span>
+                      <span className="text-xs text-muted-foreground">- {table.description}</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -287,7 +334,48 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
                   ))}
                 </SelectContent>
               </Select>
+              {dataType === 'boolean' && (
+                <p className="text-xs text-muted-foreground">
+                  الخيارات: نعم، لا، غير معروف
+                </p>
+              )}
             </div>
+
+            {dataType === 'select' && (
+              <div className="space-y-2">
+                <Label>خيارات القائمة *</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={newOption}
+                    onChange={(e) => setNewOption(e.target.value)}
+                    placeholder="أضف خيار جديد"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
+                  />
+                  <Button type="button" size="sm" onClick={handleAddOption}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                {options.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {options.map((opt, idx) => (
+                      <Badge key={idx} variant="secondary" className="gap-1">
+                        {opt}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(opt)}
+                          className="hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  مثال: طبيعي، زيادة وزن، سمنة درجة 1، سمنة درجة 2، سمنة درجة 3
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-2 pt-4">
               <Button onClick={handleSaveField} className="flex-1">

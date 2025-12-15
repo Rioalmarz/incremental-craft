@@ -8,7 +8,8 @@ export interface FieldMapping {
   keywords: string[];
   required?: boolean;
   targetTable?: string;
-  dataType?: 'text' | 'number' | 'boolean' | 'date';
+  dataType?: 'text' | 'number' | 'boolean' | 'date' | 'select';
+  options?: string[]; // For select type
   isCustom?: boolean;
 }
 
@@ -235,14 +236,19 @@ const findBestMatch = (
 const convertCustomFieldsToMappings = (targetTable: string): FieldMapping[] => {
   const customFields = getCustomFields();
   return customFields
-    .filter(cf => cf.targetTable === targetTable)
+    .filter(cf => {
+      // Support both old single targetTable and new targetTables array
+      const tables = cf.targetTables || [cf.targetTable];
+      return tables.includes(targetTable);
+    })
     .map(cf => ({
       dbField: cf.dbField,
       displayName: cf.nameAr,
       keywords: cf.keywords,
       required: false,
-      targetTable: cf.targetTable,
+      targetTable: targetTable,
       dataType: cf.dataType,
+      options: cf.options,
       isCustom: true,
     }));
 };
