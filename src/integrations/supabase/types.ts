@@ -64,6 +64,7 @@ export type Database = {
           name: string
           national_id: string
           phone: string | null
+          predicted_visit_date: string | null
           status: string | null
           symptoms: Json | null
           team: string | null
@@ -88,6 +89,7 @@ export type Database = {
           name: string
           national_id: string
           phone?: string | null
+          predicted_visit_date?: string | null
           status?: string | null
           symptoms?: Json | null
           team?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           name?: string
           national_id?: string
           phone?: string | null
+          predicted_visit_date?: string | null
           status?: string | null
           symptoms?: Json | null
           team?: string | null
