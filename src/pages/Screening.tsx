@@ -43,7 +43,9 @@ import {
   Phone,
   Calendar,
   Pill,
-  AlertTriangle
+  AlertTriangle,
+  Globe,
+  FileText
 } from "lucide-react";
 
 interface Patient {
@@ -81,7 +83,28 @@ interface ScreeningData {
   appointment_date: string | null;
   notes: string;
   screened_by: string;
+  referral_reason: string;
 }
+
+// Action options
+const SCREENING_ACTIONS = [
+  { value: "طلب_تحليل", label: "طلب تحليل" },
+  { value: "إعادة_صرف", label: "إعادة صرف" },
+  { value: "فحص_وقائي", label: "فحص وقائي" },
+  { value: "خدمة_استباقية", label: "خدمة استباقية" },
+  { value: "استبعاد", label: "استبعاد" },
+];
+
+// Exclusion reasons
+const EXCLUSION_REASONS = [
+  { value: "لا_يرد_على_الاتصال", label: "لا يرد على الاتصال" },
+  { value: "رقم_غير_صحيح", label: "رقم غير صحيح" },
+  { value: "خارج_نطاق_الخدمة", label: "خارج نطاق الخدمة" },
+  { value: "لا_تنطبق_معايير_المبادرة", label: "لا تنطبق معايير المبادرة" },
+  { value: "لا_يحتاج_متابعة_حالياً", label: "لا يحتاج متابعة حالياً" },
+  { value: "انتقل_لمنطقة_أخرى", label: "انتقل لمنطقة أخرى" },
+  { value: "سبب_آخر", label: "سبب آخر" },
+];
 
 const Screening = () => {
   const { user, profile, loading, isSuperAdmin } = useAuth();
@@ -99,6 +122,22 @@ const Screening = () => {
   const [screeningData, setScreeningData] = useState<ScreeningData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // New fields state
+  const [phoneInput, setPhoneInput] = useState("");
+  const [selectedAction, setSelectedAction] = useState("");
+  const [selectedExclusionReason, setSelectedExclusionReason] = useState("");
+  const [customExclusionReason, setCustomExclusionReason] = useState("");
+
+  // Coding/Web search modal
+  const [codingModalOpen, setCodingModalOpen] = useState(false);
+  const [codingPatient, setCodingPatient] = useState<Patient | null>(null);
+  const [codingResult, setCodingResult] = useState("");
+  const [codingLoading, setCodingLoading] = useState(false);
+
+  // Patient summary modal
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+  const [summaryPatient, setSummaryPatient] = useState<Patient | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -165,6 +204,10 @@ const Screening = () => {
 
   const openScreeningModal = async (patient: Patient) => {
     setSelectedPatient(patient);
+    setPhoneInput(patient.phone || "");
+    setSelectedAction("");
+    setSelectedExclusionReason("");
+    setCustomExclusionReason("");
     
     // Check if screening data exists
     const { data } = await supabase
@@ -186,6 +229,7 @@ const Screening = () => {
         appointment_date: null,
         notes: "",
         screened_by: profile?.username || "",
+        referral_reason: "",
       });
     }
     
@@ -198,11 +242,63 @@ const Screening = () => {
     }
   };
 
-  const saveScreening = async (action: "virtualClinic" | "excluded") => {
+  const saveScreening = async () => {
     if (!selectedPatient || !screeningData) return;
+
+    // Validate phone number
+    if (!phoneInput.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال رقم الجوال",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate action selection
+    if (!selectedAction) {
+      toast({
+        title: "خطأ",
+        description: "يرجى اختيار الإجراء",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If exclusion, validate reason
+    if (selectedAction === "استبعاد" && !selectedExclusionReason) {
+      toast({
+        title: "خطأ",
+        description: "يرجى اختيار سبب الاستبعاد",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If custom exclusion reason, validate text
+    if (selectedAction === "استبعاد" && selectedExclusionReason === "سبب_آخر" && !customExclusionReason.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى كتابة سبب الاستبعاد",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSaving(true);
     try {
+      const isExclusion = selectedAction === "استبعاد";
+      const referralReason = isExclusion ? "" : selectedAction;
+      const exclusionReason = isExclusion 
+        ? (selectedExclusionReason === "سبب_آخر" ? customExclusionReason : EXCLUSION_REASONS.find(r => r.value === selectedExclusionReason)?.label || "")
+        : "";
+
+      // Update patient phone
+      await supabase
+        .from("patients")
+        .update({ phone: phoneInput })
+        .eq("id", selectedPatient.id);
+
       // Save or update screening data
       if (screeningData.id) {
         await supabase
@@ -216,6 +312,7 @@ const Screening = () => {
             appointment_date: screeningData.appointment_date,
             notes: screeningData.notes,
             screened_by: screeningData.screened_by,
+            referral_reason: referralReason,
           })
           .eq("id", screeningData.id);
       } else {
@@ -229,13 +326,17 @@ const Screening = () => {
           appointment_date: screeningData.appointment_date,
           notes: screeningData.notes,
           screened_by: screeningData.screened_by,
+          referral_reason: referralReason,
         });
       }
 
       // Update patient status
-      const updateData: any = { status: action };
-      if (action === "excluded") {
-        updateData.exclusion_reason = screeningData.notes;
+      const updateData: any = { 
+        status: isExclusion ? "excluded" : "virtualClinic",
+        action: referralReason,
+      };
+      if (isExclusion) {
+        updateData.exclusion_reason = exclusionReason;
       }
 
       await supabase
@@ -245,9 +346,9 @@ const Screening = () => {
 
       toast({
         title: "تم الحفظ",
-        description: action === "virtualClinic" 
-          ? "تم تحويل المريض للعيادة الافتراضية" 
-          : "تم استبعاد المريض",
+        description: isExclusion 
+          ? "تم استبعاد المريض" 
+          : "تم تحويل المريض للعيادة الافتراضية",
       });
 
       setIsModalOpen(false);
@@ -262,6 +363,37 @@ const Screening = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  // Coding/Web search mock
+  const openCodingModal = async (patient: Patient) => {
+    setCodingPatient(patient);
+    setCodingModalOpen(true);
+    setCodingLoading(true);
+    setCodingResult("");
+
+    // Mock web search delay
+    setTimeout(() => {
+      setCodingResult(`
+📋 ما تم تداوله رقميًا عن: ${patient.name}
+
+⚠️ ملاحظة: هذه معلومات مؤقتة للعرض فقط ولا يتم تخزينها.
+
+🔍 نتائج البحث:
+- لم يتم العثور على معلومات رقمية سابقة
+- السجل الرقمي: غير متوفر
+- التفاعل الإلكتروني: لا توجد بيانات
+
+💡 التوصية: التواصل المباشر مع المستفيد للتحقق من المعلومات
+      `);
+      setCodingLoading(false);
+    }, 1500);
+  };
+
+  // Patient summary
+  const openSummaryModal = (patient: Patient) => {
+    setSummaryPatient(patient);
+    setSummaryModalOpen(true);
   };
 
   const getUrgencyBadge = (urgency: string | null) => {
@@ -373,7 +505,7 @@ const Screening = () => {
                         <TableHead className="text-right">العبء</TableHead>
                         <TableHead className="text-right">الأولوية</TableHead>
                         <TableHead className="text-right">الموعد القادم</TableHead>
-                        <TableHead className="text-right">الإجراء</TableHead>
+                        <TableHead className="text-right">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -420,13 +552,30 @@ const Screening = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              onClick={() => openScreeningModal(patient)}
-                            >
-                              <ClipboardCheck size={16} className="ml-1" />
-                              فرز
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => openScreeningModal(patient)}
+                              >
+                                <ClipboardCheck size={16} className="ml-1" />
+                                فرز
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openCodingModal(patient)}
+                              >
+                                <Globe size={16} className="ml-1" />
+                                ترميز
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openSummaryModal(patient)}
+                              >
+                                <FileText size={16} />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -493,8 +642,8 @@ const Screening = () => {
                       <p className="font-medium">{selectedPatient.age || "-"}</p>
                     </div>
                     <div>
-                      <p className="text-muted-foreground">الجوال</p>
-                      <p className="font-medium">{selectedPatient.phone || "-"}</p>
+                      <p className="text-muted-foreground">الجنس</p>
+                      <p className="font-medium">{selectedPatient.gender || "-"}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3">
@@ -504,7 +653,78 @@ const Screening = () => {
                 </CardContent>
               </Card>
 
-              {/* Screening Form */}
+              {/* Phone Number - Required */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Phone size={16} />
+                  رقم الجوال <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  type="tel"
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                  placeholder="05xxxxxxxx"
+                  className="text-left"
+                  dir="ltr"
+                />
+              </div>
+
+              {/* Action Selection - Required */}
+              <div className="space-y-2">
+                <Label>
+                  الإجراء المطلوب <span className="text-destructive">*</span>
+                </Label>
+                <Select value={selectedAction} onValueChange={setSelectedAction}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر الإجراء..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SCREENING_ACTIONS.map((action) => (
+                      <SelectItem key={action.value} value={action.value}>
+                        {action.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Exclusion Reasons - Show only when exclusion is selected */}
+              {selectedAction === "استبعاد" && (
+                <Card className="border-destructive/50 bg-destructive/5">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center gap-2 text-destructive">
+                      <XCircle size={18} />
+                      <Label>سبب الاستبعاد <span className="text-destructive">*</span></Label>
+                    </div>
+                    <Select value={selectedExclusionReason} onValueChange={setSelectedExclusionReason}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر السبب..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EXCLUSION_REASONS.map((reason) => (
+                          <SelectItem key={reason.value} value={reason.value}>
+                            {reason.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {selectedExclusionReason === "سبب_آخر" && (
+                      <div className="space-y-2">
+                        <Label>اكتب السبب</Label>
+                        <Textarea
+                          value={customExclusionReason}
+                          onChange={(e) => setCustomExclusionReason(e.target.value)}
+                          placeholder="اكتب سبب الاستبعاد..."
+                          rows={2}
+                        />
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Screening Form - Additional fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>التواصل السابق</Label>
@@ -617,22 +837,113 @@ const Screening = () => {
               <div className="flex gap-3 pt-4 border-t">
                 <Button
                   className="flex-1"
-                  onClick={() => saveScreening("virtualClinic")}
+                  onClick={saveScreening}
                   disabled={isSaving}
                 >
-                  <Stethoscope size={18} className="ml-2" />
-                  تحويل للعيادة الافتراضية
+                  {selectedAction === "استبعاد" ? (
+                    <>
+                      <XCircle size={18} className="ml-2" />
+                      استبعاد المريض
+                    </>
+                  ) : (
+                    <>
+                      <Stethoscope size={18} className="ml-2" />
+                      تحويل للعيادة الافتراضية
+                    </>
+                  )}
                 </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={() => saveScreening("excluded")}
-                  disabled={isSaving}
-                >
-                  <XCircle size={18} className="ml-2" />
-                  استبعاد
+                <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+                  إلغاء
                 </Button>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Coding/Web Search Modal */}
+      <Dialog open={codingModalOpen} onOpenChange={setCodingModalOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="text-primary" />
+              ما تم تداوله رقميًا
+            </DialogTitle>
+          </DialogHeader>
+          {codingPatient && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                البحث عن: <strong>{codingPatient.name}</strong>
+              </p>
+              {codingLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <FlowerLogo animate size={40} />
+                </div>
+              ) : (
+                <div className="bg-muted/50 rounded-lg p-4 whitespace-pre-wrap text-sm">
+                  {codingResult}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground text-center">
+                ⚠️ هذه البيانات للعرض فقط ولا يتم تخزينها
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Patient Summary Modal */}
+      <Dialog open={summaryModalOpen} onOpenChange={setSummaryModalOpen}>
+        <DialogContent className="max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="text-primary" />
+              ملخص المريض
+            </DialogTitle>
+          </DialogHeader>
+          {summaryPatient && (
+            <div className="space-y-4">
+              <Card className="bg-secondary/30">
+                <CardContent className="p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">الاسم</p>
+                      <p className="font-medium">{summaryPatient.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">رقم الهوية</p>
+                      <p className="font-medium">{summaryPatient.national_id}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">الحالة</p>
+                      <Badge variant="outline">{summaryPatient.status}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">العبء</p>
+                      <p className="font-medium">{summaryPatient.burden || "-"}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-sm mb-1">الأمراض المزمنة</p>
+                    <div className="flex gap-1">
+                      {getDiseasesBadges(summaryPatient)}
+                      {!summaryPatient.has_dm && !summaryPatient.has_htn && !summaryPatient.has_dyslipidemia && (
+                        <Badge variant="outline">لا يوجد</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-sm mb-1">الأولوية</p>
+                    {getUrgencyBadge(summaryPatient.urgency_status)}
+                  </div>
+                  {summaryPatient.action && (
+                    <div>
+                      <p className="text-muted-foreground text-sm mb-1">الإجراء</p>
+                      <p className="font-medium">{summaryPatient.action}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
         </DialogContent>

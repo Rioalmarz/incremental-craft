@@ -8,8 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -48,6 +47,9 @@ import {
   CalendarCheck,
   ArrowRightLeft,
   CheckCircle,
+  FileText,
+  Shield,
+  Activity,
 } from "lucide-react";
 
 interface Patient {
@@ -79,6 +81,13 @@ interface Medication {
   name: string;
   dosage: string | null;
   compliance_percent: number | null;
+  prediction_accuracy: number | null;
+}
+
+interface ScreeningData {
+  id: string;
+  patient_id: string;
+  referral_reason: string | null;
 }
 
 interface ClinicData {
@@ -94,6 +103,10 @@ interface ClinicData {
   referral_specialty: string;
   notes: string;
   examined_by: string;
+}
+
+interface MedicationStatus {
+  [medId: string]: boolean; // true = يأخذه, false = لا يأخذه
 }
 
 const EMERGENCY_SYMPTOMS = [
@@ -113,6 +126,71 @@ const FINAL_ACTIONS = [
   { value: "no_intervention", label: "لا يحتاج تدخل", icon: CheckCircle },
 ];
 
+// Preventive screening recommendations based on Saudi/USPSTF guidelines
+const getPreventiveScreenings = (age: number | null, gender: string | null): { name: string; recommendation: string }[] => {
+  if (!age) return [];
+  
+  const screenings: { name: string; recommendation: string }[] = [];
+  
+  // Fasting glucose for age >= 35
+  if (age >= 35) {
+    screenings.push({ name: "سكر صائم", recommendation: "العمر ≥ 35" });
+  }
+  
+  // Breast cancer screening for females >= 40
+  if (gender === "أنثى" && age >= 40) {
+    screenings.push({ name: "فحص سرطان الثدي (ماموجرام)", recommendation: "السعودية Grade A - العمر ≥ 40" });
+  }
+  
+  // Colorectal cancer screening for age >= 45
+  if (age >= 45) {
+    screenings.push({ name: "فحص سرطان القولون (FIT)", recommendation: "USPSTF Grade A - العمر ≥ 45" });
+  }
+  
+  // PSA for males >= 50
+  if (gender === "ذكر" && age >= 50) {
+    screenings.push({ name: "فحص PSA (البروستاتا)", recommendation: "USPSTF Grade C - العمر ≥ 50" });
+  }
+  
+  // Pap smear for females 21-65
+  if (gender === "أنثى" && age >= 21 && age <= 65) {
+    screenings.push({ name: "مسحة عنق الرحم (Pap smear)", recommendation: "USPSTF Grade A" });
+  }
+  
+  // Osteoporosis screening for females >= 65
+  if (gender === "أنثى" && age >= 65) {
+    screenings.push({ name: "فحص هشاشة العظام", recommendation: "USPSTF Grade B - العمر ≥ 65" });
+  }
+  
+  // Pneumococcal vaccine for age >= 65
+  if (age >= 65) {
+    screenings.push({ name: "تطعيم المكورات الرئوية", recommendation: "العمر ≥ 65" });
+  }
+  
+  // Herpes Zoster vaccine for age >= 50
+  if (age >= 50) {
+    screenings.push({ name: "تطعيم الهربس النطاقي (الحزام الناري)", recommendation: "العمر ≥ 50" });
+  }
+  
+  // HPV vaccine for ages 9-26
+  if (age >= 9 && age <= 26) {
+    screenings.push({ name: "تطعيم فيروس الورم الحليمي (HPV)", recommendation: "العمر 9-26" });
+  }
+  
+  return screenings;
+};
+
+const getReferralReasonLabel = (reason: string | null): string => {
+  if (!reason) return "غير محدد";
+  const labels: { [key: string]: string } = {
+    "طلب_تحليل": "طلب تحليل",
+    "إعادة_صرف": "إعادة صرف",
+    "فحص_وقائي": "فحص وقائي",
+    "خدمة_استباقية": "خدمة استباقية",
+  };
+  return labels[reason] || reason;
+};
+
 const VirtualClinic = () => {
   const { user, profile, loading } = useAuth();
   const navigate = useNavigate();
@@ -127,6 +205,8 @@ const VirtualClinic = () => {
   // Modal state
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [medicationStatus, setMedicationStatus] = useState<MedicationStatus>({});
+  const [screeningData, setScreeningData] = useState<ScreeningData | null>(null);
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -197,6 +277,15 @@ const VirtualClinic = () => {
   const openClinicModal = async (patient: Patient) => {
     setSelectedPatient(patient);
 
+    // Fetch screening data for referral reason
+    const { data: screenData } = await supabase
+      .from("screening_data")
+      .select("id, patient_id, referral_reason")
+      .eq("patient_id", patient.id)
+      .maybeSingle();
+
+    setScreeningData(screenData as ScreeningData | null);
+
     // Fetch medications
     const { data: medsData } = await supabase
       .from("medications")
@@ -204,6 +293,13 @@ const VirtualClinic = () => {
       .eq("patient_id", patient.id);
 
     setMedications(medsData || []);
+    
+    // Initialize medication status (default to true = يأخذه)
+    const initialStatus: MedicationStatus = {};
+    (medsData || []).forEach((med: Medication) => {
+      initialStatus[med.id] = true;
+    });
+    setMedicationStatus(initialStatus);
 
     // Check if clinic data exists
     const { data: existingData } = await supabase
@@ -251,17 +347,8 @@ const VirtualClinic = () => {
     }
   };
 
-  const handleMedicationComplianceChange = async (medId: string, value: number) => {
-    // Update local state
-    setMedications((prev) =>
-      prev.map((m) => (m.id === medId ? { ...m, compliance_percent: value } : m))
-    );
-
-    // Update in database
-    await supabase
-      .from("medications")
-      .update({ compliance_percent: value })
-      .eq("id", medId);
+  const handleMedicationStatusChange = (medId: string, taking: boolean) => {
+    setMedicationStatus(prev => ({ ...prev, [medId]: taking }));
   };
 
   const saveClinicData = async () => {
@@ -371,6 +458,10 @@ const VirtualClinic = () => {
     return badges;
   };
 
+  const hasChronicDisease = (patient: Patient) => {
+    return patient.has_dm || patient.has_htn || patient.has_dyslipidemia;
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -456,7 +547,7 @@ const VirtualClinic = () => {
                       <TableRow>
                         <TableHead className="text-right">المريض</TableHead>
                         <TableHead className="text-right">الأمراض</TableHead>
-                        <TableHead className="text-right">العبء</TableHead>
+                        <TableHead className="text-right">سبب التحويل</TableHead>
                         <TableHead className="text-right">الأولوية</TableHead>
                         <TableHead className="text-right">الموعد القادم</TableHead>
                         <TableHead className="text-right">الإجراء</TableHead>
@@ -479,10 +570,15 @@ const VirtualClinic = () => {
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {getDiseasesBadges(patient)}
+                              {!hasChronicDisease(patient) && (
+                                <Badge variant="outline" className="text-xs">لا يوجد</Badge>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm">{patient.burden || "-"}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              {getReferralReasonLabel(patient.action)}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             {getUrgencyBadge(patient.urgency_status)}
@@ -586,6 +682,19 @@ const VirtualClinic = () => {
                 </CardContent>
               </Card>
 
+              {/* Referral Reason from Screening */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="text-primary" size={18} />
+                    <h3 className="font-semibold">سبب التحويل من الفرز الأولي</h3>
+                  </div>
+                  <Badge className="bg-primary/20 text-primary border-primary/30">
+                    {getReferralReasonLabel(screeningData?.referral_reason || selectedPatient.action)}
+                  </Badge>
+                </CardContent>
+              </Card>
+
               {/* Emergency Symptoms Assessment */}
               <Card className={hasEmergencySymptom() ? "border-destructive bg-destructive/10" : ""}>
                 <CardContent className="p-4">
@@ -599,11 +708,11 @@ const VirtualClinic = () => {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                     {EMERGENCY_SYMPTOMS.map((symptom) => (
                       <div key={symptom.key} className="flex items-center gap-2">
-                        <Checkbox
+                        <Switch
                           id={symptom.key}
                           checked={clinicData[symptom.key as keyof ClinicData] as boolean}
                           onCheckedChange={(checked) =>
-                            handleSymptomChange(symptom.key, checked as boolean)
+                            handleSymptomChange(symptom.key, checked)
                           }
                         />
                         <Label htmlFor={symptom.key} className="text-sm cursor-pointer">
@@ -620,42 +729,54 @@ const VirtualClinic = () => {
                 </CardContent>
               </Card>
 
-              {/* Medications & Compliance */}
+              {/* Medications - Simple Takes/Doesn't Take */}
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-4">
                     <Pill className="text-primary" />
-                    <h3 className="font-semibold">العلاجات الحالية ونسبة الالتزام</h3>
+                    <h3 className="font-semibold">الأدوية المتوقعة</h3>
                   </div>
                   {medications.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">لا توجد علاجات مسجلة</p>
+                    <p className="text-muted-foreground text-sm">لا توجد أدوية مسجلة</p>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {medications.map((med) => (
-                        <div key={med.id} className="border rounded-lg p-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="font-medium">{med.name}</p>
-                              {med.dosage && (
-                                <p className="text-xs text-muted-foreground">{med.dosage}</p>
-                              )}
-                            </div>
-                            <Badge variant="outline">
-                              {med.compliance_percent ?? 0}%
-                            </Badge>
+                        <div key={med.id} className="flex items-center justify-between border rounded-lg p-3">
+                          <div className="flex-1">
+                            <p className="font-medium">{med.name}</p>
+                            {med.dosage && (
+                              <p className="text-xs text-muted-foreground">{med.dosage}</p>
+                            )}
+                            {med.prediction_accuracy !== null && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <Activity size={12} className="text-primary" />
+                                <span className="text-xs text-primary">
+                                  دقة التنبؤ: {med.prediction_accuracy}%
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="text-xs text-muted-foreground">0%</span>
-                            <Slider
-                              value={[med.compliance_percent ?? 0]}
-                              onValueChange={(value) =>
-                                handleMedicationComplianceChange(med.id, value[0])
-                              }
-                              max={100}
-                              step={5}
-                              className="flex-1"
-                            />
-                            <span className="text-xs text-muted-foreground">100%</span>
+                            <button
+                              onClick={() => handleMedicationStatusChange(med.id, true)}
+                              className={`px-3 py-1 rounded-full text-sm transition-all ${
+                                medicationStatus[med.id] === true
+                                  ? "bg-green-500 text-white"
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              }`}
+                            >
+                              يأخذه
+                            </button>
+                            <button
+                              onClick={() => handleMedicationStatusChange(med.id, false)}
+                              className={`px-3 py-1 rounded-full text-sm transition-all ${
+                                medicationStatus[med.id] === false
+                                  ? "bg-destructive text-white"
+                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              }`}
+                            >
+                              لا يأخذه
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -663,6 +784,36 @@ const VirtualClinic = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Preventive Screening Recommendations - Only for patients without chronic diseases */}
+              {!hasChronicDisease(selectedPatient) && (
+                <Card className="border-green-500/30 bg-green-500/5">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Shield className="text-green-600" />
+                      <h3 className="font-semibold text-green-700">الفحوصات الوقائية المقترحة</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      بناءً على إرشادات وزارة الصحة السعودية و USPSTF
+                    </p>
+                    {getPreventiveScreenings(selectedPatient.age, selectedPatient.gender).length === 0 ? (
+                      <p className="text-muted-foreground text-sm">لا توجد فحوصات مقترحة حاليًا</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {getPreventiveScreenings(selectedPatient.age, selectedPatient.gender).map((screening, idx) => (
+                          <div key={idx} className="flex items-start gap-2 p-2 bg-background/50 rounded">
+                            <CheckCircle size={16} className="text-green-600 mt-0.5" />
+                            <div>
+                              <p className="font-medium text-sm">{screening.name}</p>
+                              <p className="text-xs text-muted-foreground">{screening.recommendation}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Final Action */}
               <Card>

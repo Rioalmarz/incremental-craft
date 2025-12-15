@@ -21,6 +21,7 @@ export type Database = {
           id: string
           name: string
           patient_id: string
+          prediction_accuracy: number | null
         }
         Insert: {
           compliance_percent?: number | null
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           name: string
           patient_id: string
+          prediction_accuracy?: number | null
         }
         Update: {
           compliance_percent?: number | null
@@ -35,6 +37,7 @@ export type Database = {
           id?: string
           name?: string
           patient_id?: string
+          prediction_accuracy?: number | null
         }
         Relationships: [
           {
@@ -159,6 +162,7 @@ export type Database = {
           notes: string | null
           patient_id: string
           prev_contact: string | null
+          referral_reason: string | null
           residence: string | null
           rx_status: string | null
           screened_at: string | null
@@ -172,6 +176,7 @@ export type Database = {
           notes?: string | null
           patient_id: string
           prev_contact?: string | null
+          referral_reason?: string | null
           residence?: string | null
           rx_status?: string | null
           screened_at?: string | null
@@ -185,6 +190,7 @@ export type Database = {
           notes?: string | null
           patient_id?: string
           prev_contact?: string | null
+          referral_reason?: string | null
           residence?: string | null
           rx_status?: string | null
           screened_at?: string | null
