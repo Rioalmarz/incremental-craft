@@ -48,7 +48,9 @@ import {
   XCircle,
   Loader2,
   Save,
+  Upload,
 } from "lucide-react";
+import PreventiveCareImport from "@/components/PreventiveCareImport";
 import {
   getEligibleServices,
   getEligibleImmunizations,
@@ -128,6 +130,7 @@ const PreventiveCare = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPatient, setSelectedPatient] = useState<PatientWithEligibility | null>(null);
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const pageSize = 15;
 
   useEffect(() => {
@@ -428,6 +431,14 @@ const PreventiveCare = () => {
                 </div>
               </div>
             </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowImportDialog(true)}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              استيراد البيانات
+            </Button>
           </div>
         </div>
       </header>
@@ -876,6 +887,20 @@ const PreventiveCare = () => {
               </div>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>استيراد بيانات الرعاية الوقائية</DialogTitle>
+          </DialogHeader>
+          <PreventiveCareImport
+            onImportComplete={() => {
+              fetchData();
+            }}
+          />
         </DialogContent>
       </Dialog>
     </div>
