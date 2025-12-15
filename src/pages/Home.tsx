@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -12,7 +10,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
 import { 
   LogOut, 
   Users, 
@@ -25,7 +22,11 @@ import {
   Settings,
   UserCog,
   User,
-  ChevronDown
+  ChevronDown,
+  Shield,
+  Activity,
+  Heart,
+  Sparkles
 } from "lucide-react";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 
@@ -33,6 +34,8 @@ const Home = () => {
   const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -41,9 +44,23 @@ const Home = () => {
   }, [user, loading, navigate]);
 
   useEffect(() => {
-    // Trigger fade-in animation
     const timer = setTimeout(() => setIsLoaded(true), 100);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Parallax effect for hero
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (heroRef.current) {
+        const rect = heroRef.current.getBoundingClientRect();
+        setMousePosition({
+          x: (e.clientX - rect.left - rect.width / 2) / 50,
+          y: (e.clientY - rect.top - rect.height / 2) / 50,
+        });
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   const handleSignOut = async () => {
@@ -65,42 +82,42 @@ const Home = () => {
       icon: ClipboardList, 
       path: "/screening",
       description: "فرز المرضى الجدد وتحديد الأولويات",
-      color: "text-primary"
+      gradient: "from-[hsl(var(--primary))] to-[hsl(var(--accent))]"
     },
     { 
       title: "العيادة الافتراضية", 
       icon: Stethoscope, 
       path: "/virtual-clinic",
       description: "متابعة المرضى المحولين للعيادة",
-      color: "text-accent"
+      gradient: "from-[hsl(var(--accent))] to-[hsl(180,70%,35%)]"
     },
     { 
       title: "المكتملين", 
       icon: CheckCircle, 
       path: "/completed",
       description: "الحالات المكتملة والمتابعة",
-      color: "text-[hsl(var(--success))]"
+      gradient: "from-[hsl(var(--success))] to-[hsl(145,60%,35%)]"
     },
     { 
       title: "المستبعدين", 
       icon: XCircle, 
       path: "/excluded",
       description: "الحالات المستبعدة مع الأسباب",
-      color: "text-destructive"
+      gradient: "from-[hsl(var(--destructive))] to-[hsl(0,60%,45%)]"
     },
     { 
       title: "جميع البيانات", 
       icon: Database, 
       path: "/all-patients",
       description: "عرض جميع بيانات المرضى",
-      color: "text-muted-foreground"
+      gradient: "from-[hsl(var(--muted-foreground))] to-[hsl(220,10%,50%)]"
     },
     { 
       title: "الإحصائيات", 
       icon: BarChart3, 
       path: "/statistics",
       description: "تقارير وإحصائيات شاملة",
-      color: "text-[hsl(var(--info))]"
+      gradient: "from-[hsl(var(--info))] to-[hsl(200,80%,45%)]"
     },
   ];
 
@@ -110,65 +127,89 @@ const Home = () => {
       icon: UserCog, 
       path: "/admin/users",
       description: "إضافة وإدارة حسابات المراكز",
-      color: "text-primary"
+      gradient: "from-[hsl(var(--primary))] to-[hsl(var(--accent))]"
     },
     { 
       title: "الإعدادات", 
       icon: Settings, 
       path: "/admin/settings",
       description: "إعدادات النظام والتكاملات",
-      color: "text-accent"
+      gradient: "from-[hsl(var(--accent))] to-[hsl(180,70%,35%)]"
     },
+  ];
+
+  const pillItems = [
+    { text: "الوقاية", icon: Shield, delay: "0s" },
+    { text: "الاستباقية", icon: Activity, delay: "0.2s" },
+    { text: "الاستمرارية", icon: Heart, delay: "0.4s" },
+    { text: "جودة الحياة", icon: Sparkles, delay: "0.6s" },
   ];
 
   const isMahdi = profile?.username === 'mahdi';
 
   return (
-    <div className={`min-h-screen bg-background transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Top Account Bar - Vision 2030 Style */}
-      <div className="bg-background border-b shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-14">
+    <div className={`min-h-screen bg-background overflow-hidden transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Animated Background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-accent/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-radial from-primary/3 to-transparent rounded-full blur-3xl" />
+      </div>
+
+      {/* Top Header - Vision 2030 Premium Style */}
+      <header className="relative z-50 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm">
+        <div className="container mx-auto px-6">
+          <div className="flex items-center justify-between h-16">
             {/* Logo & Platform Name */}
             <div className="flex items-center gap-4">
-              <FlowerLogo animate={false} size={36} />
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                <FlowerLogo animate={false} size={40} className="relative z-10" />
+              </div>
               <div className="hidden sm:block">
-                <h1 className="text-sm font-bold text-foreground leading-tight">الرعاية الأولية المحسّنة</h1>
-                <p className="text-xs text-muted-foreground">Enhanced Based Care</p>
+                <h1 className="text-base font-bold text-foreground leading-tight tracking-tight">
+                  الرعاية الأولية المحسّنة
+                </h1>
+                <p className="text-xs text-primary font-medium tracking-wide">
+                  Enhanced Based Care
+                </p>
               </div>
             </div>
 
-            {/* Account Dropdown */}
+            {/* Account Dropdown - Premium Style */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 hover:bg-secondary/50 hover:shadow-md group">
+                <button className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-secondary/30 border border-border/50 transition-all duration-300 hover:bg-secondary/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 group">
                   {isMahdi ? (
                     <>
                       <div className="text-right hidden md:block">
-                        <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                           د. مهدي محمد الراجحي
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[11px] text-muted-foreground leading-tight">
                           إدارة • الفريق الثاني • مركز صحي السلامة
                         </p>
                       </div>
-                      <Avatar className="h-9 w-9 border-2 border-primary/20 shadow-sm group-hover:border-primary/40 group-hover:shadow-md transition-all">
-                        <AvatarImage src={mahdiProfile} alt="د. مهدي الراجحي" className="object-cover" />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">مهـ</AvatarFallback>
-                      </Avatar>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-primary/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Avatar className="h-10 w-10 border-2 border-primary/30 shadow-md group-hover:border-primary/50 group-hover:shadow-lg transition-all relative z-10">
+                          <AvatarImage src={mahdiProfile} alt="د. مهدي الراجحي" className="object-cover" />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">مهـ</AvatarFallback>
+                        </Avatar>
+                      </div>
                     </>
                   ) : (
                     <>
                       <div className="text-right hidden md:block">
-                        <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                           {profile?.name_ar || profile?.username}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[11px] text-muted-foreground">
                           {isSuperAdmin ? "مدير النظام" : profile?.center_id || "مركز صحي"}
                         </p>
                       </div>
-                      <Avatar className="h-9 w-9 border-2 border-primary/20 shadow-sm group-hover:border-primary/40 group-hover:shadow-md transition-all">
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                      <Avatar className="h-10 w-10 border-2 border-primary/30 shadow-md group-hover:border-primary/50 group-hover:shadow-lg transition-all">
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
                           {(profile?.name_ar || profile?.username || "م")?.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
@@ -177,23 +218,23 @@ const Home = () => {
                   <ChevronDown size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 bg-background border shadow-lg">
-                <div className="px-3 py-2 border-b">
-                  <p className="text-sm font-medium">{isMahdi ? "د. مهدي محمد الراجحي" : profile?.name_ar || profile?.username}</p>
-                  <p className="text-xs text-muted-foreground">{isSuperAdmin ? "مدير النظام" : "مستخدم"}</p>
+              <DropdownMenuContent align="end" className="w-60 bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl rounded-xl p-2">
+                <div className="px-3 py-3 mb-2 bg-secondary/30 rounded-lg">
+                  <p className="text-sm font-semibold">{isMahdi ? "د. مهدي محمد الراجحي" : profile?.name_ar || profile?.username}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{isSuperAdmin ? "مدير النظام" : "مستخدم"}</p>
                 </div>
-                <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate("/profile")}>
-                  <User size={16} />
+                <DropdownMenuItem className="cursor-pointer gap-3 rounded-lg py-2.5" onClick={() => navigate("/profile")}>
+                  <User size={16} className="text-primary" />
                   <span>الملف الشخصي</span>
                 </DropdownMenuItem>
                 {isSuperAdmin && (
-                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate("/admin/settings")}>
-                    <Settings size={16} />
+                  <DropdownMenuItem className="cursor-pointer gap-3 rounded-lg py-2.5" onClick={() => navigate("/admin/settings")}>
+                    <Settings size={16} className="text-primary" />
                     <span>الإعدادات</span>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer gap-2 text-destructive focus:text-destructive" onClick={handleSignOut}>
+                <DropdownMenuSeparator className="my-2" />
+                <DropdownMenuItem className="cursor-pointer gap-3 rounded-lg py-2.5 text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleSignOut}>
                   <LogOut size={16} />
                   <span>تسجيل الخروج</span>
                 </DropdownMenuItem>
@@ -201,92 +242,182 @@ const Home = () => {
             </DropdownMenu>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Hero Section - Vision 2030 Style */}
-      <section className="py-16 px-4 bg-gradient-to-b from-secondary/30 to-background">
-        <div className="container mx-auto text-center">
-          <div className={`transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <FlowerLogo animate size={140} className="mx-auto mb-8" />
+      {/* Hero Section - Vision 2030 Premium Style */}
+      <section 
+        ref={heroRef}
+        className="relative py-20 md:py-28 px-4 overflow-hidden"
+        style={{
+          background: 'linear-gradient(180deg, hsl(var(--secondary)/0.3) 0%, hsl(var(--background)) 100%)'
+        }}
+      >
+        {/* Decorative Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div 
+            className="absolute top-20 right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl"
+            style={{ transform: `translate(${mousePosition.x * 2}px, ${mousePosition.y * 2}px)` }}
+          />
+          <div 
+            className="absolute bottom-20 left-20 w-80 h-80 bg-accent/10 rounded-full blur-3xl"
+            style={{ transform: `translate(${-mousePosition.x * 1.5}px, ${-mousePosition.y * 1.5}px)` }}
+          />
+        </div>
+
+        <div className="container mx-auto text-center relative z-10">
+          {/* Animated Logo */}
+          <div 
+            className={`transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}
+            style={{ transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)` }}
+          >
+            <div className="relative inline-block">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full blur-3xl scale-150 animate-pulse" style={{ animationDuration: '4s' }} />
+              <FlowerLogo animate size={160} className="relative z-10 drop-shadow-2xl" />
+            </div>
           </div>
           
-          <div className={`transition-all duration-1000 delay-400 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-foreground">
-              الرعاية الأولية المحسّنة
+          {/* Platform Title */}
+          <div className={`mt-10 transition-all duration-1000 delay-400 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-foreground leading-tight">
+              <span className="bg-gradient-to-l from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+                الرعاية الأولية المحسّنة
+              </span>
             </h1>
-            <p className="text-lg md:text-xl text-primary font-medium mb-2">
+            <p className="text-xl md:text-2xl text-primary font-semibold tracking-wider">
               Enhanced Based Care
             </p>
           </div>
 
+          {/* Animated Divider */}
           <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-0'}`}>
-            <div className="w-48 h-0.5 bg-gradient-to-l from-transparent via-primary to-transparent mx-auto my-6" />
+            <div className="w-64 h-1 bg-gradient-to-l from-transparent via-primary to-transparent mx-auto my-8 rounded-full" />
           </div>
 
-          <div className={`transition-all duration-1000 delay-600 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-            <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-              نظام متكامل لإدارة ومتابعة مرضى الأمراض المزمنة
+          {/* Main Description */}
+          <div className={`transition-all duration-1000 delay-600 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium">
+              نظام صحي ذكي متكامل لإدارة الرعاية الأولية
+              <br className="hidden md:block" />
+              <span className="text-foreground">لا يقتصر على الوقاية والعلاج،</span>
+              <br />
+              بل يهدف إلى الانتظام في الرعاية وتمكين المستفيد من حياة صحية سليمة ومستدامة
             </p>
-            <div className="flex items-center justify-center gap-4 mt-4">
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">سكري</span>
-              <span className="px-3 py-1 bg-accent/10 text-accent rounded-full text-sm font-medium">ضغط</span>
-              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">دهون</span>
-            </div>
+          </div>
+
+          {/* Animated Pills */}
+          <div className={`flex flex-wrap items-center justify-center gap-3 md:gap-4 mt-10 transition-all duration-1000 delay-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+            {pillItems.map((pill, index) => (
+              <div
+                key={pill.text}
+                className="group relative"
+                style={{ 
+                  animation: isLoaded ? `fadeSlideUp 0.6s ease-out ${0.8 + index * 0.15}s both` : 'none'
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-l from-primary to-accent rounded-full blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
+                <div className="relative flex items-center gap-2 px-5 py-2.5 bg-background/80 backdrop-blur-sm border border-primary/20 rounded-full shadow-lg hover:shadow-xl hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 cursor-default">
+                  <pill.icon size={16} className="text-primary" />
+                  <span className="text-sm font-semibold text-foreground">{pill.text}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Menu Grid */}
-      <section className="py-12 px-4">
+      {/* Main Menu Cards - 3D Glassmorphism Style */}
+      <section className="py-16 px-4 relative">
         <div className="container mx-auto">
-          <h2 className={`text-xl font-bold mb-8 text-center text-foreground transition-all duration-700 delay-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-            القائمة الرئيسية
+          <h2 className={`text-2xl font-bold mb-10 text-center text-foreground transition-all duration-700 delay-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+            <span className="relative">
+              القائمة الرئيسية
+              <div className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-l from-transparent via-primary/50 to-transparent" />
+            </span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-5xl mx-auto">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {menuItems.map((item, index) => (
-              <Card 
+              <div
                 key={item.path}
-                className={`bg-background border shadow-sm hover:shadow-lg cursor-pointer group transition-all duration-300 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                className={`group relative cursor-pointer transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                 style={{ transitionDelay: `${800 + index * 100}ms` }}
                 onClick={() => navigate(item.path)}
               >
-                <CardContent className="p-5 flex items-start gap-4">
-                  <div className={`p-3 rounded-xl bg-secondary/50 ${item.color} group-hover:scale-110 group-hover:bg-primary/10 transition-all duration-300`}>
-                    <item.icon size={26} />
+                {/* Glow Effect */}
+                <div className={`absolute -inset-1 bg-gradient-to-l ${item.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500`} />
+                
+                {/* Card */}
+                <div className="relative bg-background/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:border-primary/30 overflow-hidden">
+                  {/* Background Gradient */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
+                  
+                  {/* Content */}
+                  <div className="relative z-10 flex items-start gap-4">
+                    <div className={`relative p-4 rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-500`}>
+                      <div className="absolute inset-0 bg-background/20 rounded-xl" />
+                      <item.icon size={28} className="text-background relative z-10" />
+                    </div>
+                    <div className="flex-1 pt-1">
+                      <h3 className="font-bold text-lg mb-2 text-foreground group-hover:text-primary transition-colors duration-300">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {item.description}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-base mb-1 text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
+
+                  {/* Hover Arrow */}
+                  <div className="absolute left-4 bottom-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                    <ChevronDown size={20} className="text-primary rotate-90" />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
 
           {/* Admin Section */}
           {isSuperAdmin && (
             <>
-              <h2 className={`text-xl font-bold mb-8 mt-12 text-center text-foreground transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-                الإدارة
+              <h2 className={`text-2xl font-bold mb-10 mt-16 text-center text-foreground transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+                <span className="relative">
+                  لوحة الإدارة
+                  <div className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-l from-transparent via-primary/50 to-transparent" />
+                </span>
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
                 {adminMenuItems.map((item, index) => (
-                  <Card 
+                  <div
                     key={item.path}
-                    className={`bg-background border border-primary/20 shadow-sm hover:shadow-lg cursor-pointer group transition-all duration-300 hover:-translate-y-1 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                    className={`group relative cursor-pointer transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
                     style={{ transitionDelay: `${1400 + index * 100}ms` }}
                     onClick={() => navigate(item.path)}
                   >
-                    <CardContent className="p-5 flex items-start gap-4">
-                      <div className={`p-3 rounded-xl bg-primary/10 ${item.color} group-hover:scale-110 transition-all duration-300`}>
-                        <item.icon size={26} />
+                    <div className={`absolute -inset-1 bg-gradient-to-l ${item.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500`} />
+                    
+                    <div className="relative bg-background/60 backdrop-blur-xl border border-primary/20 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:border-primary/40 overflow-hidden">
+                      <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-500`} />
+                      
+                      <div className="relative z-10 flex items-start gap-4">
+                        <div className={`relative p-4 rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-500`}>
+                          <div className="absolute inset-0 bg-background/20 rounded-xl" />
+                          <item.icon size={28} className="text-background relative z-10" />
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <h3 className="font-bold text-lg mb-2 text-foreground group-hover:text-primary transition-colors duration-300">
+                            {item.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {item.description}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-base mb-1 text-foreground group-hover:text-primary transition-colors">{item.title}</h3>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
+
+                      <div className="absolute left-4 bottom-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                        <ChevronDown size={20} className="text-primary rotate-90" />
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ))}
               </div>
             </>
@@ -294,11 +425,46 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 text-center text-sm text-muted-foreground border-t bg-secondary/20">
-        <p className="font-medium">التجمع الصحي الثاني بجدة</p>
-        <p className="mt-1">Jeddah Second Health Cluster</p>
+      {/* Footer - Premium Style */}
+      <footer className="relative py-12 text-center border-t border-border/30 bg-secondary/10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <FlowerLogo animate={false} size={32} />
+            <div className="w-px h-8 bg-border/50" />
+            <div>
+              <p className="font-bold text-foreground">التجمع الصحي الثاني بجدة</p>
+              <p className="text-sm text-muted-foreground">Jeddah Second Health Cluster</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-4">
+            © {new Date().getFullYear()} الرعاية الأولية المحسّنة - جميع الحقوق محفوظة
+          </p>
+        </div>
       </footer>
+
+      {/* Custom Animations */}
+      <style>{`
+        @keyframes fadeSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes gradient {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        
+        .animate-gradient {
+          animation: gradient 6s ease infinite;
+        }
+      `}</style>
     </div>
   );
 };
