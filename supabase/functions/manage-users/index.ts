@@ -24,7 +24,84 @@ serve(async (req) => {
       },
     });
 
-    // Verify the request is from an authenticated superadmin
+    const { action, ...data } = await req.json();
+
+    // Allow init_superadmins without authentication (bootstrap action)
+    if (action === "init_superadmins") {
+      console.log("Starting init_superadmins...");
+      
+      // Create the 3 default superadmin accounts
+      const superadmins = [
+        { username: "mahdi", password: "116140", name_ar: "Mahdi" },
+        { username: "rayan", password: "116140", name_ar: "Rayan" },
+        { username: "firas", password: "116140", name_ar: "Firas" },
+      ];
+
+      const results = [];
+
+      for (const admin of superadmins) {
+        const email = `${admin.username}@tbc.local`;
+        console.log(`Processing ${admin.username}...`);
+
+        // Check if user already exists
+        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = existingUsers?.users?.find(u => u.email === email);
+
+        if (existingUser) {
+          console.log(`${admin.username} already exists`);
+          results.push({ username: admin.username, status: "already_exists" });
+          continue;
+        }
+
+        // Create user
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: admin.password,
+          email_confirm: true,
+        });
+
+        if (createError) {
+          console.error(`Error creating ${admin.username}:`, createError);
+          results.push({ username: admin.username, status: "error", error: createError.message });
+          continue;
+        }
+
+        console.log(`Created auth user for ${admin.username}: ${newUser.user.id}`);
+
+        // Create profile
+        const { error: profileError } = await supabaseAdmin.from("profiles").insert({
+          user_id: newUser.user.id,
+          username: admin.username,
+          name_ar: admin.name_ar,
+          center_id: null,
+        });
+
+        if (profileError) {
+          console.error(`Error creating profile for ${admin.username}:`, profileError);
+        }
+
+        // Create role
+        const { error: roleError } = await supabaseAdmin.from("user_roles").insert({
+          user_id: newUser.user.id,
+          role: "superadmin",
+        });
+
+        if (roleError) {
+          console.error(`Error creating role for ${admin.username}:`, roleError);
+        }
+
+        results.push({ username: admin.username, status: "created" });
+      }
+
+      console.log("init_superadmins completed:", results);
+
+      return new Response(
+        JSON.stringify({ success: true, results }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // For all other actions, require authentication
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -56,8 +133,6 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const { action, ...data } = await req.json();
 
     switch (action) {
       case "create_user": {
@@ -199,63 +274,6 @@ serve(async (req) => {
 
         return new Response(
           JSON.stringify({ users: profiles }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      case "init_superadmins": {
-        // Create the 3 default superadmin accounts
-        const superadmins = [
-          { username: "mahdi", password: "116140", name_ar: "Mahdi" },
-          { username: "rayan", password: "116140", name_ar: "Rayan" },
-          { username: "firas", password: "116140", name_ar: "Firas" },
-        ];
-
-        const results = [];
-
-        for (const admin of superadmins) {
-          const email = `${admin.username}@tbc.local`;
-
-          // Check if user already exists
-          const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-          const existingUser = existingUsers.users.find(u => u.email === email);
-
-          if (existingUser) {
-            results.push({ username: admin.username, status: "already_exists" });
-            continue;
-          }
-
-          // Create user
-          const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-            email,
-            password: admin.password,
-            email_confirm: true,
-          });
-
-          if (createError) {
-            results.push({ username: admin.username, status: "error", error: createError.message });
-            continue;
-          }
-
-          // Create profile
-          await supabaseAdmin.from("profiles").insert({
-            user_id: newUser.user.id,
-            username: admin.username,
-            name_ar: admin.name_ar,
-            center_id: null,
-          });
-
-          // Create role
-          await supabaseAdmin.from("user_roles").insert({
-            user_id: newUser.user.id,
-            role: "superadmin",
-          });
-
-          results.push({ username: admin.username, status: "created" });
-        }
-
-        return new Response(
-          JSON.stringify({ success: true, results }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
