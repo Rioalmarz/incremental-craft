@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   LogOut, 
@@ -17,6 +18,7 @@ import {
   Settings,
   UserCog
 } from "lucide-react";
+import mahdiProfile from "@/assets/mahdi-profile.jpg";
 
 const Home = () => {
   const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
@@ -132,12 +134,25 @@ const Home = () => {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-left">
-              <p className="text-sm font-medium">{profile?.name_ar || profile?.username}</p>
-              <p className="text-xs text-muted-foreground">
-                {isSuperAdmin ? "مدير النظام" : profile?.center_id || "مركز صحي"}
-              </p>
-            </div>
+            {profile?.username === 'mahdi' ? (
+              <>
+                <Avatar className="h-10 w-10 border-2 border-primary/30">
+                  <AvatarImage src={mahdiProfile} alt="د. مهدي الراجحي" />
+                  <AvatarFallback>مهـ</AvatarFallback>
+                </Avatar>
+                <div className="text-left">
+                  <p className="text-sm font-medium">د. مهدي محمد الراجحي</p>
+                  <p className="text-xs text-muted-foreground">الفريق الطبي الثاني - مركز صحي السلامة</p>
+                </div>
+              </>
+            ) : (
+              <div className="text-left">
+                <p className="text-sm font-medium">{profile?.name_ar || profile?.username}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isSuperAdmin ? "مدير النظام" : profile?.center_id || "مركز صحي"}
+                </p>
+              </div>
+            )}
             <Button variant="ghost" size="icon" onClick={handleSignOut}>
               <LogOut size={20} />
             </Button>
