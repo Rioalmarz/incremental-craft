@@ -173,9 +173,10 @@ serve(async (req) => {
     }
 
     const sheetsData = await sheetsResponse.json();
-    const rows = sheetsData.values || [];
+    let rows = sheetsData.values || [];
 
     console.log(`Fetched ${rows.length} rows from Google Sheets`);
+    console.log("First few rows:", JSON.stringify(rows.slice(0, 3)));
 
     if (rows.length < 2) {
       return new Response(
@@ -184,42 +185,80 @@ serve(async (req) => {
       );
     }
 
-    // Parse headers - expecting Arabic headers
-    const headers = rows[0];
+    // Find the header row (first non-empty row with expected columns)
+    let headerRowIndex = -1;
+    let headers: string[] = [];
+    
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const row = rows[i];
+      if (row && row.length > 0) {
+        // Check if this row contains header-like content
+        const rowStr = row.join(" ").toLowerCase();
+        if (rowStr.includes("المركز") || rowStr.includes("الطبيب") || rowStr.includes("الهوية") ||
+            rowStr.includes("center") || rowStr.includes("doctor") || rowStr.includes("name")) {
+          headerRowIndex = i;
+          headers = row;
+          break;
+        }
+      }
+    }
+
+    // If no header found, try the first non-empty row
+    if (headerRowIndex === -1) {
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i] && rows[i].length > 0) {
+          headerRowIndex = i;
+          headers = rows[i];
+          break;
+        }
+      }
+    }
+
+    console.log("Header row index:", headerRowIndex);
     console.log("Headers found:", headers);
 
-    // Find column indices based on Arabic headers
-    const centerIdx = headers.findIndex((h: string) => 
-      h.includes("اسم المركز") || h.includes("المركز")
-    );
-    const doctorNameIdx = headers.findIndex((h: string) => 
-      h.includes("اسم الطبيب") || h.includes("الطبيب")
-    );
-    const doctorIdIdx = headers.findIndex((h: string) => 
-      h.includes("رقم الهوية") || h.includes("الهوية")
-    );
+    // Find column indices based on Arabic/English headers
+    const centerIdx = headers.findIndex((h: string) => {
+      const lower = (h || "").toLowerCase();
+      return lower.includes("اسم المركز") || lower.includes("المركز") || 
+             lower.includes("center") || lower.includes("مركز");
+    });
+    const doctorNameIdx = headers.findIndex((h: string) => {
+      const lower = (h || "").toLowerCase();
+      return lower.includes("اسم الطبيب") || lower.includes("الطبيب") || 
+             lower.includes("doctor") || lower.includes("طبيب");
+    });
+    const doctorIdIdx = headers.findIndex((h: string) => {
+      const lower = (h || "").toLowerCase();
+      return lower.includes("رقم الهوية") || lower.includes("الهوية") || 
+             lower.includes("id") || lower.includes("هوية");
+    });
 
     console.log(`Column indices - Center: ${centerIdx}, Doctor Name: ${doctorNameIdx}, Doctor ID: ${doctorIdIdx}`);
 
     if (centerIdx === -1 || doctorNameIdx === -1 || doctorIdIdx === -1) {
-      throw new Error("Required columns not found. Expected: اسم المركز, اسم الطبيب, رقم الهوية");
+      throw new Error(`Required columns not found. Headers detected: ${JSON.stringify(headers)}. Expected columns containing: المركز, الطبيب, الهوية (or center, doctor, id)`);
     }
 
-    // Date columns start after the first 3 columns (A, B, C)
-    const dateColumns = headers.slice(3).map((header: string, idx: number) => ({
-      index: idx + 3,
+    // Date columns start after the identified columns
+    const minDataCol = Math.max(centerIdx, doctorNameIdx, doctorIdIdx) + 1;
+    const dateColumns = headers.slice(minDataCol).map((header: string, idx: number) => ({
+      index: idx + minDataCol,
       date: header // Assume date is in the header
     }));
 
     console.log("Date columns:", dateColumns);
 
-    // Parse data rows
+    // Parse data rows (starting after header row)
     const schedules: any[] = [];
+    const dataStartRow = headerRowIndex + 1;
     
-    for (let i = 1; i < rows.length; i++) {
+    for (let i = dataStartRow; i < rows.length; i++) {
       const row = rows[i];
-      const centerName = row[centerIdx]?.trim();
-      const doctorName = row[doctorNameIdx]?.trim();
+      if (!row || row.length === 0) continue;
+      
+      const centerName = row[centerIdx]?.toString().trim();
+      const doctorName = row[doctorNameIdx]?.toString().trim();
       const doctorId = row[doctorIdIdx]?.toString().trim();
 
       if (!centerName || !doctorName || !doctorId) {
