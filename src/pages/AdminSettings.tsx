@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { ArrowRight, Settings as SettingsIcon, Save, Video, Webhook, Loader2 } from "lucide-react";
 import ExcelImport from "@/components/ExcelImport";
+import ExcelExport from "@/components/ExcelExport";
 
 const AdminSettings = () => {
   const { user, loading, isSuperAdmin } = useAuth();
@@ -141,7 +142,9 @@ const AdminSettings = () => {
       <main className="container mx-auto px-4 py-8 max-w-4xl space-y-6">
         {/* Excel Import */}
         <ExcelImport />
-        {/* Video Settings */}
+        
+        {/* Excel Export */}
+        <ExcelExport />
         <Card className="glass">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
