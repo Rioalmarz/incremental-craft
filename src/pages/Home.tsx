@@ -300,7 +300,43 @@ const Home = () => {
     { text: "جودة الحياة", icon: Sparkles, delay: "0.6s" },
   ];
 
+  const isSuperAdminUser = profile?.username === 'mahdi' || profile?.username === 'rayan' || profile?.username === 'firas';
+  const userDisplayName = profile?.name_ar || profile?.username;
+  const userTeam = profile?.team || '';
+  const userCenter = profile?.center_id ? getCenterName(profile.center_id) : '';
   const isMahdi = profile?.username === 'mahdi';
+
+  // Helper function to get center display name
+  function getCenterName(centerId: string): string {
+    const centerNames: Record<string, string> = {
+      'salamah': 'مركز صحي السلامة',
+      'khalid_model': 'مركز صحي خالد النموذجي',
+      'naeem': 'مركز صحي النعيم',
+      'obhur': 'مركز صحي أبحر',
+      'salhiyah': 'مركز صحي الصالحية',
+      'majed': 'مركز صحي الماجد',
+      'shatea': 'مركز صحي الشاطئ',
+      'sheraa': 'مركز صحي الشراع',
+      'wafa': 'مركز صحي الوفاء',
+      'rayyan': 'مركز صحي الريان',
+      'briman': 'مركز صحي بريمان',
+      'firdous': 'مركز صحي الفردوس',
+      'thuwal': 'مركز صحي ثول',
+      'dhahban': 'مركز صحي ذهبان',
+      'sawari': 'مركز صحي الصواري',
+      'rehab': 'مركز صحي الرحاب',
+      'bawadi1': 'مركز صحي البوادي 1',
+      'bawadi2': 'مركز صحي البوادي 2',
+      'safa1': 'مركز صحي الصفا 1',
+      'safa2': 'مركز صحي الصفا 2',
+      'marwah': 'مركز صحي المروة',
+      'nahda': 'مركز صحي النهضة',
+      'faisaliyah': 'مركز صحي الفيصلية',
+      'mushrifah': 'مركز صحي المشرفة',
+      'rabwah': 'مركز صحي الربوة',
+    };
+    return centerNames[centerId] || centerId;
+  }
 
   return (
     <div className={`min-h-screen bg-background overflow-hidden transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
@@ -337,21 +373,27 @@ const Home = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-secondary/30 border border-border/50 transition-all duration-300 hover:bg-secondary/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 group">
-                  {isMahdi ? (
+                  {isSuperAdminUser ? (
                     <>
                       <div className="text-right hidden md:block">
                         <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                          د. مهدي محمد الراجحي
+                          {userDisplayName}
                         </p>
                         <p className="text-[11px] text-muted-foreground leading-tight">
-                          إدارة • الفريق الثاني • مركز صحي السلامة
+                          {profile?.job_title || 'إدارة'} • {userTeam} • {userCenter}
                         </p>
                       </div>
                       <div className="relative">
                         <div className="absolute inset-0 bg-primary/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
                         <Avatar className="h-10 w-10 border-2 border-primary/30 shadow-md group-hover:border-primary/50 group-hover:shadow-lg transition-all relative z-10">
-                          <AvatarImage src={mahdiProfile} alt="د. مهدي الراجحي" className="object-cover" />
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">مهـ</AvatarFallback>
+                          {isMahdi ? (
+                            <AvatarImage src={mahdiProfile} alt={userDisplayName || ''} className="object-cover" />
+                          ) : profile?.avatar_url ? (
+                            <AvatarImage src={profile.avatar_url} alt={userDisplayName || ''} className="object-cover" />
+                          ) : null}
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                            {userDisplayName?.charAt(0) || 'م'}
+                          </AvatarFallback>
                         </Avatar>
                       </div>
                     </>
@@ -359,15 +401,18 @@ const Home = () => {
                     <>
                       <div className="text-right hidden md:block">
                         <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                          {profile?.name_ar || profile?.username}
+                          {userDisplayName}
                         </p>
                         <p className="text-[11px] text-muted-foreground">
-                          {isSuperAdmin ? "مدير النظام" : profile?.center_id || "مركز صحي"}
+                          {userCenter || profile?.center_id || "مركز صحي"}
                         </p>
                       </div>
                       <Avatar className="h-10 w-10 border-2 border-primary/30 shadow-md group-hover:border-primary/50 group-hover:shadow-lg transition-all">
+                        {profile?.avatar_url ? (
+                          <AvatarImage src={profile.avatar_url} alt={userDisplayName || ''} className="object-cover" />
+                        ) : null}
                         <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-                          {(profile?.name_ar || profile?.username || "م")?.charAt(0)}
+                          {userDisplayName?.charAt(0) || 'م'}
                         </AvatarFallback>
                       </Avatar>
                     </>
@@ -377,8 +422,8 @@ const Home = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-60 bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl rounded-xl p-2">
                 <div className="px-3 py-3 mb-2 bg-secondary/30 rounded-lg">
-                  <p className="text-sm font-semibold">{isMahdi ? "د. مهدي محمد الراجحي" : profile?.name_ar || profile?.username}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{isSuperAdmin ? "مدير النظام" : "مستخدم"}</p>
+                  <p className="text-sm font-semibold">{userDisplayName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{isSuperAdmin ? "مدير النظام" : userCenter || "مستخدم"}</p>
                 </div>
                 <DropdownMenuItem className="cursor-pointer gap-3 rounded-lg py-2.5" onClick={() => navigate("/profile")}>
                   <User size={16} className="text-primary" />

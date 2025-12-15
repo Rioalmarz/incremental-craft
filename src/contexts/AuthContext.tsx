@@ -11,6 +11,9 @@ interface Profile {
   name_ar: string | null;
   center_id: string | null;
   created_at: string;
+  job_title: string | null;
+  team: string | null;
+  avatar_url: string | null;
 }
 
 interface AuthContextType {
