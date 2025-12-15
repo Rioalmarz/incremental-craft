@@ -256,16 +256,17 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
 
       {/* Add/Edit Field Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md max-h-[90vh]" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editingField ? 'تعديل حقل' : 'إضافة حقل جديد'}</DialogTitle>
           </DialogHeader>
           
-          <p className="text-xs text-primary bg-primary/10 p-2 rounded border border-primary/20">
-            💡 الحقول المخصصة تظهر في جميع صفحات الاستيراد (الإعدادات والرعاية الوقائية)
-          </p>
+          <div className="overflow-y-auto max-h-[calc(90vh-120px)] px-1">
+            <p className="text-xs text-primary bg-primary/10 p-2 rounded border border-primary/20 mb-4">
+              💡 الحقول المخصصة تظهر في جميع صفحات الاستيراد (الإعدادات والرعاية الوقائية)
+            </p>
           
-          <div className="space-y-4">
+            <div className="space-y-4">
             <div className="space-y-2">
               <Label>اسم الحقل (عربي) *</Label>
               <Input 
@@ -384,6 +385,7 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
               <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
                 إلغاء
               </Button>
+            </div>
             </div>
           </div>
         </DialogContent>
