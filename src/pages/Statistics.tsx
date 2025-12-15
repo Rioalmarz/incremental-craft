@@ -277,7 +277,7 @@ const Statistics = () => {
   const topMeds = Array.from(medCounts.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
-    .map(([name, count]) => ({ name: name.length > 20 ? name.slice(0, 20) + '...' : name, count, fullName: name }));
+    .map(([name, count]) => ({ name, count }));
 
   // Polypharmacy data
   const lessThan5 = total - polypharmacyCount;
@@ -513,20 +513,20 @@ const Statistics = () => {
             <CardHeader className="pb-2"><CardTitle className="text-base">أكثر 10 أدوية استخداماً</CardTitle></CardHeader>
             <CardContent>
               {topMeds.length > 0 ? (
-                <div className="h-80">
+                <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topMeds} layout="vertical" margin={{ top: 5, right: 30, left: 100, bottom: 5 }}>
+                    <BarChart data={topMeds} layout="vertical" margin={{ top: 5, right: 30, left: 150, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis type="number" />
                       <YAxis 
                         dataKey="name" 
                         type="category" 
-                        width={95} 
-                        tick={{ fontSize: 11 }} 
+                        width={145} 
+                        tick={{ fontSize: 10, textAnchor: 'end' }} 
+                        interval={0}
                       />
                       <Tooltip 
                         formatter={(value: number) => [value, 'العدد']}
-                        labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
                         contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} 
                       />
                       <Bar dataKey="count" fill={CHART_COLORS.teal} radius={[0, 4, 4, 0]} name="العدد" />
