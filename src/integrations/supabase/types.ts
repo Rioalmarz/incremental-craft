@@ -234,6 +234,68 @@ export type Database = {
         }
         Relationships: []
       }
+      virtual_clinic_data: {
+        Row: {
+          chest_pain: boolean | null
+          created_at: string
+          examined_at: string | null
+          examined_by: string | null
+          final_action: string
+          id: string
+          loss_of_consciousness: boolean | null
+          notes: string | null
+          patient_id: string
+          referral_specialty: string | null
+          severe_headache: boolean | null
+          severe_hypoglycemia: boolean | null
+          severe_shortness_of_breath: boolean | null
+          updated_at: string
+          vision_changes: boolean | null
+        }
+        Insert: {
+          chest_pain?: boolean | null
+          created_at?: string
+          examined_at?: string | null
+          examined_by?: string | null
+          final_action: string
+          id?: string
+          loss_of_consciousness?: boolean | null
+          notes?: string | null
+          patient_id: string
+          referral_specialty?: string | null
+          severe_headache?: boolean | null
+          severe_hypoglycemia?: boolean | null
+          severe_shortness_of_breath?: boolean | null
+          updated_at?: string
+          vision_changes?: boolean | null
+        }
+        Update: {
+          chest_pain?: boolean | null
+          created_at?: string
+          examined_at?: string | null
+          examined_by?: string | null
+          final_action?: string
+          id?: string
+          loss_of_consciousness?: boolean | null
+          notes?: string | null
+          patient_id?: string
+          referral_specialty?: string | null
+          severe_headache?: boolean | null
+          severe_hypoglycemia?: boolean | null
+          severe_shortness_of_breath?: boolean | null
+          updated_at?: string
+          vision_changes?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "virtual_clinic_data_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
