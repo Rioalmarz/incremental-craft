@@ -213,6 +213,10 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
             <DialogTitle>{editingField ? 'تعديل حقل' : 'إضافة حقل جديد'}</DialogTitle>
           </DialogHeader>
           
+          <p className="text-xs text-primary bg-primary/10 p-2 rounded border border-primary/20">
+            💡 الحقول المخصصة تظهر في جميع صفحات الاستيراد (الإعدادات والرعاية الوقائية)
+          </p>
+          
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>اسم الحقل (عربي) *</Label>
