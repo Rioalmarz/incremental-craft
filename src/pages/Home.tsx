@@ -482,52 +482,106 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Main Menu Cards - 3D Glassmorphism Style */}
-      <section className="py-16 px-4 relative">
+      {/* Main Menu Cards - Ultra Creative 3D Design */}
+      <section className="py-20 px-4 relative">
         <div className="container mx-auto">
-          <h2 className={`text-2xl font-bold mb-10 text-center text-foreground transition-all duration-700 delay-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="relative">
-              القائمة الرئيسية
-              <div className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-l from-transparent via-primary/50 to-transparent" />
+          <h2 className={`text-3xl font-bold mb-16 text-center text-foreground transition-all duration-700 delay-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+            <span className="relative inline-block">
+              <span className="bg-gradient-to-l from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+                القائمة الرئيسية
+              </span>
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-l from-primary via-accent to-primary rounded-full" />
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-l from-primary via-accent to-primary rounded-full blur-sm" />
             </span>
           </h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto perspective-1000">
             {menuItems.map((item, index) => (
               <div
                 key={item.path}
-                className={`group relative cursor-pointer transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-                style={{ transitionDelay: `${800 + index * 100}ms` }}
+                className={`group relative cursor-pointer transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+                style={{ 
+                  transitionDelay: `${800 + index * 150}ms`,
+                  animation: isLoaded ? `float 6s ease-in-out ${index * 0.5}s infinite` : 'none'
+                }}
                 onClick={() => navigate(item.path)}
               >
-                {/* Glow Effect */}
-                <div className={`absolute -inset-1 bg-gradient-to-l ${item.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500`} />
+                {/* Animated Gradient Border */}
+                <div className="absolute -inset-[2px] rounded-3xl overflow-hidden">
+                  <div 
+                    className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+                    style={{ animation: 'spin-slow 4s linear infinite' }}
+                  />
+                </div>
                 
-                {/* Card */}
-                <div className="relative bg-background/60 backdrop-blur-xl border border-border/50 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:border-primary/30 overflow-hidden">
-                  {/* Background Gradient */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
+                {/* Outer Glow */}
+                <div className={`absolute -inset-4 bg-gradient-to-r ${item.gradient} rounded-3xl blur-2xl opacity-0 group-hover:opacity-25 transition-all duration-700`} />
+                
+                {/* Card Container with 3D Transform */}
+                <div 
+                  className="relative bg-background/90 backdrop-blur-2xl rounded-3xl p-8 shadow-xl transition-all duration-500 group-hover:shadow-2xl overflow-hidden border border-border/30 group-hover:border-transparent"
+                  style={{
+                    transformStyle: 'preserve-3d',
+                    transform: 'translateZ(0)',
+                  }}
+                >
+                  {/* Inner Gradient Overlay */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-[0.08] transition-opacity duration-500`} />
+                  
+                  {/* Animated Light Beam */}
+                  <div className="absolute inset-0 overflow-hidden rounded-3xl">
+                    <div className="absolute -top-full left-0 w-full h-full bg-gradient-to-b from-transparent via-primary/10 to-transparent transform -translate-y-full group-hover:translate-y-[200%] transition-transform duration-1000 ease-in-out" />
+                  </div>
                   
                   {/* Content */}
-                  <div className="relative z-10 flex items-start gap-4">
-                    <div className={`relative p-4 rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-500`}>
-                      <div className="absolute inset-0 bg-background/20 rounded-xl" />
-                      <item.icon size={28} className="text-background relative z-10" />
+                  <div className="relative z-10">
+                    {/* Icon Container - Floating Effect */}
+                    <div className="flex justify-center mb-6">
+                      <div className="relative">
+                        {/* Icon Glow */}
+                        <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} rounded-2xl blur-xl opacity-50 group-hover:opacity-80 group-hover:scale-125 transition-all duration-500`} />
+                        
+                        {/* Icon Box */}
+                        <div 
+                          className={`relative p-5 rounded-2xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:shadow-2xl transition-all duration-500 group-hover:scale-110`}
+                          style={{
+                            transform: 'translateZ(30px)',
+                          }}
+                        >
+                          <item.icon 
+                            size={36} 
+                            className="text-background relative z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12" 
+                          />
+                        </div>
+                        
+                        {/* Floating Particles */}
+                        <div className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-primary/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{ animationDuration: '1.5s' }} />
+                        <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-accent/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                      </div>
                     </div>
-                    <div className="flex-1 pt-1">
-                      <h3 className="font-bold text-lg mb-2 text-foreground group-hover:text-primary transition-colors duration-300">
-                        {item.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {item.description}
-                      </p>
+                    
+                    {/* Title */}
+                    <h3 className="font-bold text-xl mb-3 text-center text-foreground group-hover:text-primary transition-colors duration-300">
+                      {item.title}
+                    </h3>
+                    
+                    {/* Description */}
+                    <p className="text-sm text-muted-foreground text-center leading-relaxed mb-4">
+                      {item.description}
+                    </p>
+                    
+                    {/* Action Indicator */}
+                    <div className="flex justify-center">
+                      <div className={`flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-l ${item.gradient} opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-lg`}>
+                        <span className="text-xs font-bold text-background">اضغط للدخول</span>
+                        <ChevronDown size={14} className="text-background rotate-90 animate-pulse" />
+                      </div>
                     </div>
                   </div>
-
-                  {/* Hover Arrow */}
-                  <div className="absolute left-4 bottom-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                    <ChevronDown size={20} className="text-primary rotate-90" />
-                  </div>
+                  
+                  {/* Corner Decorations */}
+                  <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${item.gradient} opacity-10 rounded-bl-full`} />
+                  <div className={`absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr ${item.gradient} opacity-10 rounded-tr-full`} />
                 </div>
               </div>
             ))}
@@ -536,43 +590,66 @@ const Home = () => {
           {/* Admin Section */}
           {isSuperAdmin && (
             <>
-              <h2 className={`text-2xl font-bold mb-10 mt-16 text-center text-foreground transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-                <span className="relative">
-                  لوحة الإدارة
-                  <div className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-l from-transparent via-primary/50 to-transparent" />
+              <h2 className={`text-3xl font-bold mb-16 mt-24 text-center text-foreground transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+                <span className="relative inline-block">
+                  <span className="bg-gradient-to-l from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+                    لوحة الإدارة
+                  </span>
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-20 h-1 bg-gradient-to-l from-primary via-accent to-primary rounded-full" />
                 </span>
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                 {adminMenuItems.map((item, index) => (
                   <div
                     key={item.path}
-                    className={`group relative cursor-pointer transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
-                    style={{ transitionDelay: `${1400 + index * 100}ms` }}
+                    className={`group relative cursor-pointer transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+                    style={{ 
+                      transitionDelay: `${1400 + index * 150}ms`,
+                      animation: isLoaded ? `float 6s ease-in-out ${index * 0.5 + 3}s infinite` : 'none'
+                    }}
                     onClick={() => navigate(item.path)}
                   >
-                    <div className={`absolute -inset-1 bg-gradient-to-l ${item.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500`} />
+                    {/* Animated Border */}
+                    <div className="absolute -inset-[2px] rounded-3xl overflow-hidden">
+                      <div 
+                        className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`}
+                        style={{ animation: 'spin-slow 4s linear infinite' }}
+                      />
+                    </div>
                     
-                    <div className="relative bg-background/60 backdrop-blur-xl border border-primary/20 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 group-hover:-translate-y-2 group-hover:border-primary/40 overflow-hidden">
-                      <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-500`} />
+                    {/* Glow */}
+                    <div className={`absolute -inset-4 bg-gradient-to-r ${item.gradient} rounded-3xl blur-2xl opacity-20 group-hover:opacity-40 transition-all duration-700`} />
+                    
+                    <div className="relative bg-background/90 backdrop-blur-2xl rounded-3xl p-8 shadow-xl transition-all duration-500 group-hover:shadow-2xl overflow-hidden">
+                      <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-[0.05] group-hover:opacity-[0.12] transition-opacity duration-500`} />
                       
-                      <div className="relative z-10 flex items-start gap-4">
-                        <div className={`relative p-4 rounded-xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-500`}>
-                          <div className="absolute inset-0 bg-background/20 rounded-xl" />
-                          <item.icon size={28} className="text-background relative z-10" />
+                      <div className="relative z-10">
+                        <div className="flex justify-center mb-6">
+                          <div className="relative">
+                            <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} rounded-2xl blur-xl opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-500`} />
+                            <div className={`relative p-5 rounded-2xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:shadow-2xl transition-all duration-500 group-hover:scale-110`}>
+                              <item.icon size={36} className="text-background relative z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12" />
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1 pt-1">
-                          <h3 className="font-bold text-lg mb-2 text-foreground group-hover:text-primary transition-colors duration-300">
-                            {item.title}
-                          </h3>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {item.description}
-                          </p>
+                        
+                        <h3 className="font-bold text-xl mb-3 text-center text-foreground group-hover:text-primary transition-colors duration-300">
+                          {item.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground text-center leading-relaxed mb-4">
+                          {item.description}
+                        </p>
+                        
+                        <div className="flex justify-center">
+                          <div className={`flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-l ${item.gradient} opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-lg`}>
+                            <span className="text-xs font-bold text-background">اضغط للدخول</span>
+                            <ChevronDown size={14} className="text-background rotate-90" />
+                          </div>
                         </div>
                       </div>
-
-                      <div className="absolute left-4 bottom-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                        <ChevronDown size={20} className="text-primary rotate-90" />
-                      </div>
+                      
+                      <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${item.gradient} opacity-10 rounded-bl-full`} />
+                      <div className={`absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr ${item.gradient} opacity-10 rounded-tr-full`} />
                     </div>
                   </div>
                 ))}
@@ -583,18 +660,23 @@ const Home = () => {
       </section>
 
       {/* Footer - Premium Style */}
-      <footer className="relative py-12 text-center border-t border-border/30 bg-secondary/10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent" />
+      <footer className="relative py-16 text-center border-t border-border/20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/5 via-transparent to-transparent" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-t from-primary/10 to-transparent rounded-full blur-3xl" />
+        
         <div className="relative z-10">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <FlowerLogo animate={false} size={32} />
-            <div className="w-px h-8 bg-border/50" />
-            <div>
-              <p className="font-bold text-foreground">التجمع الصحي الثاني بجدة</p>
-              <p className="text-sm text-muted-foreground">Jeddah Second Health Cluster</p>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/30 rounded-full blur-xl animate-pulse" />
+              <FlowerLogo animate={false} size={40} className="relative z-10" />
+            </div>
+            <div className="w-px h-10 bg-gradient-to-b from-transparent via-border to-transparent" />
+            <div className="text-right">
+              <p className="font-bold text-lg text-foreground">التجمع الصحي الثاني بجدة</p>
+              <p className="text-sm text-primary font-medium">Jeddah Second Health Cluster</p>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
+          <p className="text-xs text-muted-foreground mt-6">
             © {new Date().getFullYear()} الرعاية الأولية المحسّنة - جميع الحقوق محفوظة
           </p>
         </div>
@@ -618,8 +700,31 @@ const Home = () => {
           50% { background-position: 100% 50%; }
         }
         
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        @keyframes shimmer {
+          0% { transform: translateX(-100%) rotate(45deg); }
+          100% { transform: translateX(100%) rotate(45deg); }
+        }
+        
         .animate-gradient {
           animation: gradient 6s ease infinite;
+        }
+        
+        .perspective-1000 {
+          perspective: 1000px;
+        }
+        
+        .group:hover .card-3d {
+          transform: rotateX(5deg) rotateY(-5deg) translateZ(20px);
         }
       `}</style>
     </div>
