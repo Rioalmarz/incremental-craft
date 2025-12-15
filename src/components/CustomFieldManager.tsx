@@ -9,6 +9,12 @@ import { Plus, Trash2, Edit2, Settings, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 
+// Option structure with display name and multiple actual values
+export interface FieldOption {
+  displayName: string;  // الاسم العربي للعرض في المنصة
+  values: string[];     // القيم الفعلية في الملف (يمكن أن تكون متعددة)
+}
+
 export interface CustomField {
   id: string;
   nameAr: string;
@@ -18,7 +24,7 @@ export interface CustomField {
   targetTables: string[]; // Changed from targetTable to support multiple tables
   targetTable: string; // Keep for backward compatibility
   dataType: 'text' | 'number' | 'boolean' | 'date' | 'select';
-  options?: string[]; // Custom options for select type
+  options?: FieldOption[]; // Updated to use FieldOption structure
   createdAt: string;
 }
 
@@ -38,12 +44,35 @@ const DATA_TYPES = [
   { id: 'date', nameAr: 'تاريخ' },
 ];
 
+// Default boolean options with multiple values mapping
+const DEFAULT_BOOLEAN_OPTIONS: FieldOption[] = [
+  { displayName: 'نعم', values: ['yes', 'true', '1', 'نعم'] },
+  { displayName: 'لا', values: ['no', 'false', '0', 'لا'] },
+  { displayName: 'غير معروف', values: ['unknown', 'null', '', 'غير معروف'] },
+];
+
 const STORAGE_KEY = 'customFieldMappings';
 
 export const getCustomFields = (): CustomField[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    
+    const fields = JSON.parse(stored);
+    // Migrate old format (string[]) to new format (FieldOption[])
+    return fields.map((field: any) => {
+      if (field.options && field.options.length > 0 && typeof field.options[0] === 'string') {
+        // Old format - migrate to new format
+        return {
+          ...field,
+          options: field.options.map((opt: string) => ({
+            displayName: opt,
+            values: [opt.toLowerCase()]
+          }))
+        };
+      }
+      return field;
+    });
   } catch {
     return [];
   }
@@ -69,8 +98,12 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
   const [keywords, setKeywords] = useState('');
   const [targetTables, setTargetTables] = useState<string[]>([]);
   const [dataType, setDataType] = useState<'text' | 'number' | 'boolean' | 'date' | 'select'>('text');
-  const [options, setOptions] = useState<string[]>([]);
-  const [newOption, setNewOption] = useState('');
+  const [options, setOptions] = useState<FieldOption[]>([]);
+  
+  // New option form state
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [newActualValue, setNewActualValue] = useState('');
+  const [currentOptionValues, setCurrentOptionValues] = useState<string[]>([]);
 
   useEffect(() => {
     setCustomFields(getCustomFields());
@@ -83,19 +116,50 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
     setTargetTables([]);
     setDataType('text');
     setOptions([]);
-    setNewOption('');
+    setNewDisplayName('');
+    setNewActualValue('');
+    setCurrentOptionValues([]);
     setEditingField(null);
   };
 
-  const handleAddOption = () => {
-    if (newOption.trim() && !options.includes(newOption.trim())) {
-      setOptions([...options, newOption.trim()]);
-      setNewOption('');
+  const handleAddActualValue = () => {
+    if (newActualValue.trim() && !currentOptionValues.includes(newActualValue.trim())) {
+      setCurrentOptionValues([...currentOptionValues, newActualValue.trim()]);
+      setNewActualValue('');
     }
   };
 
-  const handleRemoveOption = (optionToRemove: string) => {
-    setOptions(options.filter(opt => opt !== optionToRemove));
+  const handleRemoveActualValue = (valueToRemove: string) => {
+    setCurrentOptionValues(currentOptionValues.filter(v => v !== valueToRemove));
+  };
+
+  const handleAddOption = () => {
+    if (!newDisplayName.trim()) {
+      toast.error('يرجى إدخال اسم العرض');
+      return;
+    }
+    if (currentOptionValues.length === 0) {
+      toast.error('يرجى إضافة قيمة فعلية واحدة على الأقل');
+      return;
+    }
+    if (options.some(opt => opt.displayName === newDisplayName.trim())) {
+      toast.error('اسم العرض موجود مسبقاً');
+      return;
+    }
+
+    const newOption: FieldOption = {
+      displayName: newDisplayName.trim(),
+      values: currentOptionValues
+    };
+
+    setOptions([...options, newOption]);
+    setNewDisplayName('');
+    setNewActualValue('');
+    setCurrentOptionValues([]);
+  };
+
+  const handleRemoveOption = (displayNameToRemove: string) => {
+    setOptions(options.filter(opt => opt.displayName !== displayNameToRemove));
   };
 
   const handleToggleTable = (tableId: string) => {
@@ -128,7 +192,7 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
       targetTables,
       targetTable: targetTables[0], // For backward compatibility
       dataType,
-      options: dataType === 'select' ? options : (dataType === 'boolean' ? ['نعم', 'لا', 'غير معروف'] : undefined),
+      options: dataType === 'select' ? options : (dataType === 'boolean' ? DEFAULT_BOOLEAN_OPTIONS : undefined),
       createdAt: editingField?.createdAt || new Date().toISOString(),
     };
 
@@ -224,7 +288,7 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
                         </div>
                         {field.options && field.options.length > 0 && (
                           <div className="text-xs text-muted-foreground mt-1">
-                            الخيارات: {field.options.join('، ')}
+                            الخيارات: {field.options.map(opt => opt.displayName).join('، ')}
                           </div>
                         )}
                       </div>
@@ -256,7 +320,7 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
 
       {/* Add/Edit Field Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="max-w-md max-h-[90vh]" dir="rtl">
+        <DialogContent className="max-w-lg max-h-[90vh]" dir="rtl">
           <DialogHeader>
             <DialogTitle>{editingField ? 'تعديل حقل' : 'إضافة حقل جديد'}</DialogTitle>
           </DialogHeader>
@@ -267,125 +331,189 @@ export const CustomFieldManager = ({ onFieldsUpdated }: CustomFieldManagerProps)
             </p>
           
             <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>اسم الحقل (عربي) *</Label>
-              <Input 
-                value={nameAr}
-                onChange={(e) => setNameAr(e.target.value)}
-                placeholder="مثال: التحاليل"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>اسم الحقل (إنجليزي) *</Label>
-              <Input 
-                value={nameEn}
-                onChange={(e) => setNameEn(e.target.value)}
-                placeholder="مثال: lab_tests"
-                dir="ltr"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>الكلمات المفتاحية للمطابقة التلقائية</Label>
-              <Input 
-                value={keywords}
-                onChange={(e) => setKeywords(e.target.value)}
-                placeholder="تحاليل, lab, labs, tests (افصل بفاصلة)"
-              />
-              <p className="text-xs text-muted-foreground">
-                أضف كلمات متعددة مفصولة بفاصلة للمطابقة التلقائية
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>الجداول الهدف * (يمكن اختيار أكثر من جدول)</Label>
-              <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
-                {AVAILABLE_TABLES.map(table => (
-                  <div key={table.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`table-${table.id}`}
-                      checked={targetTables.includes(table.id)}
-                      onCheckedChange={() => handleToggleTable(table.id)}
-                    />
-                    <label 
-                      htmlFor={`table-${table.id}`}
-                      className="text-sm cursor-pointer flex items-center gap-2 flex-1"
-                    >
-                      <span>{table.icon}</span>
-                      <span>{table.nameAr}</span>
-                      <span className="text-xs text-muted-foreground">- {table.description}</span>
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>نوع البيانات</Label>
-              <Select value={dataType} onValueChange={(v) => setDataType(v as any)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DATA_TYPES.map(type => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.nameAr}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {dataType === 'boolean' && (
-                <p className="text-xs text-muted-foreground">
-                  الخيارات: نعم، لا، غير معروف
-                </p>
-              )}
-            </div>
-
-            {dataType === 'select' && (
               <div className="space-y-2">
-                <Label>خيارات القائمة *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={newOption}
-                    onChange={(e) => setNewOption(e.target.value)}
-                    placeholder="أضف خيار جديد"
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddOption())}
-                  />
-                  <Button type="button" size="sm" onClick={handleAddOption}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                {options.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {options.map((opt, idx) => (
-                      <Badge key={idx} variant="secondary" className="gap-1">
-                        {opt}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveOption(opt)}
-                          className="hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
+                <Label>اسم الحقل (عربي) *</Label>
+                <Input 
+                  value={nameAr}
+                  onChange={(e) => setNameAr(e.target.value)}
+                  placeholder="مثال: التحاليل"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>اسم الحقل (إنجليزي) *</Label>
+                <Input 
+                  value={nameEn}
+                  onChange={(e) => setNameEn(e.target.value)}
+                  placeholder="مثال: lab_tests"
+                  dir="ltr"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>الكلمات المفتاحية للمطابقة التلقائية</Label>
+                <Input 
+                  value={keywords}
+                  onChange={(e) => setKeywords(e.target.value)}
+                  placeholder="تحاليل, lab, labs, tests (افصل بفاصلة)"
+                />
                 <p className="text-xs text-muted-foreground">
-                  مثال: طبيعي، زيادة وزن، سمنة درجة 1، سمنة درجة 2، سمنة درجة 3
+                  أضف كلمات متعددة مفصولة بفاصلة للمطابقة التلقائية
                 </p>
               </div>
-            )}
 
-            <div className="flex gap-2 pt-4">
-              <Button onClick={handleSaveField} className="flex-1">
-                {editingField ? 'تحديث' : 'حفظ الحقل'}
-              </Button>
-              <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
-                إلغاء
-              </Button>
-            </div>
+              <div className="space-y-2">
+                <Label>الجداول الهدف * (يمكن اختيار أكثر من جدول)</Label>
+                <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
+                  {AVAILABLE_TABLES.map(table => (
+                    <div key={table.id} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`table-${table.id}`}
+                        checked={targetTables.includes(table.id)}
+                        onCheckedChange={() => handleToggleTable(table.id)}
+                      />
+                      <label 
+                        htmlFor={`table-${table.id}`}
+                        className="text-sm cursor-pointer flex items-center gap-2 flex-1"
+                      >
+                        <span>{table.icon}</span>
+                        <span>{table.nameAr}</span>
+                        <span className="text-xs text-muted-foreground">- {table.description}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>نوع البيانات</Label>
+                <Select value={dataType} onValueChange={(v) => setDataType(v as any)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DATA_TYPES.map(type => (
+                      <SelectItem key={type.id} value={type.id}>
+                        {type.nameAr}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {dataType === 'boolean' && (
+                  <p className="text-xs text-muted-foreground">
+                    الخيارات الافتراضية: نعم (yes, true, 1) ← لا (no, false, 0) ← غير معروف (unknown, null)
+                  </p>
+                )}
+              </div>
+
+              {dataType === 'select' && (
+                <div className="space-y-3">
+                  <Label>خيارات القائمة *</Label>
+                  
+                  {/* Add new option section */}
+                  <div className="border rounded-lg p-3 bg-muted/30 space-y-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs">اسم العرض في المنصة</Label>
+                      <Input
+                        value={newDisplayName}
+                        onChange={(e) => setNewDisplayName(e.target.value)}
+                        placeholder="مثال: غير سعودي"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs">القيم الفعلية في الملف</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={newActualValue}
+                          onChange={(e) => setNewActualValue(e.target.value)}
+                          placeholder="مثال: Somali"
+                          dir="ltr"
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddActualValue())}
+                        />
+                        <Button type="button" size="sm" onClick={handleAddActualValue} variant="outline">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {currentOptionValues.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {currentOptionValues.map((val, idx) => (
+                            <Badge key={idx} variant="secondary" className="gap-1 text-xs">
+                              {val}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveActualValue(val)}
+                                className="hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        أضف جميع القيم الفعلية التي تريد تحويلها لاسم العرض
+                      </p>
+                    </div>
+
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      onClick={handleAddOption}
+                      className="w-full"
+                      disabled={!newDisplayName.trim() || currentOptionValues.length === 0}
+                    >
+                      <Plus className="h-4 w-4 ml-2" />
+                      إضافة الخيار
+                    </Button>
+                  </div>
+
+                  {/* Display added options */}
+                  {options.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">الخيارات المضافة:</Label>
+                      <div className="space-y-2">
+                        {options.map((opt, idx) => (
+                          <div key={idx} className="flex items-start justify-between p-2 border rounded bg-card">
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{opt.displayName}</div>
+                              <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-1">
+                                {opt.values.map((val, vIdx) => (
+                                  <Badge key={vIdx} variant="outline" className="text-xs" dir="ltr">
+                                    {val}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveOption(opt.displayName)}
+                              className="h-6 w-6 text-destructive hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                    💡 مثال: اسم العرض "غير سعودي" مع القيم الفعلية "Somali, Yemeni, Egyptian" سيحول أي من هذه القيم للاسم العربي عند الاستيراد
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-4">
+                <Button onClick={handleSaveField} className="flex-1">
+                  {editingField ? 'تحديث' : 'حفظ الحقل'}
+                </Button>
+                <Button variant="outline" onClick={() => { setIsAddDialogOpen(false); resetForm(); }}>
+                  إلغاء
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
