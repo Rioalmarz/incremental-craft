@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
@@ -29,6 +29,114 @@ import {
   Sparkles
 } from "lucide-react";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
+
+// Particle component for animated background
+const ParticlesBackground = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    let animationFrameId: number;
+    let particles: Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      opacity: number;
+      color: string;
+    }> = [];
+    
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    
+    const createParticles = () => {
+      particles = [];
+      const particleCount = Math.floor((canvas.width * canvas.height) / 15000);
+      
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: (Math.random() - 0.5) * 0.3,
+          size: Math.random() * 2 + 1,
+          opacity: Math.random() * 0.5 + 0.1,
+          color: Math.random() > 0.5 ? '0, 188, 212' : '0, 150, 136' // Cyan or Teal
+        });
+      }
+    };
+    
+    const drawParticles = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      particles.forEach((particle, i) => {
+        // Update position
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        
+        // Wrap around edges
+        if (particle.x < 0) particle.x = canvas.width;
+        if (particle.x > canvas.width) particle.x = 0;
+        if (particle.y < 0) particle.y = canvas.height;
+        if (particle.y > canvas.height) particle.y = 0;
+        
+        // Draw particle
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${particle.color}, ${particle.opacity})`;
+        ctx.fill();
+        
+        // Draw connections
+        particles.slice(i + 1).forEach(other => {
+          const dx = particle.x - other.x;
+          const dy = particle.y - other.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < 120) {
+            ctx.beginPath();
+            ctx.moveTo(particle.x, particle.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = `rgba(0, 188, 212, ${0.1 * (1 - distance / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        });
+      });
+      
+      animationFrameId = requestAnimationFrame(drawParticles);
+    };
+    
+    resize();
+    createParticles();
+    drawParticles();
+    
+    window.addEventListener('resize', () => {
+      resize();
+      createParticles();
+    });
+    
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+  
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-0"
+      style={{ opacity: 0.6 }}
+    />
+  );
+};
 
 const Home = () => {
   const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
@@ -149,11 +257,13 @@ const Home = () => {
 
   return (
     <div className={`min-h-screen bg-background overflow-hidden transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Animated Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      {/* Animated Particles Background */}
+      <ParticlesBackground />
+      
+      {/* Gradient Overlays */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
         <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-accent/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-radial from-primary/3 to-transparent rounded-full blur-3xl" />
       </div>
 
       {/* Top Header - Vision 2030 Premium Style */}
