@@ -14,6 +14,7 @@ import {
   mapExcelColumns, 
   getAvailableFields, 
   transformValue,
+  getFieldMappingByDbField,
   ColumnMapping 
 } from "@/lib/smartColumnMapper";
 import { CustomFieldManager } from "@/components/CustomFieldManager";
@@ -194,7 +195,8 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
                 .filter((med) => med.length > 0);
             }
           } else {
-            transformedData[dbField] = transformValue(value, dbField);
+            const fieldMapping = getFieldMappingByDbField(dbField, importType);
+            transformedData[dbField] = transformValue(value, dbField, fieldMapping);
           }
         }
       }

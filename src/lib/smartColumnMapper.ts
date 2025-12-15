@@ -1,6 +1,6 @@
 // Smart Column Mapping System - Intelligent field matching for Excel imports
 
-import { getCustomFields, CustomField } from '@/components/CustomFieldManager';
+import { getCustomFields, CustomField, FieldOption } from '@/components/CustomFieldManager';
 
 export interface FieldMapping {
   dbField: string;
@@ -9,7 +9,7 @@ export interface FieldMapping {
   required?: boolean;
   targetTable?: string;
   dataType?: 'text' | 'number' | 'boolean' | 'date' | 'select';
-  options?: string[]; // For select type
+  options?: FieldOption[]; // Updated to use FieldOption structure
   isCustom?: boolean;
 }
 
@@ -320,11 +320,34 @@ export const getAvailableFields = (importType: "patients" | "preventive"): { val
   }));
 };
 
+// Transform value using custom field options (N:1 mapping)
+const transformCustomFieldValue = (value: any, options: FieldOption[]): any => {
+  if (value === undefined || value === null || value === "") return null;
+  
+  const strValue = String(value).trim().toLowerCase();
+  
+  // Find matching option by checking all possible values
+  for (const option of options) {
+    const matchingValue = option.values.find(v => v.toLowerCase() === strValue);
+    if (matchingValue) {
+      return option.displayName; // Return the Arabic display name
+    }
+  }
+  
+  // If no match found, return original value
+  return String(value).trim();
+};
+
 // Value transformers
-export const transformValue = (value: any, dbField: string): any => {
+export const transformValue = (value: any, dbField: string, fieldMapping?: FieldMapping): any => {
   if (value === undefined || value === null || value === "") return null;
   
   const strValue = String(value).trim();
+  
+  // Check if this is a custom field with options
+  if (fieldMapping?.isCustom && fieldMapping.options && fieldMapping.options.length > 0) {
+    return transformCustomFieldValue(value, fieldMapping.options);
+  }
   
   // Boolean fields
   if (["has_dm", "has_htn", "has_dyslipidemia", "is_eligible"].includes(dbField)) {
@@ -392,4 +415,10 @@ export const transformValue = (value: any, dbField: string): any => {
   }
   
   return strValue;
+};
+
+// Get field mapping by dbField for use in transformValue
+export const getFieldMappingByDbField = (dbField: string, importType: "patients" | "preventive"): FieldMapping | undefined => {
+  const allMappings = getAllFieldMappings(importType);
+  return allMappings.find(m => m.dbField === dbField);
 };
