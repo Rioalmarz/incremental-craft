@@ -104,24 +104,20 @@ const PreventiveCareImport = ({ onImportComplete }: PreventiveCareImportProps) =
     return "male";
   };
 
-  // Convert Excel serial number or string to date string (YYYY-MM-DD)
   const convertDate = (value: string | number | undefined): string | null => {
     if (!value) return null;
     
-    // If it's a number (Excel serial)
     if (typeof value === "number") {
       const excelEpoch = new Date(1899, 11, 30);
       const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
       return date.toISOString().split("T")[0];
     }
     
-    // If it's already a string date
     const strValue = value.toString().trim();
     if (strValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
       return strValue;
     }
     
-    // Try parsing as date
     const parsed = new Date(strValue);
     if (!isNaN(parsed.getTime())) {
       return parsed.toISOString().split("T")[0];
@@ -180,7 +176,6 @@ const PreventiveCareImport = ({ onImportComplete }: PreventiveCareImportProps) =
           last_completed_date: convertDate(row.last_completed_date),
         };
 
-        // Check if record exists
         const { data: existing } = await supabase
           .from("patient_eligibility")
           .select("id")
@@ -259,9 +254,9 @@ const PreventiveCareImport = ({ onImportComplete }: PreventiveCareImportProps) =
   const failedCount = results.filter((r) => r.status === "failed").length;
 
   return (
-    <Card className="border-0 shadow-none">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-lg">
+    <Card className="glass">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
           <FileSpreadsheet size={20} />
           استيراد بيانات الرعاية الوقائية
         </CardTitle>
@@ -270,24 +265,6 @@ const PreventiveCareImport = ({ onImportComplete }: PreventiveCareImportProps) =
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Expected Columns Info */}
-        <div className="p-3 bg-muted/50 rounded-lg text-sm">
-          <p className="font-medium mb-2">الأعمدة المطلوبة في ملف Excel:</p>
-          <div className="grid grid-cols-2 gap-2 text-muted-foreground text-xs">
-            <span>• patient_id (رقم الهوية)</span>
-            <span>• patient_name (اسم المريض)</span>
-            <span>• patient_age (العمر)</span>
-            <span>• patient_gender (الجنس)</span>
-            <span>• service_id (معرف الخدمة)</span>
-            <span>• service_code (كود الخدمة)</span>
-            <span>• service_name_ar (اسم الخدمة)</span>
-            <span>• status (الحالة)</span>
-            <span>• priority (الأولوية)</span>
-            <span>• due_date (تاريخ الاستحقاق)</span>
-            <span>• last_completed_date (آخر إكمال)</span>
-          </div>
-        </div>
-
         {/* File Upload */}
         <div className="flex flex-col items-center gap-4 p-6 border-2 border-dashed rounded-lg border-muted-foreground/25 hover:border-primary/50 transition-colors">
           <input
@@ -324,7 +301,7 @@ const PreventiveCareImport = ({ onImportComplete }: PreventiveCareImportProps) =
                 إلغاء
               </Button>
             </div>
-            <ScrollArea className="h-[250px] rounded-md border">
+            <ScrollArea className="h-[300px] rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -394,19 +371,19 @@ const PreventiveCareImport = ({ onImportComplete }: PreventiveCareImportProps) =
 
             {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="p-4 rounded-lg bg-success/10 border border-success/20 text-center">
-                <CheckCircle className="mx-auto mb-2 text-success" size={24} />
-                <p className="text-2xl font-bold text-success">{insertedCount}</p>
+              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
+                <CheckCircle className="mx-auto mb-2 text-green-500" size={24} />
+                <p className="text-2xl font-bold text-green-600">{insertedCount}</p>
                 <p className="text-sm text-muted-foreground">تم الإدراج</p>
               </div>
-              <div className="p-4 rounded-lg bg-info/10 border border-info/20 text-center">
-                <AlertCircle className="mx-auto mb-2 text-info" size={24} />
-                <p className="text-2xl font-bold text-info">{updatedCount}</p>
+              <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 text-center">
+                <AlertCircle className="mx-auto mb-2 text-blue-500" size={24} />
+                <p className="text-2xl font-bold text-blue-600">{updatedCount}</p>
                 <p className="text-sm text-muted-foreground">تم التحديث</p>
               </div>
-              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
-                <XCircle className="mx-auto mb-2 text-destructive" size={24} />
-                <p className="text-2xl font-bold text-destructive">{failedCount}</p>
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-center">
+                <XCircle className="mx-auto mb-2 text-red-500" size={24} />
+                <p className="text-2xl font-bold text-red-600">{failedCount}</p>
                 <p className="text-sm text-muted-foreground">فشل</p>
               </div>
             </div>
@@ -415,7 +392,7 @@ const PreventiveCareImport = ({ onImportComplete }: PreventiveCareImportProps) =
             {failedCount > 0 && (
               <div className="space-y-2">
                 <h4 className="font-medium text-destructive">السجلات الفاشلة:</h4>
-                <ScrollArea className="h-[150px] rounded-md border border-destructive/20">
+                <ScrollArea className="h-[200px] rounded-md border border-destructive/20">
                   <Table>
                     <TableHeader>
                       <TableRow>
