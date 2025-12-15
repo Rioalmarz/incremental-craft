@@ -1,11 +1,15 @@
 // Smart Column Mapping System - Intelligent field matching for Excel imports
 
+import { getCustomFields, CustomField } from '@/components/CustomFieldManager';
+
 export interface FieldMapping {
   dbField: string;
   displayName: string;
   keywords: string[];
   required?: boolean;
-  transform?: (value: any) => any;
+  targetTable?: string;
+  dataType?: 'text' | 'number' | 'boolean' | 'date';
+  isCustom?: boolean;
 }
 
 // Field mappings for patients table
@@ -227,12 +231,44 @@ const findBestMatch = (
   return { field: bestMatch, confidence };
 };
 
+// Convert custom fields to FieldMapping format
+const convertCustomFieldsToMappings = (targetTable: string): FieldMapping[] => {
+  const customFields = getCustomFields();
+  return customFields
+    .filter(cf => cf.targetTable === targetTable)
+    .map(cf => ({
+      dbField: cf.dbField,
+      displayName: cf.nameAr,
+      keywords: cf.keywords,
+      required: false,
+      targetTable: cf.targetTable,
+      dataType: cf.dataType,
+      isCustom: true,
+    }));
+};
+
+// Get all field mappings including custom fields
+export const getAllFieldMappings = (importType: "patients" | "preventive"): FieldMapping[] => {
+  const baseMappings = importType === "patients" ? patientFieldMappings : preventiveCareFieldMappings;
+  const targetTable = importType === "patients" ? "patients" : "patient_eligibility";
+  const customMappings = convertCustomFieldsToMappings(targetTable);
+  
+  // Also get custom fields for related tables
+  const relatedTables = importType === "patients" 
+    ? ["medications", "screening_data", "virtual_clinic_data"]
+    : [];
+  
+  const relatedCustomMappings = relatedTables.flatMap(table => convertCustomFieldsToMappings(table));
+  
+  return [...baseMappings, ...customMappings, ...relatedCustomMappings];
+};
+
 // Main function to map Excel columns to database fields
 export const mapExcelColumns = (
   excelColumns: string[],
   importType: "patients" | "preventive"
 ): ColumnMapping[] => {
-  const fieldMappings = importType === "patients" ? patientFieldMappings : preventiveCareFieldMappings;
+  const fieldMappings = getAllFieldMappings(importType);
   const usedFields = new Set<string>();
   
   return excelColumns.map((excelColumn) => {
@@ -263,12 +299,16 @@ export const mapExcelColumns = (
   });
 };
 
-// Get all available fields for manual selection
-export const getAvailableFields = (importType: "patients" | "preventive"): { value: string; label: string }[] => {
-  const fieldMappings = importType === "patients" ? patientFieldMappings : preventiveCareFieldMappings;
+// Get all available fields for manual selection (including custom fields)
+export const getAvailableFields = (importType: "patients" | "preventive"): { value: string; label: string; isCustom?: boolean }[] => {
+  const fieldMappings = getAllFieldMappings(importType);
   return [
     { value: "", label: "تجاهل هذا العمود" },
-    ...fieldMappings.map((f) => ({ value: f.dbField, label: f.displayName })),
+    ...fieldMappings.map((f) => ({ 
+      value: f.dbField, 
+      label: f.isCustom ? `${f.displayName} (مخصص)` : f.displayName,
+      isCustom: f.isCustom 
+    })),
   ];
 };
 
