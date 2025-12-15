@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileSpreadsheet, Loader2, CheckCircle, XCircle, AlertCircle, ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { 
   mapExcelColumns, 
@@ -488,11 +488,40 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
                             <SelectValue placeholder="اختر الحقل" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableFields.map((field) => (
-                              <SelectItem key={field.value} value={field.value || "none"}>
-                                {field.label}
-                              </SelectItem>
-                            ))}
+                            {/* Skip/Ignore option */}
+                            <SelectItem value="none">تجاهل هذا العمود</SelectItem>
+                            
+                            {/* Default fields group */}
+                            {availableFields.filter(f => f.value && !f.isCustom).length > 0 && (
+                              <SelectGroup>
+                                <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                                  📋 الحقول الافتراضية
+                                </SelectLabel>
+                                {availableFields
+                                  .filter(f => f.value && !f.isCustom)
+                                  .map((field) => (
+                                    <SelectItem key={field.value} value={field.value}>
+                                      {field.label}
+                                    </SelectItem>
+                                  ))}
+                              </SelectGroup>
+                            )}
+                            
+                            {/* Custom fields group */}
+                            {availableFields.filter(f => f.isCustom).length > 0 && (
+                              <SelectGroup>
+                                <SelectLabel className="text-xs font-semibold text-primary px-2 py-1.5">
+                                  ✨ الحقول المخصصة
+                                </SelectLabel>
+                                {availableFields
+                                  .filter(f => f.isCustom)
+                                  .map((field) => (
+                                    <SelectItem key={field.value} value={field.value!}>
+                                      {field.label}
+                                    </SelectItem>
+                                  ))}
+                              </SelectGroup>
+                            )}
                           </SelectContent>
                         </Select>
                       </TableCell>

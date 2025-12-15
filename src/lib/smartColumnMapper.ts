@@ -302,14 +302,11 @@ export const mapExcelColumns = (
 // Get all available fields for manual selection (including custom fields)
 export const getAvailableFields = (importType: "patients" | "preventive"): { value: string; label: string; isCustom?: boolean }[] => {
   const fieldMappings = getAllFieldMappings(importType);
-  return [
-    { value: "", label: "تجاهل هذا العمود" },
-    ...fieldMappings.map((f) => ({ 
-      value: f.dbField, 
-      label: f.isCustom ? `${f.displayName} (مخصص)` : f.displayName,
-      isCustom: f.isCustom 
-    })),
-  ];
+  return fieldMappings.map((f) => ({ 
+    value: f.dbField, 
+    label: f.isCustom ? `${f.displayName}` : f.displayName,
+    isCustom: f.isCustom 
+  }));
 };
 
 // Value transformers
