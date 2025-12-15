@@ -2,3 +2,6 @@ project_id = "stybjobzrbxzszzwbxeg"
 
 [functions.manage-users]
 verify_jwt = false
+
+[functions.sync-doctor-schedules]
+verify_jwt = true

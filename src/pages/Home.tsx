@@ -26,7 +26,8 @@ import {
   Shield,
   Activity,
   Heart,
-  Sparkles
+  Sparkles,
+  CalendarDays
 } from "lucide-react";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 
@@ -284,6 +285,13 @@ const Home = () => {
   ];
 
   const adminMenuItems = [
+    { 
+      title: "جدولة الأطباء (محدث)", 
+      icon: CalendarDays, 
+      path: "/doctor-scheduling",
+      description: "جداول الأطباء لجميع المراكز الصحية",
+      gradient: "from-[hsl(280,60%,50%)] to-[hsl(320,60%,45%)]"
+    },
     { 
       title: "إدارة المستخدمين", 
       icon: UserCog, 
