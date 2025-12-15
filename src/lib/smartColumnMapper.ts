@@ -250,17 +250,12 @@ const convertCustomFieldsToMappings = (targetTable: string): FieldMapping[] => {
 // Get all field mappings including custom fields
 export const getAllFieldMappings = (importType: "patients" | "preventive"): FieldMapping[] => {
   const baseMappings = importType === "patients" ? patientFieldMappings : preventiveCareFieldMappings;
-  const targetTable = importType === "patients" ? "patients" : "patient_eligibility";
-  const customMappings = convertCustomFieldsToMappings(targetTable);
   
-  // Also get custom fields for related tables
-  const relatedTables = importType === "patients" 
-    ? ["medications", "screening_data", "virtual_clinic_data", "patient_eligibility"]
-    : [];
+  // جلب الحقول المخصصة من جميع الجداول لكلا النوعين
+  const allTables = ["patients", "medications", "screening_data", "virtual_clinic_data", "patient_eligibility"];
+  const allCustomMappings = allTables.flatMap(table => convertCustomFieldsToMappings(table));
   
-  const relatedCustomMappings = relatedTables.flatMap(table => convertCustomFieldsToMappings(table));
-  
-  return [...baseMappings, ...customMappings, ...relatedCustomMappings];
+  return [...baseMappings, ...allCustomMappings];
 };
 
 // Main function to map Excel columns to database fields
