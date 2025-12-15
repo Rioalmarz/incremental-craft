@@ -249,13 +249,23 @@ const convertCustomFieldsToMappings = (targetTable: string): FieldMapping[] => {
 
 // Get all field mappings including custom fields
 export const getAllFieldMappings = (importType: "patients" | "preventive"): FieldMapping[] => {
-  const baseMappings = importType === "patients" ? patientFieldMappings : preventiveCareFieldMappings;
+  // دمج جميع الحقول الافتراضية من كلا النوعين
+  const allBaseMappings = [...patientFieldMappings, ...preventiveCareFieldMappings];
   
-  // جلب الحقول المخصصة من جميع الجداول لكلا النوعين
+  // إزالة التكرارات (الحقول المشتركة مثل العمر والجنس)
+  const uniqueBaseMappings = allBaseMappings.reduce((acc, current) => {
+    const isDuplicate = acc.find(item => item.dbField === current.dbField);
+    if (!isDuplicate) {
+      acc.push(current);
+    }
+    return acc;
+  }, [] as FieldMapping[]);
+  
+  // جلب الحقول المخصصة من جميع الجداول
   const allTables = ["patients", "medications", "screening_data", "virtual_clinic_data", "patient_eligibility"];
   const allCustomMappings = allTables.flatMap(table => convertCustomFieldsToMappings(table));
   
-  return [...baseMappings, ...allCustomMappings];
+  return [...uniqueBaseMappings, ...allCustomMappings];
 };
 
 // Main function to map Excel columns to database fields
