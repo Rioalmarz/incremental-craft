@@ -30,9 +30,10 @@ import {
 } from "lucide-react";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 
-// Particle component for animated background
+// Particle component for animated background with mouse interaction
 const ParticlesBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -1000, y: -1000 });
   
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -45,6 +46,8 @@ const ParticlesBackground = () => {
     let particles: Array<{
       x: number;
       y: number;
+      baseX: number;
+      baseY: number;
       vx: number;
       vy: number;
       size: number;
@@ -59,28 +62,48 @@ const ParticlesBackground = () => {
     
     const createParticles = () => {
       particles = [];
-      const particleCount = Math.floor((canvas.width * canvas.height) / 15000);
+      const particleCount = Math.floor((canvas.width * canvas.height) / 12000);
       
       for (let i = 0; i < particleCount; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
         particles.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.3,
-          vy: (Math.random() - 0.5) * 0.3,
-          size: Math.random() * 2 + 1,
-          opacity: Math.random() * 0.5 + 0.1,
-          color: Math.random() > 0.5 ? '0, 188, 212' : '0, 150, 136' // Cyan or Teal
+          x,
+          y,
+          baseX: x,
+          baseY: y,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          size: Math.random() * 2.5 + 1,
+          opacity: Math.random() * 0.5 + 0.2,
+          color: Math.random() > 0.5 ? '0, 188, 212' : '0, 150, 136'
         });
       }
     };
     
     const drawParticles = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const mouse = mouseRef.current;
+      const interactionRadius = 150;
+      const repelStrength = 80;
       
       particles.forEach((particle, i) => {
-        // Update position
-        particle.x += particle.vx;
-        particle.y += particle.vy;
+        // Calculate distance from mouse
+        const dx = mouse.x - particle.x;
+        const dy = mouse.y - particle.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Repel particles from mouse
+        if (distance < interactionRadius && distance > 0) {
+          const force = (interactionRadius - distance) / interactionRadius;
+          const angle = Math.atan2(dy, dx);
+          particle.x -= Math.cos(angle) * force * repelStrength * 0.05;
+          particle.y -= Math.sin(angle) * force * repelStrength * 0.05;
+        } else {
+          // Return to base movement
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+        }
         
         // Wrap around edges
         if (particle.x < 0) particle.x = canvas.width;
@@ -88,30 +111,50 @@ const ParticlesBackground = () => {
         if (particle.y < 0) particle.y = canvas.height;
         if (particle.y > canvas.height) particle.y = 0;
         
-        // Draw particle
+        // Pulsing size effect near mouse
+        let currentSize = particle.size;
+        if (distance < interactionRadius) {
+          currentSize = particle.size * (1 + (1 - distance / interactionRadius) * 0.5);
+        }
+        
+        // Draw particle with glow
         ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${particle.color}, ${particle.opacity})`;
+        ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2);
+        const gradient = ctx.createRadialGradient(
+          particle.x, particle.y, 0,
+          particle.x, particle.y, currentSize * 2
+        );
+        gradient.addColorStop(0, `rgba(${particle.color}, ${particle.opacity})`);
+        gradient.addColorStop(1, `rgba(${particle.color}, 0)`);
+        ctx.fillStyle = gradient;
         ctx.fill();
         
         // Draw connections
         particles.slice(i + 1).forEach(other => {
-          const dx = particle.x - other.x;
-          const dy = particle.y - other.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
+          const dx2 = particle.x - other.x;
+          const dy2 = particle.y - other.y;
+          const dist = Math.sqrt(dx2 * dx2 + dy2 * dy2);
           
-          if (distance < 120) {
+          if (dist < 100) {
             ctx.beginPath();
             ctx.moveTo(particle.x, particle.y);
             ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = `rgba(0, 188, 212, ${0.1 * (1 - distance / 120)})`;
-            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = `rgba(0, 188, 212, ${0.15 * (1 - dist / 100)})`;
+            ctx.lineWidth = 0.6;
             ctx.stroke();
           }
         });
       });
       
       animationFrameId = requestAnimationFrame(drawParticles);
+    };
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    
+    const handleMouseLeave = () => {
+      mouseRef.current = { x: -1000, y: -1000 };
     };
     
     resize();
@@ -122,10 +165,14 @@ const ParticlesBackground = () => {
       resize();
       createParticles();
     });
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseLeave);
     
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
   
@@ -133,7 +180,7 @@ const ParticlesBackground = () => {
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ opacity: 0.6 }}
+      style={{ opacity: 0.7 }}
     />
   );
 };
