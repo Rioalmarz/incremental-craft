@@ -5,7 +5,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from "recharts";
 import { UserCheck, CheckCircle, Pill, Stethoscope, FileText, Activity, Heart, Droplets, Scale } from "lucide-react";
-import { calculatePilotStatistics } from "@/lib/pilotDataGenerator";
+
 
 interface ContactedTabProps {
   patients: any[];
@@ -20,10 +20,15 @@ const COLORS = {
 };
 
 const ContactedTab = ({ patients }: ContactedTabProps) => {
-  const stats = calculatePilotStatistics(patients);
+  // Fixed values: 81% of 594 = 481 contacted
+  const totalPatients = 594;
+  const contacted = Math.round(totalPatients * 0.81); // 481
+  const serviceDelivered = Math.round(contacted * 0.90); // 433 (90% of contacted got service)
+  const serviceNotDelivered = contacted - serviceDelivered;
+  const serviceDeliveredRate = 90;
   
   // Service types delivered with preventive care as TOP service
-  const totalServiced = stats.serviceDelivered;
+  const totalServiced = serviceDelivered;
   const serviceTypes = [
     { name: 'خدمات استباقية (وقائية)', value: Math.round(totalServiced * 0.40), color: COLORS.preventive, icon: Activity },
     { name: 'صرف علاج', value: Math.round(totalServiced * 0.25), color: COLORS.medication, icon: Pill },
@@ -52,7 +57,7 @@ const ContactedTab = ({ patients }: ContactedTabProps) => {
                 <UserCheck className="w-7 h-7 text-primary" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{stats.contacted}</p>
+                <p className="text-3xl font-bold">{contacted}</p>
                 <p className="text-sm text-muted-foreground">تم التواصل معهم</p>
               </div>
             </div>
@@ -66,7 +71,7 @@ const ContactedTab = ({ patients }: ContactedTabProps) => {
                 <CheckCircle className="w-7 h-7 text-success" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{stats.serviceDelivered}</p>
+                <p className="text-3xl font-bold">{serviceDelivered}</p>
                 <p className="text-sm text-muted-foreground">تم تقديم الخدمة</p>
               </div>
             </div>
@@ -77,11 +82,11 @@ const ContactedTab = ({ patients }: ContactedTabProps) => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-success">{Math.round(stats.serviceDeliveredRate)}%</p>
+                <p className="text-3xl font-bold text-success">{serviceDeliveredRate}%</p>
                 <p className="text-sm text-muted-foreground">نسبة الإنجاز</p>
               </div>
               <Badge className="bg-success/20 text-success">
-                {stats.serviceDelivered} / {stats.contacted}
+                {serviceDelivered} / {contacted}
               </Badge>
             </div>
           </CardContent>
@@ -94,10 +99,10 @@ const ContactedTab = ({ patients }: ContactedTabProps) => {
           <CardTitle>نسبة تقديم الخدمة من المتواصل معهم</CardTitle>
         </CardHeader>
         <CardContent>
-          <Progress value={stats.serviceDeliveredRate} className="h-4 mb-4" />
+          <Progress value={serviceDeliveredRate} className="h-4 mb-4" />
           <div className="flex justify-between text-sm">
-            <span className="text-success">تم تقديم الخدمة: {stats.serviceDelivered}</span>
-            <span className="text-muted-foreground">لم يتم تقديم الخدمة: {stats.serviceNotDelivered}</span>
+            <span className="text-success">تم تقديم الخدمة: {serviceDelivered}</span>
+            <span className="text-muted-foreground">لم يتم تقديم الخدمة: {serviceNotDelivered}</span>
           </div>
         </CardContent>
       </Card>
