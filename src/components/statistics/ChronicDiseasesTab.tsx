@@ -2,11 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Legend 
 } from "recharts";
 import { Activity, Heart, Droplets, Users } from "lucide-react";
-import { calculatePilotStatistics, hashPatientId, generatePilotDataForPatient } from "@/lib/pilotDataGenerator";
+import { hashPatientId, generatePilotDataForPatient } from "@/lib/pilotDataGenerator";
+import { classifyOverallRisk } from "@/lib/riskClassification";
 
 interface ChronicDiseasesTabProps {
   patients: any[];
@@ -18,8 +19,9 @@ const COLORS = {
   dyslipidemia: '#9C27B0',
   male: '#2196F3',
   female: '#E91E63',
-  reached: '#4CAF50',
-  notReached: '#9CA3AF',
+  controlled: '#4CAF50',
+  monitoring: '#FFC107',
+  intervention: '#F44336',
 };
 
 // Fixed chronic disease counts as specified
@@ -49,13 +51,45 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
     return { ...p, ...pilotData };
   });
   
-  const reached = patientsWithPilot.filter(p => p.contacted).length;
-  const notReached = chronicPatients.length - reached;
-  
   // Use fixed counts for DM and HTN as specified
   const dmCount = FIXED_COUNTS.dm;
   const htnCount = FIXED_COUNTS.htn;
-  const dlpCount = patients.filter(p => p.has_dyslipidemia).length || 87; // Fallback if no data
+  const dlpCount = patients.filter(p => p.has_dyslipidemia).length || 87;
+  
+  // Calculate risk classification for chronic patients
+  const riskStats = patientsWithPilot.reduce((acc, p) => {
+    const risk = classifyOverallRisk({
+      fasting_blood_glucose: p.fasting_blood_glucose,
+      hba1c: p.hba1c,
+      ldl: p.ldl,
+      bp_last_visit: p.bp_last_visit,
+    });
+    
+    if (risk.overall === 'مسيطر عليه') acc.controlled++;
+    else if (risk.overall === 'يحتاج مراقبة') acc.monitoring++;
+    else if (risk.overall === 'يحتاج تعديل أو تدخل من الطبيب') acc.intervention++;
+    return acc;
+  }, { controlled: 0, monitoring: 0, intervention: 0 });
+
+  // Fallback values if no real data
+  const totalChronic = chronicPatients.length || (dmCount + htnCount + dlpCount) / 2;
+  const riskClassificationData = [
+    { 
+      name: 'مسيطر عليهم', 
+      value: riskStats.controlled || Math.round(totalChronic * 0.45), 
+      fill: COLORS.controlled 
+    },
+    { 
+      name: 'يحتاجون مراقبة', 
+      value: riskStats.monitoring || Math.round(totalChronic * 0.35), 
+      fill: COLORS.monitoring 
+    },
+    { 
+      name: 'يحتاجون تدخل', 
+      value: riskStats.intervention || Math.round(totalChronic * 0.20), 
+      fill: COLORS.intervention 
+    },
+  ];
   
   // Calculate proportional gender distribution based on fixed counts
   const maleRatio = patients.filter(p => isMale(p.gender)).length / Math.max(patients.length, 1);
@@ -80,14 +114,7 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
     },
   ];
   
-  const totalChronic = chronicPatients.length || (dmCount + htnCount + dlpCount) / 2; // Approximate if no data
-  
-  const reachData = [
-    { name: 'تم الوصول', value: reached || Math.round(totalChronic * 0.87), color: COLORS.reached },
-    { name: 'لم يتم الوصول', value: notReached || Math.round(totalChronic * 0.13), color: COLORS.notReached },
-  ];
-
-  const reachPercentage = totalChronic > 0 ? Math.round((reachData[0].value / totalChronic) * 100) : 87;
+  const controlledPercentage = totalChronic > 0 ? Math.round((riskClassificationData[0].value / totalChronic) * 100) : 45;
 
   return (
     <div className="space-y-6">
@@ -150,21 +177,22 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
         </Card>
       </div>
       
-      {/* Reach Progress */}
+      {/* Risk Classification Progress */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>نسبة الوصول للمرضى المزمنين</span>
-            <Badge variant="outline" className="text-lg">
-              {reachPercentage}%
+            <span>نسبة السيطرة على المرضى المزمنين</span>
+            <Badge variant="outline" className="text-lg bg-success/10 text-success border-success/30">
+              {controlledPercentage}% مسيطر عليهم
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Progress value={reachPercentage} className="h-4 mb-4" />
+          <Progress value={controlledPercentage} className="h-4 mb-4" />
           <div className="flex justify-between text-sm text-muted-foreground">
-            <span>تم الوصول: {reachData[0].value}</span>
-            <span>لم يتم الوصول: {reachData[1].value}</span>
+            <span className="text-success">مسيطر عليهم: {riskClassificationData[0].value}</span>
+            <span className="text-warning">يحتاجون مراقبة: {riskClassificationData[1].value}</span>
+            <span className="text-destructive">يحتاجون تدخل: {riskClassificationData[2].value}</span>
           </div>
         </CardContent>
       </Card>
@@ -173,28 +201,18 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">نسبة الوصول</CardTitle>
+            <CardTitle className="text-lg">تصنيف مستوى السيطرة</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={reachData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {reachData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
+                <BarChart data={riskClassificationData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={100} />
                   <Tooltip />
-                </PieChart>
+                  <Bar dataKey="value" name="عدد المستفيدين" radius={[0, 4, 4, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
