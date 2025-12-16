@@ -47,8 +47,13 @@ import {
   Calendar,
   XCircle,
   Loader2,
-  Save,
   Upload,
+  ShieldCheck,
+  Heart,
+  Activity,
+  Droplets,
+  AlertTriangle,
+  Download,
 } from "lucide-react";
 import SmartExcelImport from "@/components/SmartExcelImport";
 import {
@@ -63,6 +68,19 @@ import {
   type Immunization,
   type HealthEducation,
 } from "@/data/preventiveCareSupabase";
+import {
+  classifyOverallRisk,
+  classifyBP,
+  classifyHBA1C,
+  classifyFBG,
+  classifyLDL,
+  getRiskColor,
+  getRiskBgColor,
+  getRiskBorderColor,
+  getRecommendations,
+  type RiskLevel,
+} from "@/lib/riskClassification";
+import { cn } from "@/lib/utils";
 
 interface Patient {
   id: string;
@@ -70,10 +88,18 @@ interface Patient {
   national_id: string;
   age: number | null;
   gender: string | null;
+  phone: string | null;
   has_dm: boolean | null;
   has_htn: boolean | null;
   has_dyslipidemia: boolean | null;
   status: string | null;
+  fasting_blood_glucose: number | null;
+  hba1c: number | null;
+  ldl: number | null;
+  bp_last_visit: string | null;
+  call_status: string | null;
+  call_date: string | null;
+  call_notes: string | null;
 }
 
 interface EligibilityRecord {
@@ -108,6 +134,13 @@ interface PatientWithEligibility extends Patient {
   ageGroup: typeof AGE_GROUPS[0] | undefined;
   completedCount: number;
   pendingCount: number;
+  riskClassification: RiskLevel;
+  riskDetails: {
+    bp: RiskLevel;
+    hba1c: RiskLevel;
+    fbg: RiskLevel;
+    ldl: RiskLevel;
+  };
 }
 
 const STATUS_CONFIG = {
@@ -116,6 +149,14 @@ const STATUS_CONFIG = {
   completed: { label: 'مكتمل', icon: CheckCircle2, color: 'bg-success/10 text-success' },
   declined: { label: 'مرفوض', icon: XCircle, color: 'bg-destructive/10 text-destructive' },
 };
+
+const RISK_FILTER_OPTIONS = [
+  { value: 'all', label: 'جميع التصنيفات' },
+  { value: 'طبيعي', label: '✅ طبيعي' },
+  { value: 'يحتاج مراقبة', label: '⚠️ يحتاج مراقبة' },
+  { value: 'خطر', label: '🔴 خطر' },
+  { value: 'غير معروف', label: '❓ غير معروف' },
+];
 
 const PreventiveCare = () => {
   const { user, loading: authLoading } = useAuth();
@@ -127,6 +168,7 @@ const PreventiveCare = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [ageGroupFilter, setAgeGroupFilter] = useState<string>("all");
+  const [riskFilter, setRiskFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPatient, setSelectedPatient] = useState<PatientWithEligibility | null>(null);
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
@@ -148,11 +190,10 @@ const PreventiveCare = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch patients and eligibility records in parallel
       const [patientsResult, eligibilityResult] = await Promise.all([
         supabase
           .from("patients")
-          .select("id, name, national_id, age, gender, has_dm, has_htn, has_dyslipidemia, status")
+          .select("id, name, national_id, age, gender, phone, has_dm, has_htn, has_dyslipidemia, status, fasting_blood_glucose, hba1c, ldl, bp_last_visit, call_status, call_date, call_notes")
           .order("name"),
         supabase
           .from("patient_eligibility")
@@ -162,7 +203,6 @@ const PreventiveCare = () => {
       if (patientsResult.error) throw patientsResult.error;
       if (eligibilityResult.error) throw eligibilityResult.error;
 
-      // Create a map of eligibility records by patient_id + service_id
       const eligibilityMap = new Map<string, EligibilityRecord>();
       (eligibilityResult.data || []).forEach((record) => {
         const key = `${record.patient_id}_${record.service_id}`;
@@ -176,9 +216,16 @@ const PreventiveCare = () => {
           ? "male" as const 
           : "female" as const;
         
+        // Calculate risk classification
+        const riskResult = classifyOverallRisk({
+          fasting_blood_glucose: patient.fasting_blood_glucose,
+          hba1c: patient.hba1c,
+          ldl: patient.ldl,
+          bp_last_visit: patient.bp_last_visit,
+        });
+        
         const baseServices = getEligibleServices(age, gender);
         
-        // Merge with eligibility records
         const eligibleServices: ServiceWithStatus[] = baseServices.map((service) => {
           const key = `${patient.national_id}_${service.service_id}`;
           const record = eligibilityMap.get(key);
@@ -210,11 +257,23 @@ const PreventiveCare = () => {
           ageGroup,
           completedCount,
           pendingCount,
+          riskClassification: riskResult.overall,
+          riskDetails: {
+            bp: riskResult.bp,
+            hba1c: riskResult.hba1c,
+            fbg: riskResult.fbg,
+            ldl: riskResult.ldl,
+          },
         };
       });
 
-      // Sort by pending count descending (most pending first)
-      patientsWithEligibility.sort((a, b) => b.pendingCount - a.pendingCount);
+      patientsWithEligibility.sort((a, b) => {
+        // Sort by risk first (خطر > يحتاج مراقبة > طبيعي)
+        const riskOrder = { 'خطر': 0, 'يحتاج مراقبة': 1, 'طبيعي': 2, 'غير معروف': 3 };
+        const riskDiff = (riskOrder[a.riskClassification] ?? 3) - (riskOrder[b.riskClassification] ?? 3);
+        if (riskDiff !== 0) return riskDiff;
+        return b.pendingCount - a.pendingCount;
+      });
       setPatients(patientsWithEligibility);
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -274,7 +333,6 @@ const PreventiveCare = () => {
         return newMap;
       });
 
-      // Update patients state
       setPatients(prev => prev.map(p => {
         if (p.id !== patient.id) return p;
         
@@ -295,7 +353,6 @@ const PreventiveCare = () => {
         };
       }));
 
-      // Update selected patient if open
       if (selectedPatient?.id === patient.id) {
         setSelectedPatient(prev => {
           if (!prev) return null;
@@ -343,7 +400,10 @@ const PreventiveCare = () => {
     const matchesAgeGroup =
       ageGroupFilter === "all" || patient.ageGroup?.group_id.toString() === ageGroupFilter;
 
-    return matchesSearch && matchesPriority && matchesAgeGroup;
+    const matchesRisk =
+      riskFilter === "all" || patient.riskClassification === riskFilter;
+
+    return matchesSearch && matchesPriority && matchesAgeGroup && matchesRisk;
   });
 
   const totalPages = Math.ceil(filteredPatients.length / pageSize);
@@ -355,26 +415,48 @@ const PreventiveCare = () => {
   // Statistics
   const stats = {
     total: patients.length,
-    totalServices: patients.reduce((acc, p) => acc + p.eligibleServices.length, 0),
-    completedServices: patients.reduce((acc, p) => acc + p.completedCount, 0),
-    pendingServices: patients.reduce((acc, p) => acc + p.pendingCount, 0),
+    normal: patients.filter(p => p.riskClassification === 'طبيعي').length,
+    needsMonitoring: patients.filter(p => p.riskClassification === 'يحتاج مراقبة').length,
+    atRisk: patients.filter(p => p.riskClassification === 'خطر').length,
   };
 
-  const completionRate = stats.totalServices > 0 
-    ? Math.round((stats.completedServices / stats.totalServices) * 100) 
-    : 0;
-
-  const getPriorityBadge = (label: { label_ar: string; color: string }) => {
-    const colorMap: Record<string, string> = {
-      red: "bg-destructive/10 text-destructive border-destructive/30",
-      yellow: "bg-warning/10 text-warning border-warning/30",
-      green: "bg-success/10 text-success border-success/30",
+  const getRiskBadge = (risk: RiskLevel) => {
+    const icons = {
+      'طبيعي': '✅',
+      'يحتاج مراقبة': '⚠️',
+      'خطر': '🔴',
+      'غير معروف': '❓',
     };
     return (
-      <Badge variant="outline" className={colorMap[label.color] || ""}>
-        {label.label_ar}
+      <Badge 
+        variant="outline" 
+        className={cn(
+          "gap-1",
+          getRiskBgColor(risk),
+          getRiskColor(risk),
+          getRiskBorderColor(risk)
+        )}
+      >
+        {icons[risk]} {risk}
       </Badge>
     );
+  };
+
+  const formatLabValue = (value: number | null | undefined, unit: string) => {
+    if (value == null) return <span className="text-muted-foreground">-</span>;
+    return <span>{value} {unit}</span>;
+  };
+
+  const getLabValueWithColor = (value: number | null | undefined, classifier: (v: number | null | undefined) => RiskLevel) => {
+    if (value == null) return <span className="text-muted-foreground">-</span>;
+    const risk = classifier(value);
+    return <span className={getRiskColor(risk)}>{value}</span>;
+  };
+
+  const getBPWithColor = (bp: string | null | undefined) => {
+    if (!bp) return <span className="text-muted-foreground">-</span>;
+    const risk = classifyBP(bp);
+    return <span className={getRiskColor(risk)}>{bp}</span>;
   };
 
   const getGenderDisplay = (gender: string | null) => {
@@ -421,12 +503,12 @@ const PreventiveCare = () => {
               </Button>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <ClipboardCheck className="h-5 w-5 text-primary" />
+                  <ShieldCheck className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold">الرعاية الوقائية</h1>
+                  <h1 className="text-xl font-bold">🛡️ الرعاية الوقائية</h1>
                   <p className="text-sm text-muted-foreground">
-                    خدمات الفحص والتطعيمات والتثقيف الصحي
+                    الفحوصات – التطعيمات – التثقيف الصحي
                   </p>
                 </div>
               </div>
@@ -444,7 +526,7 @@ const PreventiveCare = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Stats Cards */}
+        {/* Risk Distribution KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
             <CardContent className="p-4">
@@ -454,21 +536,7 @@ const PreventiveCare = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-xs text-muted-foreground">إجمالي المستفيدين</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-info/5 to-info/10 border-info/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-info/20 rounded-lg flex items-center justify-center">
-                  <ClipboardCheck className="h-5 w-5 text-info" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.totalServices}</p>
-                  <p className="text-xs text-muted-foreground">إجمالي الخدمات</p>
+                  <p className="text-xs text-muted-foreground">الإجمالي</p>
                 </div>
               </div>
             </CardContent>
@@ -481,8 +549,8 @@ const PreventiveCare = () => {
                   <CheckCircle2 className="h-5 w-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.completedServices}</p>
-                  <p className="text-xs text-muted-foreground">خدمات مكتملة</p>
+                  <p className="text-2xl font-bold text-success">{stats.normal}</p>
+                  <p className="text-xs text-muted-foreground">✅ طبيعي</p>
                 </div>
               </div>
             </CardContent>
@@ -492,27 +560,30 @@ const PreventiveCare = () => {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-warning/20 rounded-lg flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-warning" />
+                  <AlertTriangle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.pendingServices}</p>
-                  <p className="text-xs text-muted-foreground">قيد الانتظار</p>
+                  <p className="text-2xl font-bold text-warning">{stats.needsMonitoring}</p>
+                  <p className="text-xs text-muted-foreground">⚠️ يحتاج مراقبة</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-destructive/5 to-destructive/10 border-destructive/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-destructive/20 rounded-lg flex items-center justify-center">
+                  <AlertCircle className="h-5 w-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-destructive">{stats.atRisk}</p>
+                  <p className="text-xs text-muted-foreground">🔴 خطر</p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Completion Progress */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">نسبة إنجاز الخدمات الوقائية</span>
-              <span className="text-sm font-bold text-primary">{completionRate}%</span>
-            </div>
-            <Progress value={completionRate} className="h-2" />
-          </CardContent>
-        </Card>
 
         {/* Filters */}
         <Card>
@@ -532,21 +603,22 @@ const PreventiveCare = () => {
               </div>
 
               <Select
-                value={priorityFilter}
+                value={riskFilter}
                 onValueChange={(value) => {
-                  setPriorityFilter(value);
+                  setRiskFilter(value);
                   setCurrentPage(1);
                 }}
               >
                 <SelectTrigger className="w-full md:w-48">
-                  <Filter className="h-4 w-4 ml-2" />
-                  <SelectValue placeholder="الأولوية" />
+                  <AlertTriangle className="h-4 w-4 ml-2" />
+                  <SelectValue placeholder="التصنيف" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">جميع الأولويات</SelectItem>
-                  <SelectItem value="high">عالية</SelectItem>
-                  <SelectItem value="medium">متوسطة</SelectItem>
-                  <SelectItem value="low">منخفضة</SelectItem>
+                  {RISK_FILTER_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -578,23 +650,23 @@ const PreventiveCare = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>المستفيدين والخدمات المؤهلين لها</span>
+              <span>المستفيدين ونتائج الفحوصات</span>
               <Badge variant="secondary">{filteredPatients.length} مستفيد</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border overflow-hidden">
+            <div className="rounded-lg border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="text-right">المستفيد</TableHead>
                     <TableHead className="text-right">العمر</TableHead>
                     <TableHead className="text-right">الجنس</TableHead>
-                    <TableHead className="text-right">الفئة العمرية</TableHead>
-                    <TableHead className="text-center">الخدمات</TableHead>
-                    <TableHead className="text-center">مكتمل</TableHead>
-                    <TableHead className="text-center">قيد الانتظار</TableHead>
-                    <TableHead className="text-center">الأولوية</TableHead>
+                    <TableHead className="text-center">سكر صائم</TableHead>
+                    <TableHead className="text-center">HBA1C</TableHead>
+                    <TableHead className="text-center">LDL</TableHead>
+                    <TableHead className="text-center">ضغط الدم</TableHead>
+                    <TableHead className="text-center">التصنيف</TableHead>
                     <TableHead className="text-center">إجراء</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -616,32 +688,20 @@ const PreventiveCare = () => {
                         </TableCell>
                         <TableCell>{patient.age || "-"}</TableCell>
                         <TableCell>{getGenderDisplay(patient.gender)}</TableCell>
-                        <TableCell>
-                          {patient.ageGroup ? (
-                            <Badge variant="outline" className="text-xs">
-                              {patient.ageGroup.icon} {patient.ageGroup.group_name_ar}
-                            </Badge>
-                          ) : (
-                            "-"
-                          )}
+                        <TableCell className="text-center">
+                          {getLabValueWithColor(patient.fasting_blood_glucose, classifyFBG)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary" className="bg-primary/10 text-primary">
-                            {patient.eligibleServices.length}
-                          </Badge>
+                          {getLabValueWithColor(patient.hba1c, classifyHBA1C)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary" className="bg-success/10 text-success">
-                            {patient.completedCount}
-                          </Badge>
+                          {getLabValueWithColor(patient.ldl, classifyLDL)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary" className="bg-warning/10 text-warning">
-                            {patient.pendingCount}
-                          </Badge>
+                          {getBPWithColor(patient.bp_last_visit)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {getPriorityBadge(patient.priorityLabel)}
+                          {getRiskBadge(patient.riskClassification)}
                         </TableCell>
                         <TableCell className="text-center">
                           <Button
@@ -717,39 +777,106 @@ const PreventiveCare = () => {
               </DialogHeader>
 
               <div className="space-y-6 mt-4">
-                {/* Progress Summary */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-primary/5 text-center">
-                    <p className="text-2xl font-bold text-primary">{selectedPatient.eligibleServices.length}</p>
-                    <p className="text-xs text-muted-foreground">إجمالي الخدمات</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-success/5 text-center">
-                    <p className="text-2xl font-bold text-success">{selectedPatient.completedCount}</p>
-                    <p className="text-xs text-muted-foreground">مكتمل</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-warning/5 text-center">
-                    <p className="text-2xl font-bold text-warning">{selectedPatient.pendingCount}</p>
-                    <p className="text-xs text-muted-foreground">قيد الانتظار</p>
-                  </div>
-                </div>
+                {/* Risk Classification Card */}
+                <Card className={cn(
+                  "border-2",
+                  getRiskBorderColor(selectedPatient.riskClassification)
+                )}>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5" />
+                        التصنيف العام
+                      </span>
+                      {getRiskBadge(selectedPatient.riskClassification)}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                      <div className="p-3 rounded-lg bg-muted/30 text-center">
+                        <Heart className="h-5 w-5 mx-auto mb-1 text-primary" />
+                        <p className="text-xs text-muted-foreground mb-1">ضغط الدم</p>
+                        <p className={cn("font-bold", getRiskColor(selectedPatient.riskDetails.bp))}>
+                          {selectedPatient.bp_last_visit || '-'}
+                        </p>
+                        <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.bp), getRiskColor(selectedPatient.riskDetails.bp))}>
+                          {selectedPatient.riskDetails.bp}
+                        </Badge>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30 text-center">
+                        <Activity className="h-5 w-5 mx-auto mb-1 text-warning" />
+                        <p className="text-xs text-muted-foreground mb-1">سكر صائم</p>
+                        <p className={cn("font-bold", getRiskColor(selectedPatient.riskDetails.fbg))}>
+                          {selectedPatient.fasting_blood_glucose ?? '-'}
+                        </p>
+                        <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.fbg), getRiskColor(selectedPatient.riskDetails.fbg))}>
+                          {selectedPatient.riskDetails.fbg}
+                        </Badge>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30 text-center">
+                        <Activity className="h-5 w-5 mx-auto mb-1 text-destructive" />
+                        <p className="text-xs text-muted-foreground mb-1">HBA1C</p>
+                        <p className={cn("font-bold", getRiskColor(selectedPatient.riskDetails.hba1c))}>
+                          {selectedPatient.hba1c ?? '-'}
+                        </p>
+                        <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.hba1c), getRiskColor(selectedPatient.riskDetails.hba1c))}>
+                          {selectedPatient.riskDetails.hba1c}
+                        </Badge>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30 text-center">
+                        <Droplets className="h-5 w-5 mx-auto mb-1 text-purple-500" />
+                        <p className="text-xs text-muted-foreground mb-1">LDL</p>
+                        <p className={cn("font-bold", getRiskColor(selectedPatient.riskDetails.ldl))}>
+                          {selectedPatient.ldl ?? '-'}
+                        </p>
+                        <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.ldl), getRiskColor(selectedPatient.riskDetails.ldl))}>
+                          {selectedPatient.riskDetails.ldl}
+                        </Badge>
+                      </div>
+                    </div>
 
-                {/* Priority Score */}
-                <div className="p-4 rounded-xl bg-muted/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">نسبة الإنجاز</span>
-                    <span className="text-sm font-bold">
-                      {selectedPatient.eligibleServices.length > 0 
-                        ? Math.round((selectedPatient.completedCount / selectedPatient.eligibleServices.length) * 100)
-                        : 0}%
-                    </span>
-                  </div>
-                  <Progress
-                    value={selectedPatient.eligibleServices.length > 0 
-                      ? (selectedPatient.completedCount / selectedPatient.eligibleServices.length) * 100
-                      : 0}
-                    className="h-2"
-                  />
-                </div>
+                    {/* Recommendations */}
+                    <div className={cn(
+                      "p-4 rounded-lg border",
+                      getRiskBgColor(selectedPatient.riskClassification),
+                      getRiskBorderColor(selectedPatient.riskClassification)
+                    )}>
+                      <p className="font-medium mb-2">التوصيات:</p>
+                      <ul className="space-y-1 text-sm">
+                        {getRecommendations(selectedPatient.riskClassification).map((rec, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span>•</span>
+                            <span>{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Contact Info */}
+                {selectedPatient.phone && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-info/10 rounded-lg flex items-center justify-center">
+                            <Clock className="h-5 w-5 text-info" />
+                          </div>
+                          <div>
+                            <p className="font-medium">معلومات الاتصال</p>
+                            <p className="text-sm text-muted-foreground">{selectedPatient.phone}</p>
+                          </div>
+                        </div>
+                        {selectedPatient.call_status && (
+                          <Badge variant="outline">
+                            {selectedPatient.call_status}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Eligible Services with Status Update */}
                 <Card>
@@ -867,19 +994,23 @@ const PreventiveCare = () => {
                   <CardHeader className="py-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <BookOpen className="h-5 w-5 text-info" />
-                      مواضيع التثقيف الصحي ({selectedPatient.healthEducation.length})
+                      التثقيف الصحي ({selectedPatient.healthEducation.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid gap-2">
                       {selectedPatient.healthEducation.map((topic) => (
-                        <Badge
+                        <div
                           key={topic.topic_id}
-                          variant="outline"
-                          className="text-sm py-1.5 px-3"
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                         >
-                          {topic.topic_name_ar}
-                        </Badge>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{topic.topic_name_ar}</p>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {topic.format}
+                          </Badge>
+                        </div>
                       ))}
                     </div>
                   </CardContent>
@@ -892,13 +1023,14 @@ const PreventiveCare = () => {
 
       {/* Import Dialog */}
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>استيراد بيانات الرعاية الوقائية</DialogTitle>
           </DialogHeader>
           <SmartExcelImport
             importType="preventive"
             onImportComplete={() => {
+              setShowImportDialog(false);
               fetchData();
             }}
           />
