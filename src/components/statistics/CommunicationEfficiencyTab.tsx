@@ -15,10 +15,10 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
   // Use the configured communication efficiency (91%)
   const communicationEfficiency = PILOT_CONFIG.communicationEfficiency;
   
-  // Simulated response time data
-  const avgResponseTime = 1.8; // days (improved)
+  // Fixed response efficiency at 87%
+  const avgResponseTime = 2.1; // days
   const targetResponseTime = 3; // days
-  const responseEfficiency = Math.min((targetResponseTime / avgResponseTime) * 100, 100);
+  const responseEfficiency = 87;
   
   // Opportunity gap based on new efficiency
   const opportunityGap = 100 - communicationEfficiency;
