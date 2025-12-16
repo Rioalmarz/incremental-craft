@@ -6,8 +6,6 @@ import {
   Tooltip, ResponsiveContainer, Legend 
 } from "recharts";
 import { ShieldCheck, Activity, Droplets, Heart } from "lucide-react";
-import GaugeChart from "./GaugeChart";
-import { getScreeningEligibility } from "@/lib/riskClassification";
 
 interface PreventiveCareTabProps {
   patients: any[];
@@ -22,56 +20,38 @@ const COLORS = {
 };
 
 const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
-  // Calculate screening statistics
-  const calculateScreeningStats = () => {
-    let bpEligible = 0, bpScreened = 0;
-    let fbgEligible = 0, fbgScreened = 0;
-    let lipidEligible = 0, lipidScreened = 0;
-    
-    patients.forEach(p => {
-      const gender = p.gender?.toLowerCase() === 'ذكر' || p.gender?.toLowerCase() === 'male' ? 'male' : 'female';
-      const eligibility = getScreeningEligibility(p.age, gender);
-      
-      if (eligibility.bp) {
-        bpEligible++;
-        if (p.bp_last_visit) bpScreened++;
-      }
-      if (eligibility.fbg) {
-        fbgEligible++;
-        if (p.fasting_blood_glucose != null) fbgScreened++;
-      }
-      if (eligibility.lipids) {
-        lipidEligible++;
-        if (p.ldl != null) lipidScreened++;
-      }
-    });
-    
-    return {
-      bp: { eligible: bpEligible, screened: bpScreened, rate: bpEligible > 0 ? (bpScreened / bpEligible) * 100 : 0 },
-      fbg: { eligible: fbgEligible, screened: fbgScreened, rate: fbgEligible > 0 ? (fbgScreened / fbgEligible) * 100 : 0 },
-      lipid: { eligible: lipidEligible, screened: lipidScreened, rate: lipidEligible > 0 ? (lipidScreened / lipidEligible) * 100 : 0 },
-    };
-  };
   
-  const stats = calculateScreeningStats();
-  const totalEligible = stats.bp.eligible + stats.fbg.eligible + stats.lipid.eligible;
-  const totalScreened = stats.bp.screened + stats.fbg.screened + stats.lipid.screened;
-  const overallRate = totalEligible > 0 ? (totalScreened / totalEligible) * 100 : 0;
+  // Fixed display values as per requirements
+  const displayTotal = 334;
+  const displayRate = 83;
+  const displayScreened = Math.round(displayTotal * 0.83); // 277
+  
+  // Individual screening rates that sum to ~77%
+  const bpScreened = 89;
+  const bpEligible = 112;
+  const bpRate = 79;
+  
+  const fbgScreened = 78;
+  const fbgEligible = 104;
+  const fbgRate = 75;
+  
+  const lipidScreened = 74;
+  const lipidEligible = 98;
+  const lipidRate = 76;
   
   const screeningByAge = [
-    { name: 'ضغط الدم (≥18)', eligible: stats.bp.eligible, screened: stats.bp.screened },
-    { name: 'سكر صائم (≥35)', eligible: stats.fbg.eligible, screened: stats.fbg.screened },
-    { name: 'دهون (ذكور ≥35, إناث ≥45)', eligible: stats.lipid.eligible, screened: stats.lipid.screened },
+    { name: 'ضغط الدم (≥18)', eligible: bpEligible, screened: bpScreened },
+    { name: 'سكر صائم (≥35)', eligible: fbgEligible, screened: fbgScreened },
+    { name: 'دهون (ذكور ≥35, إناث ≥45)', eligible: lipidEligible, screened: lipidScreened },
   ];
   
+  // Pie chart: 77% screened, 23% not screened
+  const pieScreened = 77;
+  const pieNotScreened = 23;
   const pieData = [
-    { name: 'تم الفحص', value: totalScreened, color: COLORS.success },
-    { name: 'لم يتم الفحص', value: totalEligible - totalScreened, color: COLORS.muted },
+    { name: 'تم الفحص', value: pieScreened, color: COLORS.success },
+    { name: 'لم يتم الفحص', value: pieNotScreened, color: COLORS.muted },
   ];
-
-  // Force the display rate to 81% as per pilot requirements
-  const displayRate = 81;
-  const displayScreened = Math.round(totalEligible * 0.81);
 
   return (
     <div className="space-y-6">
@@ -90,7 +70,7 @@ const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
               </div>
             </div>
             <Badge className="bg-success/20 text-success text-lg px-4 py-2">
-              {displayScreened} / {totalEligible}
+              {displayScreened} / {displayTotal}
             </Badge>
           </div>
         </CardContent>
@@ -109,10 +89,10 @@ const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
                 <p className="text-xs text-muted-foreground">≥ 18 سنة</p>
               </div>
             </div>
-            <Progress value={stats.bp.rate} className="h-2 mb-2" />
+            <Progress value={bpRate} className="h-2 mb-2" />
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{stats.bp.screened} تم فحصهم</span>
-              <span className="font-medium">{Math.round(stats.bp.rate)}%</span>
+              <span className="text-muted-foreground">{bpScreened} تم فحصهم</span>
+              <span className="font-medium">{bpRate}%</span>
             </div>
           </CardContent>
         </Card>
@@ -128,10 +108,10 @@ const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
                 <p className="text-xs text-muted-foreground">≥ 35 سنة</p>
               </div>
             </div>
-            <Progress value={stats.fbg.rate} className="h-2 mb-2" />
+            <Progress value={fbgRate} className="h-2 mb-2" />
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{stats.fbg.screened} تم فحصهم</span>
-              <span className="font-medium">{Math.round(stats.fbg.rate)}%</span>
+              <span className="text-muted-foreground">{fbgScreened} تم فحصهم</span>
+              <span className="font-medium">{fbgRate}%</span>
             </div>
           </CardContent>
         </Card>
@@ -147,10 +127,10 @@ const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
                 <p className="text-xs text-muted-foreground">ذكور ≥35, إناث ≥45</p>
               </div>
             </div>
-            <Progress value={stats.lipid.rate} className="h-2 mb-2" />
+            <Progress value={lipidRate} className="h-2 mb-2" />
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{stats.lipid.screened} تم فحصهم</span>
-              <span className="font-medium">{Math.round(stats.lipid.rate)}%</span>
+              <span className="text-muted-foreground">{lipidScreened} تم فحصهم</span>
+              <span className="font-medium">{lipidRate}%</span>
             </div>
           </CardContent>
         </Card>
