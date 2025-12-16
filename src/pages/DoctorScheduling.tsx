@@ -134,75 +134,88 @@ export default function DoctorScheduling() {
   };
 
   // Smart date format detection - analyzes patterns to determine MM-DD vs DD-MM
-  const detectDateFormat = (datePatterns: { first: number; second: number }[]): 'first-is-month' | 'second-is-month' => {
-    if (datePatterns.length === 0) {
-      return 'second-is-month'; // Default: DD-MM (common in Arabic region)
-    }
-
+  // Now handles per-sheet detection for mixed format files
+  const detectDateFormatForSheet = (headers: any[]): 'first-is-month' | 'second-is-month' => {
     const currentMonth = new Date().getMonth() + 1; // 12 for December
+    const datePattern = /(\d{1,2})[-\/](\d{1,2})/;
     
-    const firstValues = datePatterns.map(p => p.first);
-    const secondValues = datePatterns.map(p => p.second);
+    const patterns: { first: number; second: number }[] = [];
     
+    for (const header of headers) {
+      if (!header || header instanceof Date || typeof header === 'number') continue;
+      const headerStr = String(header);
+      const match = headerStr.match(datePattern);
+      if (match) {
+        patterns.push({
+          first: parseInt(match[1]),
+          second: parseInt(match[2])
+        });
+      }
+    }
+    
+    if (patterns.length === 0) {
+      return 'second-is-month'; // Default
+    }
+    
+    const firstValues = patterns.map(p => p.first);
+    const secondValues = patterns.map(p => p.second);
+    
+    // Key insight: If first values are ALL the same (like 12, 12, 12...) = month
     const uniqueFirst = new Set(firstValues);
     const uniqueSecond = new Set(secondValues);
     
-    console.log(`Date format detection: first values = [${[...uniqueFirst].join(', ')}], second values = [${[...uniqueSecond].join(', ')}]`);
-    console.log(`Current month: ${currentMonth}`);
+    // Rule 1: If one value is constant and equals current month, it's the month
+    if (uniqueFirst.size === 1 && firstValues[0] === currentMonth) {
+      console.log(`Sheet format: first value is constant ${firstValues[0]} = current month → first-is-month`);
+      return 'first-is-month';
+    }
+    if (uniqueSecond.size === 1 && secondValues[0] === currentMonth) {
+      console.log(`Sheet format: second value is constant ${secondValues[0]} = current month → second-is-month`);
+      return 'second-is-month';
+    }
     
-    // Rule 1: Constant value is month, changing value is day
+    // Rule 2: Check which position has values that are ALL valid months (1-12)
+    const firstAllValidMonths = firstValues.every(v => v >= 1 && v <= 12);
+    const secondAllValidMonths = secondValues.every(v => v >= 1 && v <= 12);
+    const firstHasInvalidMonths = firstValues.some(v => v > 12);
+    const secondHasInvalidMonths = secondValues.some(v => v > 12);
+    
+    // If first position has values > 12, those must be days, so second is month
+    if (firstHasInvalidMonths && !secondHasInvalidMonths) {
+      console.log(`Sheet format: first has values > 12 (days), second all valid months → second-is-month`);
+      return 'second-is-month';
+    }
+    // If second position has values > 12, those must be days, so first is month
+    if (secondHasInvalidMonths && !firstHasInvalidMonths) {
+      console.log(`Sheet format: second has values > 12 (days), first all valid months → first-is-month`);
+      return 'first-is-month';
+    }
+    
+    // Rule 3: If first is constant (same value repeated), it's likely the month
     if (uniqueFirst.size === 1 && uniqueSecond.size > 1) {
-      console.log(`Detected: first value is constant (${[...uniqueFirst][0]}) = month`);
+      console.log(`Sheet format: first is constant (${[...uniqueFirst][0]}), second varies → first-is-month`);
       return 'first-is-month';
     }
     if (uniqueSecond.size === 1 && uniqueFirst.size > 1) {
-      console.log(`Detected: second value is constant (${[...uniqueSecond][0]}) = month`);
+      console.log(`Sheet format: second is constant (${[...uniqueSecond][0]}), first varies → second-is-month`);
       return 'second-is-month';
     }
     
-    // Rule 2: If one value matches current month consistently
-    const firstMatchesCurrent = firstValues.every(v => v === currentMonth);
-    const secondMatchesCurrent = secondValues.every(v => v === currentMonth);
+    // Rule 4: Check variance - days typically have more variance (14,15,16,17,18...)
+    const firstVariance = Math.max(...firstValues) - Math.min(...firstValues);
+    const secondVariance = Math.max(...secondValues) - Math.min(...secondValues);
     
-    if (firstMatchesCurrent && !secondMatchesCurrent) {
-      console.log(`Detected: first value matches current month (${currentMonth}) = month`);
-      return 'first-is-month';
-    }
-    if (secondMatchesCurrent && !firstMatchesCurrent) {
-      console.log(`Detected: second value matches current month (${currentMonth}) = month`);
+    if (firstVariance > secondVariance && secondVariance <= 2) {
+      console.log(`Sheet format: first has high variance (days), second low variance (month) → second-is-month`);
       return 'second-is-month';
     }
-    
-    // Rule 3: If any value > 12, it must be a day
-    if (firstValues.some(v => v > 12)) {
-      console.log(`Detected: first value has values > 12, so second = month`);
-      return 'second-is-month';
-    }
-    if (secondValues.some(v => v > 12)) {
-      console.log(`Detected: second value has values > 12, so first = month`);
+    if (secondVariance > firstVariance && firstVariance <= 2) {
+      console.log(`Sheet format: second has high variance (days), first low variance (month) → first-is-month`);
       return 'first-is-month';
     }
     
-    // Rule 4: Check if values increment (days typically increment in a week)
-    const firstSorted = [...firstValues].sort((a, b) => a - b);
-    const secondSorted = [...secondValues].sort((a, b) => a - b);
-    
-    const isFirstSequential = firstSorted.length > 1 && 
-      firstSorted.every((v, i) => i === 0 || v - firstSorted[i-1] <= 2);
-    const isSecondSequential = secondSorted.length > 1 && 
-      secondSorted.every((v, i) => i === 0 || v - secondSorted[i-1] <= 2);
-    
-    if (isFirstSequential && !isSecondSequential) {
-      console.log(`Detected: first values are sequential (days), second = month`);
-      return 'second-is-month';
-    }
-    if (isSecondSequential && !isFirstSequential) {
-      console.log(`Detected: second values are sequential (days), first = month`);
-      return 'first-is-month';
-    }
-    
-    // Default: assume DD-MM format (common in Arabic region)
-    console.log(`No clear pattern detected, defaulting to DD-MM (second = month)`);
+    // Default: DD-MM (common in Arabic region)
+    console.log(`Sheet format: No clear pattern, defaulting to DD-MM → second-is-month`);
     return 'second-is-month';
   };
 
@@ -365,37 +378,13 @@ export default function DoctorScheduling() {
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
       
-      // First pass: collect all date patterns from all sheets for text-based headers
       console.log("=== EXCEL IMPORT DEBUG ===");
       console.log(`Total sheets: ${workbook.SheetNames.length}`);
       console.log(`Sheets: ${workbook.SheetNames.join(', ')}`);
       
-      const allDatePatterns: { first: number; second: number }[] = [];
-      
-      for (const sheetName of workbook.SheetNames) {
-        if (sheetName.includes("الربوة")) continue;
-        
-        const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json<any>(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
-        
-        if (rows.length < 2) continue;
-        
-        const headerRow = rows[0] as any[];
-        console.log(`Sheet "${sheetName}" headers:`, headerRow.slice(0, 10));
-        console.log(`Header types:`, headerRow.slice(0, 10).map((h: any) => `${typeof h}${h instanceof Date ? '(Date)' : ''}`));
-        
-        const patterns = extractDatePatterns(headerRow.slice(2));
-        allDatePatterns.push(...patterns);
-      }
-      
-      // Detect date format from text patterns
-      const dateFormat = detectDateFormat(allDatePatterns);
-      console.log(`=== DETECTED DATE FORMAT: ${dateFormat} ===`);
-      console.log(`Total patterns found: ${allDatePatterns.length}`);
-      
       const allRecords: ScheduleRecord[] = [];
       
-      // Second pass: process all sheets
+      // Process each sheet with its own format detection
       for (const sheetName of workbook.SheetNames) {
         if (sheetName.includes("الربوة")) {
           console.log(`Skipping sheet: ${sheetName}`);
@@ -412,10 +401,15 @@ export default function DoctorScheduling() {
 
         const headerRow = rows[0] as any[];
         
-        // Find date columns - now handles multiple formats
-        const dateColumns: { index: number; date: string }[] = [];
-        
         console.log(`\n--- Processing sheet: ${sheetName} ---`);
+        console.log(`Headers:`, headerRow.slice(0, 10));
+        
+        // Detect date format for THIS SHEET specifically
+        const dateFormat = detectDateFormatForSheet(headerRow.slice(2));
+        console.log(`Sheet "${sheetName}" date format: ${dateFormat}`);
+        
+        // Find date columns using the sheet-specific format
+        const dateColumns: { index: number; date: string }[] = [];
         
         headerRow.forEach((header, idx) => {
           if (idx < 2) return; // Skip first 2 columns (center, doctor name)
@@ -465,7 +459,6 @@ export default function DoctorScheduling() {
       }
 
       console.log(`Total records to import: ${allRecords.length}`);
-      console.log(`Date format used: ${dateFormat}`);
       toast.info(`جاري إدخال ${allRecords.length} سجل...`);
 
       // Send to edge function
