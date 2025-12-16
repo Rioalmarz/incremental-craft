@@ -113,6 +113,98 @@ function formatDateForDB(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+// Process a single sheet's data
+function processSheetData(
+  rows: string[][],
+  sheetName: string
+): { schedules: any[]; skippedRows: number; rabwaSkipped: number } {
+  const schedules: any[] = [];
+  let skippedRows = 0;
+  let rabwaSkipped = 0;
+
+  if (rows.length < 2) {
+    console.log(`Sheet "${sheetName}": no data (less than 2 rows)`);
+    return { schedules, skippedRows, rabwaSkipped };
+  }
+
+  // Row 1 (index 0) is the header row
+  const headers: string[] = rows[0] || [];
+  console.log(`Sheet "${sheetName}" headers:`, JSON.stringify(headers.slice(0, 10)));
+
+  // Fixed column positions:
+  // Column A (index 0) = center_name (اسم المركز)
+  // Column B (index 1) = doctor_name (اسم الطبيب)
+  const CENTER_COL = 0;
+  const DOCTOR_NAME_COL = 1;
+
+  // Detect date columns dynamically starting from Column C (index 2)
+  const dateColumns: { index: number; date: Date; dateStr: string }[] = [];
+
+  for (let colIdx = 2; colIdx < headers.length; colIdx++) {
+    const header = headers[colIdx];
+    const parsedDate = parseDateFromHeader(header);
+
+    if (parsedDate) {
+      dateColumns.push({
+        index: colIdx,
+        date: parsedDate,
+        dateStr: formatDateForDB(parsedDate),
+      });
+    }
+  }
+
+  console.log(`Sheet "${sheetName}": found ${dateColumns.length} date columns`);
+
+  if (dateColumns.length === 0) {
+    console.log(`Sheet "${sheetName}": no date columns found, skipping`);
+    return { schedules, skippedRows, rabwaSkipped };
+  }
+
+  // Parse data rows (starting from Row 2, index 1)
+  for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
+    const row = rows[rowIdx];
+    if (!row || row.length === 0) {
+      skippedRows++;
+      continue;
+    }
+
+    const centerName = (row[CENTER_COL] || "").toString().trim();
+    const doctorName = (row[DOCTOR_NAME_COL] || "").toString().trim();
+
+    // Skip if missing required data
+    if (!centerName || !doctorName) {
+      skippedRows++;
+      continue;
+    }
+
+    // IGNORE rows where center contains "الربوة" (closed)
+    if (centerName.includes("الربوة")) {
+      rabwaSkipped++;
+      continue;
+    }
+
+    // Generate doctor_id from center and doctor name
+    const doctorId = `${centerName}-${doctorName}`.replace(/\s+/g, "-");
+
+    // Process each date column
+    for (const dateCol of dateColumns) {
+      const status = (row[dateCol.index] || "").toString().trim();
+
+      // Create schedule entry even for empty status (we'll store empty as "غير محدد")
+      schedules.push({
+        center_name: centerName,
+        doctor_name: doctorName,
+        doctor_id: doctorId,
+        date: dateCol.dateStr,
+        status: status || "",
+      });
+    }
+  }
+
+  console.log(`Sheet "${sheetName}": parsed ${schedules.length} entries, skipped ${skippedRows} rows`);
+  return { schedules, skippedRows, rabwaSkipped };
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -157,158 +249,129 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(serviceAccount);
     console.log("Successfully obtained access token");
 
-    // Fetch data from Google Sheets
-    console.log("Fetching data from Google Sheets...");
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:Z?majorDimension=ROWS`;
+    // First, get all sheet names in the spreadsheet
+    console.log("Fetching spreadsheet metadata...");
+    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`;
 
-    const sheetsResponse = await fetch(sheetsUrl, {
+    const metadataResponse = await fetch(metadataUrl, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-    if (!sheetsResponse.ok) {
-      const errorText = await sheetsResponse.text();
-      console.error("Google Sheets API error:", errorText);
-      throw new Error(`Google Sheets API error: ${sheetsResponse.status}`);
+    if (!metadataResponse.ok) {
+      const errorText = await metadataResponse.text();
+      console.error("Google Sheets metadata error:", errorText);
+      throw new Error(`Google Sheets API error: ${metadataResponse.status}`);
     }
 
-    const sheetsData = await sheetsResponse.json();
-    const rows = sheetsData.values || [];
+    const metadataData = await metadataResponse.json();
+    const sheetNames: string[] = metadataData.sheets?.map((s: any) => s.properties?.title).filter(Boolean) || [];
 
-    console.log(`Fetched ${rows.length} rows from Google Sheets`);
+    console.log(`Found ${sheetNames.length} sheets:`, sheetNames.join(", "));
 
-    if (rows.length < 2) {
+    if (sheetNames.length === 0) {
       return new Response(
-        JSON.stringify({ success: false, error: "No data found in sheet" }),
+        JSON.stringify({ success: false, error: "No sheets found in spreadsheet" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
-    // Row 1 (index 0) is the header row
-    const headers: string[] = rows[0] || [];
-    console.log("Headers:", JSON.stringify(headers));
+    // Fetch data from ALL sheets
+    const allSchedules: any[] = [];
+    let totalSkippedRows = 0;
+    let totalRabwaSkipped = 0;
+    const processedSheets: string[] = [];
 
-    // Fixed column positions:
-    // Column A (index 0) = center_name (اسم المركز)
-    // Column B (index 1) = doctor_name (اسم الطبيب)
-    const CENTER_COL = 0;
-    const DOCTOR_NAME_COL = 1;
+    for (const sheetName of sheetNames) {
+      console.log(`Fetching data from sheet: "${sheetName}"...`);
+      
+      // Encode sheet name for URL (handle special characters)
+      const encodedSheetName = encodeURIComponent(sheetName);
+      const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/'${encodedSheetName}'!A:Z?majorDimension=ROWS`;
 
-    // Detect date columns dynamically starting from Column C (index 2)
-    const dateColumns: { index: number; date: Date; dateStr: string }[] = [];
-
-    for (let colIdx = 2; colIdx < headers.length; colIdx++) {
-      const header = headers[colIdx];
-      const parsedDate = parseDateFromHeader(header);
-
-      if (parsedDate) {
-        dateColumns.push({
-          index: colIdx,
-          date: parsedDate,
-          dateStr: formatDateForDB(parsedDate),
+      try {
+        const sheetsResponse = await fetch(sheetsUrl, {
+          headers: { Authorization: `Bearer ${accessToken}` },
         });
-        console.log(`Date column at index ${colIdx}: "${header}" -> ${formatDateForDB(parsedDate)}`);
-      }
-      // If no date pattern, skip (handles empty columns between weeks)
-    }
 
-    console.log(`Found ${dateColumns.length} date columns`);
-
-    if (dateColumns.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "No date columns found. Expected formats: 12-14, 11-30, Sunday 12-14",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
-      );
-    }
-
-    // Parse data rows (starting from Row 2, index 1)
-    const schedules: any[] = [];
-    let skippedRows = 0;
-    let rabwaSkipped = 0;
-
-    for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
-      const row = rows[rowIdx];
-      if (!row || row.length === 0) {
-        skippedRows++;
-        continue;
-      }
-
-      const centerName = (row[CENTER_COL] || "").toString().trim();
-      const doctorName = (row[DOCTOR_NAME_COL] || "").toString().trim();
-
-      // Skip if missing required data
-      if (!centerName || !doctorName) {
-        console.log(`Row ${rowIdx + 1}: missing center or doctor`);
-        skippedRows++;
-        continue;
-      }
-
-      // IGNORE rows where center contains "الربوة" (closed)
-      if (centerName.includes("الربوة")) {
-        console.log(`Row ${rowIdx + 1}: الربوة (closed)`);
-        rabwaSkipped++;
-        continue;
-      }
-
-      // Generate doctor_id from center and doctor name
-      const doctorId = `${centerName}-${doctorName}`.replace(/\s+/g, "-");
-
-      // Process each date column
-      for (const dateCol of dateColumns) {
-        const status = (row[dateCol.index] || "").toString().trim();
-
-        // Only create schedule entry if there's a status
-        if (status && status !== "-") {
-          schedules.push({
-            center_name: centerName,
-            doctor_name: doctorName,
-            doctor_id: doctorId,
-            date: dateCol.dateStr,
-            status: status,
-          });
+        if (!sheetsResponse.ok) {
+          console.error(`Failed to fetch sheet "${sheetName}": ${sheetsResponse.status}`);
+          continue;
         }
+
+        const sheetsData = await sheetsResponse.json();
+        const rows = sheetsData.values || [];
+
+        console.log(`Sheet "${sheetName}": fetched ${rows.length} rows`);
+
+        if (rows.length >= 2) {
+          const result = processSheetData(rows, sheetName);
+          allSchedules.push(...result.schedules);
+          totalSkippedRows += result.skippedRows;
+          totalRabwaSkipped += result.rabwaSkipped;
+          
+          if (result.schedules.length > 0) {
+            processedSheets.push(sheetName);
+          }
+        }
+      } catch (sheetError) {
+        console.error(`Error processing sheet "${sheetName}":`, sheetError);
       }
     }
 
-    console.log(`Parsed ${schedules.length} schedule entries`);
-    console.log(`Skipped ${skippedRows} rows (missing data), ${rabwaSkipped} rows (الربوة)`);
+    console.log(`Total: parsed ${allSchedules.length} schedule entries from ${processedSheets.length} sheets`);
+    console.log(`Total skipped: ${totalSkippedRows} rows (missing data), ${totalRabwaSkipped} rows (الربوة)`);
 
-    if (schedules.length === 0) {
+    if (allSchedules.length === 0) {
       return new Response(
         JSON.stringify({
           success: true,
           message: "No schedule entries to sync",
           syncedCount: 0,
-          skippedRows,
-          rabwaSkipped,
+          sheetsProcessed: processedSheets.length,
+          totalSheets: sheetNames.length,
+          skippedRows: totalSkippedRows,
+          rabwaSkipped: totalRabwaSkipped,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Upsert schedules to database
-    const { error } = await supabase.from("schedules").upsert(schedules, {
-      onConflict: "center_name,doctor_id,date",
-      ignoreDuplicates: false,
-    });
-
-    if (error) {
-      console.error("Database error:", error);
-      throw new Error(`Database error: ${error.message}`);
+    // Clear existing schedules and insert new ones (full sync)
+    console.log("Clearing existing schedules...");
+    const { error: deleteError } = await supabase.from("schedules").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    
+    if (deleteError) {
+      console.error("Delete error:", deleteError);
     }
 
-    console.log("Successfully synced schedules");
+    // Insert all schedules in batches
+    console.log("Inserting new schedules...");
+    const batchSize = 500;
+    let insertedCount = 0;
+
+    for (let i = 0; i < allSchedules.length; i += batchSize) {
+      const batch = allSchedules.slice(i, i + batchSize);
+      const { error: insertError } = await supabase.from("schedules").insert(batch);
+
+      if (insertError) {
+        console.error(`Insert error for batch ${i / batchSize + 1}:`, insertError);
+      } else {
+        insertedCount += batch.length;
+      }
+    }
+
+    console.log(`Successfully synced ${insertedCount} schedules from ${processedSheets.length} sheets`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Synced ${schedules.length} entries`,
-        syncedCount: schedules.length,
-        skippedRows,
-        rabwaSkipped,
-        dateColumnsFound: dateColumns.length,
+        message: `Synced ${insertedCount} entries from ${processedSheets.length} sheets`,
+        syncedCount: insertedCount,
+        sheetsProcessed: processedSheets.length,
+        totalSheets: sheetNames.length,
+        processedSheetNames: processedSheets,
+        skippedRows: totalSkippedRows,
+        rabwaSkipped: totalRabwaSkipped,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
