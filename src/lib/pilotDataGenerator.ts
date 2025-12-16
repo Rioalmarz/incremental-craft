@@ -1,13 +1,15 @@
 // Pilot Data Generator - Automatically populates pilot data with realistic distributions
 // Based on the pilot specifications:
-// - 61% contacted
-// - 39% not contacted
-// - From contacted: 81% service delivered, 19% not delivered
+// - 85.5% contacted (508 from 594)
+// - 14.5% not contacted (86)
+// - From contacted: 90% service delivered
+// - Communication efficiency: 91%
 
 export const PILOT_CONFIG = {
-  contactedRate: 0.61,
-  serviceDeliveredRate: 0.81,
+  contactedRate: 0.855, // 508/594 = 85.5%
+  serviceDeliveredRate: 0.90,
   predictionAccuracy: 31,
+  communicationEfficiency: 91,
 };
 
 export const NON_DELIVERY_REASONS = [
