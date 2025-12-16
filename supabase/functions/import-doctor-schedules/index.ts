@@ -36,16 +36,40 @@ serve(async (req) => {
 
     console.log(`Received ${records.length} records for import`);
 
-    // Filter out invalid records
-    const validRecords = records.filter(r => 
-      r.center_name && 
-      r.doctor_name && 
-      r.date && 
-      r.status &&
-      !r.center_name.includes('الربوة')
-    );
+    // Validate date format (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    const isValidDate = (dateStr: string): boolean => {
+      if (!dateRegex.test(dateStr)) return false;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+      const date = new Date(year, month - 1, day);
+      return date.getMonth() === month - 1 && date.getDate() === day;
+    };
+
+    // Filter out invalid records and validate dates
+    const validRecords: ScheduleRecord[] = [];
+    const invalidRecords: { record: ScheduleRecord; reason: string }[] = [];
+
+    for (const r of records) {
+      if (!r.center_name || !r.doctor_name || !r.date) {
+        invalidRecords.push({ record: r, reason: 'Missing required fields' });
+        continue;
+      }
+      if (r.center_name.includes('الربوة')) {
+        continue; // Skip silently
+      }
+      if (!isValidDate(r.date)) {
+        invalidRecords.push({ record: r, reason: `Invalid date format: ${r.date}` });
+        continue;
+      }
+      validRecords.push(r);
+    }
 
     console.log(`Valid records after filtering: ${validRecords.length}`);
+    if (invalidRecords.length > 0) {
+      console.log(`Invalid records skipped: ${invalidRecords.length}`);
+      console.log(`Sample invalid records:`, JSON.stringify(invalidRecords.slice(0, 5)));
+    }
 
     // Delete existing schedules first
     const { error: deleteError } = await supabase

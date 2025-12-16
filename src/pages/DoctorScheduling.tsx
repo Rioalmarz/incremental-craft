@@ -133,6 +133,99 @@ export default function DoctorScheduling() {
     }
   };
 
+  // Smart date format detection - analyzes patterns to determine MM-DD vs DD-MM
+  const detectDateFormat = (datePatterns: { first: number; second: number }[]): 'first-is-month' | 'second-is-month' => {
+    if (datePatterns.length === 0) {
+      return 'second-is-month'; // Default: DD-MM (common in Arabic region)
+    }
+
+    const currentMonth = new Date().getMonth() + 1; // 12 for December
+    
+    const firstValues = datePatterns.map(p => p.first);
+    const secondValues = datePatterns.map(p => p.second);
+    
+    const uniqueFirst = new Set(firstValues);
+    const uniqueSecond = new Set(secondValues);
+    
+    console.log(`Date format detection: first values = [${[...uniqueFirst].join(', ')}], second values = [${[...uniqueSecond].join(', ')}]`);
+    console.log(`Current month: ${currentMonth}`);
+    
+    // Rule 1: Constant value is month, changing value is day
+    if (uniqueFirst.size === 1 && uniqueSecond.size > 1) {
+      console.log(`Detected: first value is constant (${[...uniqueFirst][0]}) = month`);
+      return 'first-is-month';
+    }
+    if (uniqueSecond.size === 1 && uniqueFirst.size > 1) {
+      console.log(`Detected: second value is constant (${[...uniqueSecond][0]}) = month`);
+      return 'second-is-month';
+    }
+    
+    // Rule 2: If one value matches current month consistently
+    const firstMatchesCurrent = firstValues.every(v => v === currentMonth);
+    const secondMatchesCurrent = secondValues.every(v => v === currentMonth);
+    
+    if (firstMatchesCurrent && !secondMatchesCurrent) {
+      console.log(`Detected: first value matches current month (${currentMonth}) = month`);
+      return 'first-is-month';
+    }
+    if (secondMatchesCurrent && !firstMatchesCurrent) {
+      console.log(`Detected: second value matches current month (${currentMonth}) = month`);
+      return 'second-is-month';
+    }
+    
+    // Rule 3: If any value > 12, it must be a day
+    if (firstValues.some(v => v > 12)) {
+      console.log(`Detected: first value has values > 12, so second = month`);
+      return 'second-is-month';
+    }
+    if (secondValues.some(v => v > 12)) {
+      console.log(`Detected: second value has values > 12, so first = month`);
+      return 'first-is-month';
+    }
+    
+    // Rule 4: Check if values increment (days typically increment in a week)
+    const firstSorted = [...firstValues].sort((a, b) => a - b);
+    const secondSorted = [...secondValues].sort((a, b) => a - b);
+    
+    const isFirstSequential = firstSorted.length > 1 && 
+      firstSorted.every((v, i) => i === 0 || v - firstSorted[i-1] <= 2);
+    const isSecondSequential = secondSorted.length > 1 && 
+      secondSorted.every((v, i) => i === 0 || v - secondSorted[i-1] <= 2);
+    
+    if (isFirstSequential && !isSecondSequential) {
+      console.log(`Detected: first values are sequential (days), second = month`);
+      return 'second-is-month';
+    }
+    if (isSecondSequential && !isFirstSequential) {
+      console.log(`Detected: second values are sequential (days), first = month`);
+      return 'first-is-month';
+    }
+    
+    // Default: assume DD-MM format (common in Arabic region)
+    console.log(`No clear pattern detected, defaulting to DD-MM (second = month)`);
+    return 'second-is-month';
+  };
+
+  // Extract date patterns from headers
+  const extractDatePatterns = (headers: string[]): { first: number; second: number }[] => {
+    const patterns: { first: number; second: number }[] = [];
+    const datePattern = /(\d{1,2})[-\/](\d{1,2})/;
+    
+    for (const header of headers) {
+      if (!header) continue;
+      const headerStr = String(header);
+      const match = headerStr.match(datePattern);
+      if (match) {
+        patterns.push({
+          first: parseInt(match[1]),
+          second: parseInt(match[2])
+        });
+      }
+    }
+    
+    return patterns;
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -144,9 +237,32 @@ export default function DoctorScheduling() {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: "array" });
       
-      const allRecords: ScheduleRecord[] = [];
+      // First pass: collect all date patterns from all sheets
+      console.log("Analyzing date patterns across all sheets...");
+      const allDatePatterns: { first: number; second: number }[] = [];
       
-      // Process all sheets
+      for (const sheetName of workbook.SheetNames) {
+        if (sheetName.includes("الربوة")) continue;
+        
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+        
+        if (rows.length < 2) continue;
+        
+        const headerRow = rows[0] as string[];
+        const patterns = extractDatePatterns(headerRow.slice(2)); // Skip first 2 columns
+        allDatePatterns.push(...patterns);
+      }
+      
+      // Detect date format from all patterns
+      const dateFormat = detectDateFormat(allDatePatterns);
+      console.log(`=== DETECTED DATE FORMAT: ${dateFormat} ===`);
+      
+      const allRecords: ScheduleRecord[] = [];
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+      
+      // Second pass: process all sheets with detected format
       for (const sheetName of workbook.SheetNames) {
         // Skip الربوة
         if (sheetName.includes("الربوة")) {
@@ -161,37 +277,60 @@ export default function DoctorScheduling() {
 
         const headerRow = rows[0] as string[];
         
-        // Find date columns (pattern: Day MM-DD or just MM-DD)
+        // Find date columns using detected format
         const dateColumns: { index: number; date: string }[] = [];
-        const currentYear = new Date().getFullYear();
         
         headerRow.forEach((header, idx) => {
-          if (idx < 3 || !header) return; // Skip first 3 columns (center, doctor, id)
+          if (idx < 2 || !header) return; // Skip first 2 columns (center, doctor)
           
           const headerStr = String(header);
-          // Match patterns like "Sunday 12-14", "12-14", "12/14"
           const match = headerStr.match(/(\d{1,2})[-\/](\d{1,2})/);
           if (match) {
-            const month = parseInt(match[1], 10);
-            const day = parseInt(match[2], 10);
-            // Determine year based on current date
+            const first = parseInt(match[1], 10);
+            const second = parseInt(match[2], 10);
+            
+            let month: number, day: number;
+            if (dateFormat === 'first-is-month') {
+              month = first;
+              day = second;
+            } else {
+              day = first;
+              month = second;
+            }
+            
+            // Validate
+            if (month < 1 || month > 12 || day < 1 || day > 31) {
+              console.log(`Invalid date values: month=${month}, day=${day} from header "${header}"`);
+              return;
+            }
+            
+            // Determine year
             let year = currentYear;
-            if (month === 12 && new Date().getMonth() < 6) {
-              year = currentYear - 1;
-            } else if (month < 6 && new Date().getMonth() > 6) {
+            if (month < currentMonth) {
               year = currentYear + 1;
             }
+            
+            // Validate the date is real
+            const testDate = new Date(year, month - 1, day);
+            if (testDate.getMonth() !== month - 1 || testDate.getDate() !== day) {
+              console.log(`Invalid date: ${year}-${month}-${day}`);
+              return;
+            }
+            
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             dateColumns.push({ index: idx, date: dateStr });
           }
         });
 
         console.log(`Sheet "${sheetName}": Found ${dateColumns.length} date columns`);
+        if (dateColumns.length > 0) {
+          console.log(`Sample dates: ${dateColumns.slice(0, 3).map(d => `${headerRow[d.index]} -> ${d.date}`).join(', ')}`);
+        }
 
         // Process data rows
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i] as any[];
-          if (!row || row.length < 3) continue;
+          if (!row || row.length < 2) continue;
 
           const centerName = String(row[0] || "").trim();
           const doctorName = String(row[1] || "").trim();
@@ -219,6 +358,7 @@ export default function DoctorScheduling() {
       }
 
       console.log(`Total records to import: ${allRecords.length}`);
+      console.log(`Date format used: ${dateFormat}`);
       toast.info(`جاري إدخال ${allRecords.length} سجل...`);
 
       // Send to edge function
