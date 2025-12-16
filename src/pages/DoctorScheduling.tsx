@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,10 +9,40 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { format, startOfWeek, addDays, parseISO } from "date-fns";
+import { format, startOfWeek, addDays } from "date-fns";
 import { ar } from "date-fns/locale";
 import { CalendarIcon, RefreshCw, ArrowRight, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Centers list (excluding الربوة which is closed)
+const CENTERS = [
+  { ar: "الشراع", en: "Alsharaa" },
+  { ar: "الماجد", en: "Almajid" },
+  { ar: "الفردوس", en: "Alfirdous" },
+  { ar: "مشرفة", en: "Mushrifa" },
+  { ar: "البوادي 1", en: "Albawadi 1" },
+  { ar: "الصالحية", en: "Alsalhiya" },
+  { ar: "المروة", en: "Almarwa" },
+  { ar: "الوفاء", en: "Alwafa" },
+  { ar: "النعيم", en: "Alnaeem" },
+  { ar: "خالد النموذجي", en: "Khalid Model" },
+  { ar: "البوادي ٢", en: "Albawadi 2" },
+  { ar: "الريان", en: "Alrayan" },
+  { ar: "الفيصلية", en: "Alfaisaliyah" },
+  { ar: "بريمان", en: "Briman" },
+  { ar: "الصفا 2", en: "Alsafa 2" },
+  { ar: "مركز صحي السلامة", en: "Alsalama" },
+  { ar: "النهضة", en: "Alnahda" },
+  { ar: "الرحاب", en: "Alrehab" },
+  { ar: "ذهبان", en: "Dahaban" },
+  { ar: "الشاطي", en: "Alshati" },
+  { ar: "الصفا 1", en: "Alsafa 1" },
+  { ar: "الصواري", en: "Alsawari" },
+  { ar: "ثول", en: "Thuwal" },
+  { ar: "مركز أبحر الشمالية", en: "Abhur Alshamaliyah" },
+];
+
+const WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس"];
 
 interface Schedule {
   id: string;
@@ -30,46 +59,8 @@ interface DoctorWeekSchedule {
   schedules: Record<string, string>;
 }
 
-const CENTERS = [
-  "الشاطئ",
-  "النهضة",
-  "ذهبان",
-  "أبحر",
-  "السلحية",
-  "الماجد",
-  "الشراع",
-  "الوفاء",
-  "الريان",
-  "خالد النموذجي",
-  "بريمان",
-  "الفردوس",
-  "ثول",
-  "السواري",
-  "الرحاب",
-  "البوادي 1",
-  "البوادي 2",
-  "الصفا 1",
-  "الصفا 2",
-  "السلامة",
-  "المروة",
-  "النعيم",
-  "الفيصلية",
-  "مشرفة",
-  "الربوة"
-];
-
-const STATUS_STYLES: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; className: string }> = {
-  "افتراضي": { label: "افتراضي", variant: "default", className: "bg-blue-500 hover:bg-blue-600 text-white" },
-  "اجازة": { label: "اجازة", variant: "destructive", className: "bg-red-500 hover:bg-red-600 text-white" },
-  "كامل اليوم": { label: "كامل اليوم", variant: "default", className: "bg-green-500 hover:bg-green-600 text-white" },
-  "مسائي": { label: "مسائي", variant: "default", className: "bg-purple-500 hover:bg-purple-600 text-white" },
-};
-
-const WEEKDAYS = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-
 export default function DoctorScheduling() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [selectedCenter, setSelectedCenter] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -77,7 +68,7 @@ export default function DoctorScheduling() {
   const [syncing, setSyncing] = useState(false);
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
-  const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const weekDates = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
   useEffect(() => {
     if (selectedCenter) {
@@ -112,16 +103,20 @@ export default function DoctorScheduling() {
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke("sync-doctor-schedules");
-      
+
       if (error) throw error;
-      
-      toast.success("تم مزامنة الجداول بنجاح");
-      if (selectedCenter) {
-        fetchSchedules();
+
+      if (data?.success) {
+        toast.success(`تم المزامنة: ${data.syncedCount || 0} سجل`);
+        if (selectedCenter) {
+          fetchSchedules();
+        }
+      } else {
+        toast.error(data?.error || "حدث خطأ في المزامنة");
       }
-    } catch (error) {
-      console.error("Error syncing schedules:", error);
-      toast.error("فشل في مزامنة الجداول");
+    } catch (error: any) {
+      console.error("Sync error:", error);
+      toast.error(error.message || "فشل في المزامنة");
     } finally {
       setSyncing(false);
     }
@@ -145,13 +140,73 @@ export default function DoctorScheduling() {
     return Array.from(doctorMap.values());
   };
 
+  // Get status badge with specific colors based on Arabic text
   const getStatusBadge = (status: string | undefined) => {
-    if (!status) return <span className="text-muted-foreground">-</span>;
-    
-    const style = STATUS_STYLES[status] || STATUS_STYLES["افتراضي"];
+    if (!status || status === "-" || status.trim() === "") {
+      return <span className="text-muted-foreground text-xs">-</span>;
+    }
+
+    // Check for specific statuses (order matters - more specific first)
+    if (status.includes("اجازة مرضية")) {
+      return (
+        <Badge className="bg-pink-300 hover:bg-pink-400 text-gray-800 text-xs">
+          اجازة مرضية
+        </Badge>
+      );
+    }
+
+    if (status.includes("مهام إدارية") || status.includes("مهام ادارية")) {
+      return (
+        <Badge className="bg-gray-800 hover:bg-gray-900 text-white text-xs">
+          مهام إدارية
+        </Badge>
+      );
+    }
+
+    if (status.includes("كامل اليوم") || status.includes("كامل")) {
+      return (
+        <Badge className="bg-gray-400 hover:bg-gray-500 text-white text-xs">
+          كامل اليوم
+        </Badge>
+      );
+    }
+
+    if (status.includes("افتراضي")) {
+      return (
+        <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">
+          افتراضي
+        </Badge>
+      );
+    }
+
+    if (status.includes("اجازة") || status.includes("إجازه") || status.includes("إجازة")) {
+      return (
+        <Badge className="bg-red-400 hover:bg-red-500 text-white text-xs">
+          اجازة
+        </Badge>
+      );
+    }
+
+    if (status.includes("تكليف")) {
+      return (
+        <Badge className="bg-gray-600 hover:bg-gray-700 text-white text-xs">
+          تكليف
+        </Badge>
+      );
+    }
+
+    if (status.includes("مسائي")) {
+      return (
+        <Badge className="bg-blue-500 hover:bg-blue-600 text-white text-xs">
+          مسائي
+        </Badge>
+      );
+    }
+
+    // Default: show the raw status
     return (
-      <Badge className={cn("text-xs", style.className)}>
-        {style.label}
+      <Badge variant="outline" className="text-xs">
+        {status}
       </Badge>
     );
   };
@@ -168,7 +223,7 @@ export default function DoctorScheduling() {
               <ArrowRight className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">جدولة الأطباء (محدث)</h1>
+              <h1 className="text-3xl font-bold text-foreground">جدولة الأطباء</h1>
               <p className="text-muted-foreground">إدارة جداول الأطباء لجميع المراكز الصحية</p>
             </div>
           </div>
@@ -192,10 +247,10 @@ export default function DoctorScheduling() {
                 <SelectTrigger>
                   <SelectValue placeholder="اختر المركز" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border">
                   {CENTERS.map((center) => (
-                    <SelectItem key={center} value={center}>
-                      {center}
+                    <SelectItem key={center.ar} value={center.ar}>
+                      {center.ar}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -215,16 +270,16 @@ export default function DoctorScheduling() {
                     )}
                   >
                     <CalendarIcon className="ml-2 h-4 w-4" />
-                    {format(weekStart, "d MMMM yyyy", { locale: ar })} - {format(addDays(weekStart, 6), "d MMMM yyyy", { locale: ar })}
+                    {format(weekStart, "d MMMM yyyy", { locale: ar })} -{" "}
+                    {format(addDays(weekStart, 4), "d MMMM yyyy", { locale: ar })}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                <PopoverContent className="w-auto p-0 bg-background border" align="start">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={(date) => date && setSelectedDate(date)}
                     initialFocus
-                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -266,13 +321,12 @@ export default function DoctorScheduling() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-right min-w-[150px]">اسم الطبيب</TableHead>
-                      <TableHead className="text-right min-w-[120px]">رقم الهوية</TableHead>
                       {weekDates.map((date, idx) => (
                         <TableHead key={idx} className="text-center min-w-[100px]">
                           <div className="flex flex-col">
                             <span className="font-medium">{WEEKDAYS[idx]}</span>
                             <span className="text-xs text-muted-foreground">
-                              {format(date, "d/M", { locale: ar })}
+                              {format(date, "MM/dd")}
                             </span>
                           </div>
                         </TableHead>
@@ -283,7 +337,6 @@ export default function DoctorScheduling() {
                     {doctorSchedules.map((doctor) => (
                       <TableRow key={doctor.doctor_id}>
                         <TableCell className="font-medium">{doctor.doctor_name}</TableCell>
-                        <TableCell className="text-muted-foreground">{doctor.doctor_id}</TableCell>
                         {weekDates.map((date) => (
                           <TableCell key={date.toISOString()} className="text-center">
                             {getStatusBadge(doctor.schedules[format(date, "yyyy-MM-dd")])}
@@ -304,12 +357,34 @@ export default function DoctorScheduling() {
             <CardTitle className="text-lg">دليل الحالات</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
-            {Object.entries(STATUS_STYLES).map(([key, style]) => (
-              <div key={key} className="flex items-center gap-2">
-                <Badge className={style.className}>{style.label}</Badge>
-                <span className="text-sm text-muted-foreground">{key}</span>
-              </div>
-            ))}
+            <div className="flex items-center gap-2">
+              <Badge className="bg-green-500 text-white">افتراضي</Badge>
+              <span className="text-sm text-muted-foreground">عيادة افتراضية</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-gray-400 text-white">كامل اليوم</Badge>
+              <span className="text-sm text-muted-foreground">دوام كامل</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-blue-500 text-white">مسائي</Badge>
+              <span className="text-sm text-muted-foreground">فترة مسائية</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-red-400 text-white">اجازة</Badge>
+              <span className="text-sm text-muted-foreground">إجازة</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-pink-300 text-gray-800">اجازة مرضية</Badge>
+              <span className="text-sm text-muted-foreground">إجازة مرضية</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-gray-800 text-white">مهام إدارية</Badge>
+              <span className="text-sm text-muted-foreground">مهام إدارية</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-gray-600 text-white">تكليف</Badge>
+              <span className="text-sm text-muted-foreground">تكليف خارجي</span>
+            </div>
           </CardContent>
         </Card>
       </div>
