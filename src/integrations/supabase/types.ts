@@ -243,6 +243,8 @@ export type Database = {
           center_id: string
           chronic_risk_score: string | null
           clinical_validation: string | null
+          contact_date: string | null
+          contacted: boolean | null
           created_at: string
           cycle_days: number | null
           cycle_type_new: string | null
@@ -266,11 +268,16 @@ export type Database = {
           medication_categories: string | null
           name: string
           national_id: string
+          non_delivery_reason: string | null
           obesity_class: string | null
           phone: string | null
           predicted_medications: string | null
           predicted_visit_date: string | null
           prescription_with_dosage: string | null
+          provider_satisfaction_score: number | null
+          risk_classification: string | null
+          satisfaction_score: number | null
+          service_delivered: boolean | null
           smoking_status: string | null
           source: string | null
           status: string | null
@@ -295,6 +302,8 @@ export type Database = {
           center_id: string
           chronic_risk_score?: string | null
           clinical_validation?: string | null
+          contact_date?: string | null
+          contacted?: boolean | null
           created_at?: string
           cycle_days?: number | null
           cycle_type_new?: string | null
@@ -318,11 +327,16 @@ export type Database = {
           medication_categories?: string | null
           name: string
           national_id: string
+          non_delivery_reason?: string | null
           obesity_class?: string | null
           phone?: string | null
           predicted_medications?: string | null
           predicted_visit_date?: string | null
           prescription_with_dosage?: string | null
+          provider_satisfaction_score?: number | null
+          risk_classification?: string | null
+          satisfaction_score?: number | null
+          service_delivered?: boolean | null
           smoking_status?: string | null
           source?: string | null
           status?: string | null
@@ -347,6 +361,8 @@ export type Database = {
           center_id?: string
           chronic_risk_score?: string | null
           clinical_validation?: string | null
+          contact_date?: string | null
+          contacted?: boolean | null
           created_at?: string
           cycle_days?: number | null
           cycle_type_new?: string | null
@@ -370,11 +386,16 @@ export type Database = {
           medication_categories?: string | null
           name?: string
           national_id?: string
+          non_delivery_reason?: string | null
           obesity_class?: string | null
           phone?: string | null
           predicted_medications?: string | null
           predicted_visit_date?: string | null
           prescription_with_dosage?: string | null
+          provider_satisfaction_score?: number | null
+          risk_classification?: string | null
+          satisfaction_score?: number | null
+          service_delivered?: boolean | null
           smoking_status?: string | null
           source?: string | null
           status?: string | null
