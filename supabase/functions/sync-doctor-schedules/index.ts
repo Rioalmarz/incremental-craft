@@ -200,11 +200,22 @@ function smartParseDateFromHeader(header: string): string | null {
   
   // Determine year based on current date
   const now = new Date();
-  let year = now.getFullYear();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
   
-  // If month is earlier than current month, assume next year
-  if (month < now.getMonth() + 1) {
-    year++;
+  let year = currentYear;
+  
+  // Smart year inference:
+  // - If the month is more than 2 months in the past, assume next year
+  // - Otherwise, assume current year
+  const monthDiff = currentMonth - month;
+  if (monthDiff > 2) {
+    // e.g., we're in December (12) and see March (3), monthDiff = 9 → next year
+    year = currentYear + 1;
+  } else if (monthDiff < -9) {
+    // e.g., we're in January (1) and see November (11), monthDiff = -10 → current year (not past year)
+    // This handles the case where we're at the start of a new year looking at late-year dates
+    year = currentYear;
   }
   
   // Validate the date is real (e.g., not Feb 31)
@@ -492,6 +503,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Deduplicate schedules (same center + doctor_id + date = keep last occurrence)
+    console.log("\n🔄 Deduplicating schedules...");
+    const uniqueSchedules = new Map<string, any>();
+    for (const schedule of allSchedules) {
+      const key = `${schedule.center_name}|${schedule.doctor_id}|${schedule.date}`;
+      uniqueSchedules.set(key, schedule);
+    }
+    const deduplicatedSchedules = Array.from(uniqueSchedules.values());
+    console.log(`  📊 ${allSchedules.length} → ${deduplicatedSchedules.length} (removed ${allSchedules.length - deduplicatedSchedules.length} duplicates)`);
+
     // Clear existing schedules and insert new ones
     console.log("\n🗑️ Clearing existing schedules...");
     const { error: deleteError } = await supabase.from("schedules").delete().neq("id", "00000000-0000-0000-0000-000000000000");
@@ -500,18 +521,20 @@ Deno.serve(async (req) => {
       console.error("Delete error:", deleteError);
     }
 
-    // Insert all schedules in batches
+    // Insert all schedules in batches using upsert
     console.log("📥 Inserting new schedules...");
     const batchSize = 500;
     let insertedCount = 0;
     const insertErrors: string[] = [];
 
-    for (let i = 0; i < allSchedules.length; i += batchSize) {
-      const batch = allSchedules.slice(i, i + batchSize);
-      const { error: insertError } = await supabase.from("schedules").insert(batch);
+    for (let i = 0; i < deduplicatedSchedules.length; i += batchSize) {
+      const batch = deduplicatedSchedules.slice(i, i + batchSize);
+      const { error: insertError } = await supabase
+        .from("schedules")
+        .upsert(batch, { onConflict: 'center_name,doctor_id,date' });
 
       if (insertError) {
-        console.error(`Insert error for batch ${i / batchSize + 1}:`, insertError);
+        console.error(`Upsert error for batch ${i / batchSize + 1}:`, insertError);
         insertErrors.push(`Batch ${i / batchSize + 1}: ${insertError.message}`);
       } else {
         insertedCount += batch.length;
