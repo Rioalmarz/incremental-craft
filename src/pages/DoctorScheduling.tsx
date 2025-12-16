@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { format, startOfWeek, addDays } from "date-fns";
 import { ar } from "date-fns/locale";
-import { CalendarIcon, RefreshCw, ArrowRight, Users } from "lucide-react";
+import { CalendarIcon, RefreshCw, ArrowRight, Users, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 // Centers list (excluding الربوة which is closed)
 const CENTERS = [
@@ -59,6 +60,14 @@ interface DoctorWeekSchedule {
   schedules: Record<string, string>;
 }
 
+interface ScheduleRecord {
+  center_name: string;
+  doctor_name: string;
+  doctor_id: string;
+  date: string;
+  status: string;
+}
+
 export default function DoctorScheduling() {
   const navigate = useNavigate();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -66,6 +75,8 @@ export default function DoctorScheduling() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
   const weekDates = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
@@ -119,6 +130,121 @@ export default function DoctorScheduling() {
       toast.error(error.message || "فشل في المزامنة");
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+    toast.info("جاري قراءة الملف...");
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: "array" });
+      
+      const allRecords: ScheduleRecord[] = [];
+      
+      // Process all sheets
+      for (const sheetName of workbook.SheetNames) {
+        // Skip الربوة
+        if (sheetName.includes("الربوة")) {
+          console.log(`Skipping sheet: ${sheetName}`);
+          continue;
+        }
+
+        const sheet = workbook.Sheets[sheetName];
+        const rows = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+        
+        if (rows.length < 2) continue;
+
+        const headerRow = rows[0] as string[];
+        
+        // Find date columns (pattern: Day MM-DD or just MM-DD)
+        const dateColumns: { index: number; date: string }[] = [];
+        const currentYear = new Date().getFullYear();
+        
+        headerRow.forEach((header, idx) => {
+          if (idx < 3 || !header) return; // Skip first 3 columns (center, doctor, id)
+          
+          const headerStr = String(header);
+          // Match patterns like "Sunday 12-14", "12-14", "12/14"
+          const match = headerStr.match(/(\d{1,2})[-\/](\d{1,2})/);
+          if (match) {
+            const month = parseInt(match[1], 10);
+            const day = parseInt(match[2], 10);
+            // Determine year based on current date
+            let year = currentYear;
+            if (month === 12 && new Date().getMonth() < 6) {
+              year = currentYear - 1;
+            } else if (month < 6 && new Date().getMonth() > 6) {
+              year = currentYear + 1;
+            }
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            dateColumns.push({ index: idx, date: dateStr });
+          }
+        });
+
+        console.log(`Sheet "${sheetName}": Found ${dateColumns.length} date columns`);
+
+        // Process data rows
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i] as any[];
+          if (!row || row.length < 3) continue;
+
+          const centerName = String(row[0] || "").trim();
+          const doctorName = String(row[1] || "").trim();
+          const doctorId = String(row[2] || "").trim();
+
+          // Skip if center is الربوة or empty row
+          if (!doctorName || centerName.includes("الربوة")) continue;
+
+          // Use sheet name as center if cell is empty
+          const finalCenterName = centerName || sheetName;
+
+          for (const { index, date } of dateColumns) {
+            const status = String(row[index] || "").trim();
+            if (!status) continue;
+
+            allRecords.push({
+              center_name: finalCenterName,
+              doctor_name: doctorName,
+              doctor_id: doctorId || `${finalCenterName}-${doctorName}`.replace(/\s/g, '-'),
+              date,
+              status
+            });
+          }
+        }
+      }
+
+      console.log(`Total records to import: ${allRecords.length}`);
+      toast.info(`جاري إدخال ${allRecords.length} سجل...`);
+
+      // Send to edge function
+      const { data: result, error } = await supabase.functions.invoke("import-doctor-schedules", {
+        body: { records: allRecords }
+      });
+
+      if (error) throw error;
+
+      if (result?.success) {
+        toast.success(result.message || `تم إدخال ${result.insertedCount} سجل`);
+        if (selectedCenter) {
+          fetchSchedules();
+        }
+      } else {
+        toast.error(result?.error || "حدث خطأ في الاستيراد");
+      }
+
+    } catch (error: any) {
+      console.error("Import error:", error);
+      toast.error(error.message || "فشل في استيراد الملف");
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -227,10 +353,28 @@ export default function DoctorScheduling() {
               <p className="text-muted-foreground">إدارة جداول الأطباء لجميع المراكز الصحية</p>
             </div>
           </div>
-          <Button onClick={syncFromSheets} disabled={syncing} className="gap-2">
-            <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
-            مزامنة من Google Sheets
-          </Button>
+          <div className="flex gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".xlsx,.xls"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <Button 
+              variant="outline" 
+              onClick={() => fileInputRef.current?.click()} 
+              disabled={importing}
+              className="gap-2"
+            >
+              <Upload className={cn("h-4 w-4", importing && "animate-pulse")} />
+              {importing ? "جاري الاستيراد..." : "استيراد من Excel"}
+            </Button>
+            <Button onClick={syncFromSheets} disabled={syncing} className="gap-2">
+              <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+              مزامنة من Google Sheets
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
