@@ -38,6 +38,11 @@ export const patientFieldMappings: FieldMapping[] = [
     keywords: ["gender", "الجنس", "sex", "patient_gender", "جنس"],
   },
   {
+    dbField: "phone",
+    displayName: "رقم الهاتف",
+    keywords: ["phone", "phone_number", "رقم الهاتف", "هاتف", "جوال", "mobile", "telephone"],
+  },
+  {
     dbField: "has_dm",
     displayName: "مستفيد سكري",
     keywords: ["is diabetic", "diabetes", "dm", "سكري", "diabetic", "isdiabetic", "السكري"],
@@ -91,6 +96,148 @@ export const patientFieldMappings: FieldMapping[] = [
     dbField: "medications",
     displayName: "الأدوية",
     keywords: ["medications", "current medications", "الأدوية", "drugs", "chronic_medications_list", "أدوية", "medicine"],
+  },
+  // New fields - Source and visits
+  {
+    dbField: "source",
+    displayName: "المصدر",
+    keywords: ["source", "المصدر", "data source", "مصدر البيانات"],
+  },
+  {
+    dbField: "visit_count",
+    displayName: "عدد الزيارات",
+    keywords: ["visit count", "visit_count", "عدد الزيارات", "visits", "total visits", "number of visits"],
+  },
+  // Health status
+  {
+    dbField: "obesity_class",
+    displayName: "تصنيف السمنة",
+    keywords: ["obesity", "obesity_class", "تصنيف السمنة", "السمنة", "bmi class", "weight class"],
+  },
+  {
+    dbField: "smoking_status",
+    displayName: "حالة التدخين",
+    keywords: ["smoking", "smoking_status", "تدخين", "حالة التدخين", "مدخن", "smoker"],
+  },
+  // Screening eligibility
+  {
+    dbField: "eligible_dm_screening",
+    displayName: "مؤهل لفحص السكري",
+    keywords: ["dm screening", "eligible_dm_screening", "مؤهل لفحص السكري", "diabetes screening", "فحص السكري"],
+  },
+  {
+    dbField: "eligible_htn_screening",
+    displayName: "مؤهل لفحص الضغط",
+    keywords: ["htn screening", "eligible_htn_screening", "مؤهل لفحص الضغط", "hypertension screening", "فحص الضغط"],
+  },
+  {
+    dbField: "eligible_dlp_screening",
+    displayName: "مؤهل لفحص الدهون",
+    keywords: ["dlp screening", "eligible_dlp_screening", "مؤهل لفحص الدهون", "dyslipidemia screening", "فحص الدهون"],
+  },
+  // Lab results
+  {
+    dbField: "fasting_blood_glucose",
+    displayName: "سكر صائم",
+    keywords: ["fasting glucose", "fasting_blood_glucose", "سكر صائم", "fbg", "fasting blood sugar"],
+  },
+  {
+    dbField: "hba1c",
+    displayName: "السكر التراكمي",
+    keywords: ["hba1c", "a1c", "السكر التراكمي", "تراكمي", "hemoglobin a1c", "glycated hemoglobin"],
+  },
+  {
+    dbField: "ldl",
+    displayName: "الكولسترول الضار",
+    keywords: ["ldl", "ldl cholesterol", "الكولسترول الضار", "ldl_cholesterol", "bad cholesterol"],
+  },
+  {
+    dbField: "bp_last_visit",
+    displayName: "ضغط آخر زيارة",
+    keywords: ["bp last visit", "bp_last_visit", "ضغط آخر زيارة", "blood pressure", "last bp"],
+  },
+  // Advanced medication
+  {
+    dbField: "latest_prescription_date",
+    displayName: "تاريخ آخر وصفة",
+    keywords: ["prescription date", "latest_prescription_date", "تاريخ آخر وصفة", "last prescription", "آخر وصفة"],
+  },
+  {
+    dbField: "chronic_risk_score",
+    displayName: "درجة خطورة الأمراض المزمنة",
+    keywords: ["risk score", "chronic_risk_score", "درجة الخطورة", "chronic risk", "مخاطر الأمراض المزمنة"],
+  },
+  {
+    dbField: "predicted_medications",
+    displayName: "الأدوية المتوقعة",
+    keywords: ["predicted medications", "predicted_medications", "الأدوية المتوقعة", "expected medications"],
+  },
+  {
+    dbField: "prescription_with_dosage",
+    displayName: "الوصفة مع الجرعة",
+    keywords: ["prescription with dosage", "prescription_with_dosage", "الوصفة مع الجرعة", "dosage", "جرعة"],
+  },
+  {
+    dbField: "medication_categories",
+    displayName: "فئات الأدوية",
+    keywords: ["medication categories", "medication_categories", "فئات الأدوية", "drug categories", "med categories"],
+  },
+  {
+    dbField: "total_chronic_meds",
+    displayName: "إجمالي الأدوية المزمنة",
+    keywords: ["total chronic meds", "total_chronic_meds", "إجمالي الأدوية", "chronic medication count", "عدد الأدوية المزمنة"],
+  },
+  {
+    dbField: "med_prediction_confidence",
+    displayName: "دقة التنبؤ بالأدوية",
+    keywords: ["prediction confidence", "med_prediction_confidence", "دقة التنبؤ", "medication confidence", "confidence"],
+  },
+  {
+    dbField: "clinical_validation",
+    displayName: "التحقق السريري",
+    keywords: ["clinical validation", "clinical_validation", "التحقق السريري", "validation", "تحقق"],
+  },
+  // Visit and prediction
+  {
+    dbField: "last_visit_date",
+    displayName: "تاريخ آخر زيارة",
+    keywords: ["last visit", "last_visit_date", "تاريخ آخر زيارة", "آخر زيارة", "previous visit"],
+  },
+  {
+    dbField: "avg_days_between_visits",
+    displayName: "متوسط الأيام بين الزيارات",
+    keywords: ["avg days", "avg_days_between_visits", "متوسط الأيام", "average days", "visit frequency"],
+  },
+  {
+    dbField: "cycle_days",
+    displayName: "أيام الدورة",
+    keywords: ["cycle days", "cycle_days", "أيام الدورة", "cycle length", "دورة"],
+  },
+  {
+    dbField: "cycle_type_new",
+    displayName: "نوع الدورة",
+    keywords: ["cycle type", "cycle_type_new", "نوع الدورة", "cycle category", "تصنيف الدورة"],
+  },
+  {
+    dbField: "action_required",
+    displayName: "الإجراء المطلوب",
+    keywords: ["action required", "action_required", "الإجراء المطلوب", "required action", "إجراء"],
+  },
+  // Communication
+  {
+    dbField: "call_status",
+    displayName: "حالة الاتصال",
+    keywords: ["call status", "call_status", "حالة الاتصال", "contact status", "اتصال"],
+  },
+  {
+    dbField: "call_date",
+    displayName: "تاريخ الاتصال",
+    keywords: ["call date", "call_date", "تاريخ الاتصال", "contact date", "تاريخ التواصل"],
+  },
+  {
+    dbField: "call_notes",
+    displayName: "ملاحظات الاتصال",
+    keywords: ["call notes", "call_notes", "ملاحظات الاتصال", "contact notes", "ملاحظات التواصل"],
   },
 ];
 
@@ -350,7 +497,7 @@ export const transformValue = (value: any, dbField: string, fieldMapping?: Field
   }
   
   // Boolean fields
-  if (["has_dm", "has_htn", "has_dyslipidemia", "is_eligible"].includes(dbField)) {
+  if (["has_dm", "has_htn", "has_dyslipidemia", "is_eligible", "eligible_dm_screening", "eligible_htn_screening", "eligible_dlp_screening"].includes(dbField)) {
     const normalized = strValue.toLowerCase();
     if (["yes", "نعم", "1", "true", "unknown"].includes(normalized)) return true;
     return false;
@@ -392,14 +539,14 @@ export const transformValue = (value: any, dbField: string, fieldMapping?: Field
     return "متوسطة";
   }
   
-  // Numeric fields
-  if (["age", "patient_age", "days_until_visit"].includes(dbField)) {
+  // Numeric fields - extended list
+  if (["age", "patient_age", "days_until_visit", "visit_count", "total_chronic_meds", "cycle_days", "fasting_blood_glucose", "hba1c", "ldl", "med_prediction_confidence", "avg_days_between_visits"].includes(dbField)) {
     const num = Number(value);
     return isNaN(num) ? null : num;
   }
   
-  // Date fields - handle Excel serial numbers
-  if (["predicted_visit_date", "due_date", "last_completed_date"].includes(dbField)) {
+  // Date fields - handle Excel serial numbers - extended list
+  if (["predicted_visit_date", "due_date", "last_completed_date", "latest_prescription_date", "last_visit_date", "call_date"].includes(dbField)) {
     if (typeof value === "number") {
       // Excel serial date: days since 1899-12-30
       const excelEpoch = new Date(1899, 11, 30);
