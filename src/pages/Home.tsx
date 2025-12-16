@@ -501,7 +501,7 @@ const Home = () => {
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-primary font-semibold tracking-wider">
-              Enhanced Based Care
+              Enhanced Primary Care
             </p>
           </div>
 
