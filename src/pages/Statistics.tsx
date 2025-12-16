@@ -103,7 +103,7 @@ const Statistics = () => {
               </Button>
               <div>
                 <h1 className="text-xl font-bold">لوحة الإحصائيات</h1>
-                <p className="text-sm text-muted-foreground">نتائج الـ Pilot التجريبي</p>
+                <p className="text-sm text-muted-foreground">Statistics Dashboard</p>
               </div>
             </div>
             <div className="flex gap-2">
