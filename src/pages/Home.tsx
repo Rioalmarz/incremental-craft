@@ -456,9 +456,9 @@ const Home = () => {
 
           {/* Main Description */}
           <div className={`transition-all duration-1000 delay-600 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium">
-              نظام صحي ذكي متكامل لإدارة الرعاية الأولية
-              <br className="hidden md:block" />
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed font-medium">Team Based Care 
+نموذج طبيب لكل اسرة
+التجمع الصحي الثاني بجدة <br className="hidden md:block" />
               <span className="text-foreground">لا يقتصر على الوقاية والعلاج،</span>
               <br />
               بل يهدف إلى الانتظام في الرعاية وتمكين المستفيد من حياة صحية سليمة ومستدامة
