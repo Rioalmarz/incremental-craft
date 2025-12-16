@@ -76,255 +76,276 @@ async function getAccessToken(serviceAccount: any): Promise<string> {
   return data.access_token;
 }
 
-// Smart date format detection
-// Analyzes patterns to determine if format is MM-DD or DD-MM
-function detectDateFormat(datePatterns: { first: number; second: number }[]): 'first-is-month' | 'second-is-month' {
-  if (datePatterns.length === 0) {
-    return 'second-is-month'; // Default: DD-MM (common in Arabic region)
-  }
-
-  const currentMonth = new Date().getMonth() + 1; // 12 for December
-  
-  const firstValues = datePatterns.map(p => p.first);
-  const secondValues = datePatterns.map(p => p.second);
-  
-  const uniqueFirst = new Set(firstValues);
-  const uniqueSecond = new Set(secondValues);
-  
-  console.log(`Date format detection: first values = [${[...uniqueFirst].join(', ')}], second values = [${[...uniqueSecond].join(', ')}]`);
-  console.log(`Current month: ${currentMonth}`);
-  
-  // Rule 1: Constant value is month, changing value is day
-  // If first value is constant (e.g., always 12) and second changes (14, 15, 16...)
-  if (uniqueFirst.size === 1 && uniqueSecond.size > 1) {
-    console.log(`Detected: first value is constant (${[...uniqueFirst][0]}) = month`);
-    return 'first-is-month';
-  }
-  
-  // If second value is constant and first changes
-  if (uniqueSecond.size === 1 && uniqueFirst.size > 1) {
-    console.log(`Detected: second value is constant (${[...uniqueSecond][0]}) = month`);
-    return 'second-is-month';
-  }
-  
-  // Rule 2: If one value matches current month consistently
-  const firstMatchesCurrent = firstValues.every(v => v === currentMonth);
-  const secondMatchesCurrent = secondValues.every(v => v === currentMonth);
-  
-  if (firstMatchesCurrent && !secondMatchesCurrent) {
-    console.log(`Detected: first value matches current month (${currentMonth}) = month`);
-    return 'first-is-month';
-  }
-  if (secondMatchesCurrent && !firstMatchesCurrent) {
-    console.log(`Detected: second value matches current month (${currentMonth}) = month`);
-    return 'second-is-month';
-  }
-  
-  // Rule 3: If any value > 12, it must be a day
-  if (firstValues.some(v => v > 12)) {
-    console.log(`Detected: first value has values > 12, so second = month`);
-    return 'second-is-month';
-  }
-  if (secondValues.some(v => v > 12)) {
-    console.log(`Detected: second value has values > 12, so first = month`);
-    return 'first-is-month';
-  }
-  
-  // Rule 4: Check if values increment (days typically increment in a week)
-  const firstSorted = [...firstValues].sort((a, b) => a - b);
-  const secondSorted = [...secondValues].sort((a, b) => a - b);
-  
-  // Check for sequential pattern (days)
-  const isFirstSequential = firstSorted.length > 1 && 
-    firstSorted.every((v, i) => i === 0 || v - firstSorted[i-1] <= 2);
-  const isSecondSequential = secondSorted.length > 1 && 
-    secondSorted.every((v, i) => i === 0 || v - secondSorted[i-1] <= 2);
-  
-  if (isFirstSequential && !isSecondSequential) {
-    console.log(`Detected: first values are sequential (days), second = month`);
-    return 'second-is-month';
-  }
-  if (isSecondSequential && !isFirstSequential) {
-    console.log(`Detected: second values are sequential (days), first = month`);
-    return 'first-is-month';
-  }
-  
-  // Default: assume DD-MM format (common in Arabic region)
-  console.log(`No clear pattern detected, defaulting to DD-MM (second = month)`);
-  return 'second-is-month';
+// Format date as YYYY-MM-DD for database
+function formatDateForDB(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-// Extract date patterns from headers
-function extractDatePatterns(headers: string[]): { first: number; second: number }[] {
-  const patterns: { first: number; second: number }[] = [];
-  const datePattern = /(\d{1,2})[-\/](\d{1,2})/;
-  
-  for (const header of headers) {
-    if (!header || typeof header !== 'string') continue;
-    const match = header.match(datePattern);
-    if (match) {
-      patterns.push({
-        first: parseInt(match[1]),
-        second: parseInt(match[2])
-      });
+// ============= SMART DETECTION ALGORITHM =============
+
+// 1. Find the Header Row Dynamically
+// Searches first 10 rows for "اسم الطبيب"
+function findHeaderRow(rows: string[][]): { headerRowIndex: number; headers: string[] } | null {
+  for (let i = 0; i < Math.min(10, rows.length); i++) {
+    const row = rows[i];
+    if (!row) continue;
+    
+    // Search for "اسم الطبيب" in any column
+    const hasDoctorNameHeader = row.some(cell => {
+      if (!cell) return false;
+      const cellStr = cell.toString().trim();
+      return cellStr.includes('اسم الطبيب') || cellStr === 'الطبيب';
+    });
+    
+    if (hasDoctorNameHeader) {
+      return { headerRowIndex: i, headers: row.map(c => (c || '').toString()) };
     }
   }
   
-  return patterns;
+  return null;
 }
 
-// Parse date from header using detected format
-function parseDateFromHeader(header: string, format: 'first-is-month' | 'second-is-month'): Date | null {
-  if (!header || typeof header !== "string") return null;
+// 2. Map Columns Based on Found Header
+interface ColumnMapping {
+  doctorNameCol: number;
+  centerNameCol: number;
+  doctorIdCol: number;
+  dateColumns: { index: number; dateStr: string; headerText: string }[];
+}
 
+function mapColumnsFromHeader(headers: string[], sheetName: string): ColumnMapping | null {
+  let doctorNameCol = -1;
+  let centerNameCol = -1;
+  let doctorIdCol = -1;
+  const dateColumns: { index: number; dateStr: string; headerText: string }[] = [];
+  
+  for (let i = 0; i < headers.length; i++) {
+    const header = (headers[i] || '').toString().trim();
+    
+    // Find doctor name column
+    if (header.includes('اسم الطبيب') || header === 'الطبيب') {
+      doctorNameCol = i;
+      console.log(`  📌 Doctor Name column found at index ${i}: "${header}"`);
+    }
+    
+    // Find center name column
+    if (header.includes('اسم المركز') || header === 'المركز') {
+      centerNameCol = i;
+      console.log(`  📌 Center Name column found at index ${i}: "${header}"`);
+    }
+    
+    // Find doctor ID column
+    if (header.includes('الهوية') || header.includes('رقم الهوية')) {
+      doctorIdCol = i;
+      console.log(`  📌 Doctor ID column found at index ${i}: "${header}"`);
+    }
+    
+    // Find date columns (contain numbers and separators)
+    const dateStr = smartParseDateFromHeader(header);
+    if (dateStr) {
+      dateColumns.push({ index: i, dateStr, headerText: header });
+    }
+  }
+  
+  // Must find at least doctor_name column
+  if (doctorNameCol === -1) {
+    console.log(`  ❌ No "اسم الطبيب" column found`);
+    return null;
+  }
+  
+  console.log(`  📅 Found ${dateColumns.length} date columns`);
+  if (dateColumns.length > 0) {
+    console.log(`  📅 Date samples: ${dateColumns.slice(0, 3).map(d => `"${d.headerText}" → ${d.dateStr}`).join(', ')}`);
+  }
+  
+  return { doctorNameCol, centerNameCol, doctorIdCol, dateColumns };
+}
+
+// 3. Smart Date Parsing from Header
+// Handles both MM-DD and DD-MM with >12 rule
+function smartParseDateFromHeader(header: string): string | null {
+  if (!header || typeof header !== 'string') return null;
+  
+  // Match patterns like: 12-14, 14/12, 12/1, 1-14, etc.
   const datePattern = /(\d{1,2})[-\/](\d{1,2})/;
   const match = header.match(datePattern);
-
+  
   if (!match) return null;
-
+  
   const first = parseInt(match[1]);
   const second = parseInt(match[2]);
   
   let month: number, day: number;
   
-  if (format === 'first-is-month') {
-    month = first;
-    day = second;
-  } else {
+  // Rule 1: If first number > 12, it must be Day (DD-MM format)
+  if (first > 12) {
     day = first;
     month = second;
   }
-
-  // Validate month and day
+  // Rule 2: If second number > 12, it must be Day (MM-DD format)
+  else if (second > 12) {
+    month = first;
+    day = second;
+  }
+  // Rule 3: Both <= 12, assume Month-Day (MM-DD) as per user preference
+  else {
+    month = first;
+    day = second;
+  }
+  
+  // Validate month and day ranges
   if (month < 1 || month > 12 || day < 1 || day > 31) {
-    console.log(`Invalid date values: month=${month}, day=${day} from header "${header}"`);
     return null;
   }
-
+  
   // Determine year based on current date
   const now = new Date();
   let year = now.getFullYear();
-
-  // If the month is earlier than current month, assume next year
+  
+  // If month is earlier than current month, assume next year
   if (month < now.getMonth() + 1) {
     year++;
   }
-
-  const date = new Date(year, month - 1, day);
   
   // Validate the date is real (e.g., not Feb 31)
-  if (date.getMonth() !== month - 1 || date.getDate() !== day) {
-    console.log(`Invalid date: ${year}-${month}-${day}`);
+  const testDate = new Date(year, month - 1, day);
+  if (testDate.getMonth() !== month - 1 || testDate.getDate() !== day) {
     return null;
   }
-
-  return date;
+  
+  return formatDateForDB(year, month, day);
 }
 
-// Format date as YYYY-MM-DD for database
-function formatDateForDB(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+// 4. Process Sheet Data with Smart Detection
+interface SheetResult {
+  schedules: any[];
+  skippedRows: number;
+  rabwaSkipped: number;
+  headerRowIndex: number;
+  dateColumnsFound: number;
+  status: 'success' | 'no_header' | 'no_columns' | 'no_dates';
 }
 
-// Process a single sheet's data
-function processSheetData(
-  rows: string[][],
-  sheetName: string,
-  dateFormat: 'first-is-month' | 'second-is-month'
-): { schedules: any[]; skippedRows: number; rabwaSkipped: number; invalidDates: number } {
+function processSheetDataSmart(rows: string[][], sheetName: string): SheetResult {
+  console.log(`\n📄 Processing sheet: "${sheetName}" (${rows.length} rows)`);
+  
+  // Step 1: Find header row dynamically
+  const headerResult = findHeaderRow(rows);
+  
+  if (!headerResult) {
+    console.log(`  ⚠️ No "اسم الطبيب" found in first 10 rows - SKIPPING`);
+    return { 
+      schedules: [], 
+      skippedRows: rows.length, 
+      rabwaSkipped: 0,
+      headerRowIndex: -1, 
+      dateColumnsFound: 0,
+      status: 'no_header'
+    };
+  }
+  
+  console.log(`  ✅ Header found at row ${headerResult.headerRowIndex + 1}`);
+  console.log(`  📋 Headers: ${JSON.stringify(headerResult.headers.slice(0, 8))}...`);
+  
+  // Step 2: Map columns from header
+  const columnMapping = mapColumnsFromHeader(headerResult.headers, sheetName);
+  
+  if (!columnMapping) {
+    console.log(`  ⚠️ Failed to map columns - SKIPPING`);
+    return { 
+      schedules: [], 
+      skippedRows: rows.length, 
+      rabwaSkipped: 0,
+      headerRowIndex: headerResult.headerRowIndex, 
+      dateColumnsFound: 0,
+      status: 'no_columns'
+    };
+  }
+  
+  if (columnMapping.dateColumns.length === 0) {
+    console.log(`  ⚠️ No date columns found - SKIPPING`);
+    return { 
+      schedules: [], 
+      skippedRows: rows.length, 
+      rabwaSkipped: 0,
+      headerRowIndex: headerResult.headerRowIndex, 
+      dateColumnsFound: 0,
+      status: 'no_dates'
+    };
+  }
+  
+  // Step 3: Read data starting from row after header
   const schedules: any[] = [];
   let skippedRows = 0;
   let rabwaSkipped = 0;
-  let invalidDates = 0;
-
-  if (rows.length < 2) {
-    console.log(`Sheet "${sheetName}": no data (less than 2 rows)`);
-    return { schedules, skippedRows, rabwaSkipped, invalidDates };
-  }
-
-  // Row 1 (index 0) is the header row
-  const headers: string[] = rows[0] || [];
-  console.log(`Sheet "${sheetName}" headers:`, JSON.stringify(headers.slice(0, 10)));
-
-  // Fixed column positions:
-  // Column A (index 0) = center_name (اسم المركز)
-  // Column B (index 1) = doctor_name (اسم الطبيب)
-  const CENTER_COL = 0;
-  const DOCTOR_NAME_COL = 1;
-
-  // Detect date columns dynamically starting from Column C (index 2)
-  const dateColumns: { index: number; date: Date; dateStr: string }[] = [];
-
-  for (let colIdx = 2; colIdx < headers.length; colIdx++) {
-    const header = headers[colIdx];
-    const parsedDate = parseDateFromHeader(header, dateFormat);
-
-    if (parsedDate) {
-      dateColumns.push({
-        index: colIdx,
-        date: parsedDate,
-        dateStr: formatDateForDB(parsedDate),
-      });
-    }
-  }
-
-  console.log(`Sheet "${sheetName}": found ${dateColumns.length} date columns using format ${dateFormat}`);
-  if (dateColumns.length > 0) {
-    console.log(`Sample dates: ${dateColumns.slice(0, 3).map(d => `${headers[d.index]} -> ${d.dateStr}`).join(', ')}`);
-  }
-
-  if (dateColumns.length === 0) {
-    console.log(`Sheet "${sheetName}": no date columns found, skipping`);
-    return { schedules, skippedRows, rabwaSkipped, invalidDates };
-  }
-
-  // Parse data rows (starting from Row 2, index 1)
-  for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
+  
+  for (let rowIdx = headerResult.headerRowIndex + 1; rowIdx < rows.length; rowIdx++) {
     const row = rows[rowIdx];
-    if (!row || row.length === 0) {
+    
+    // Skip empty rows
+    if (!row || row.every(cell => !cell || cell.toString().trim() === '')) {
       skippedRows++;
       continue;
     }
-
-    const centerName = (row[CENTER_COL] || "").toString().trim();
-    const doctorName = (row[DOCTOR_NAME_COL] || "").toString().trim();
-
-    // Skip if missing required data
-    if (!centerName || !doctorName) {
+    
+    // Get doctor name (required)
+    const doctorName = (row[columnMapping.doctorNameCol] || '').toString().trim();
+    if (!doctorName) {
       skippedRows++;
       continue;
     }
-
+    
+    // Get center name (use column if found, otherwise use sheet name)
+    let centerName = sheetName;
+    if (columnMapping.centerNameCol >= 0) {
+      const cellValue = (row[columnMapping.centerNameCol] || '').toString().trim();
+      if (cellValue) {
+        centerName = cellValue;
+      }
+    }
+    
     // IGNORE rows where center contains "الربوة" (closed)
-    if (centerName.includes("الربوة")) {
+    if (centerName.includes('الربوة')) {
       rabwaSkipped++;
       continue;
     }
-
-    // Generate doctor_id from center and doctor name
-    const doctorId = `${centerName}-${doctorName}`.replace(/\s+/g, "-");
-
+    
+    // Get doctor ID (generate if not found)
+    let doctorId = '';
+    if (columnMapping.doctorIdCol >= 0) {
+      doctorId = (row[columnMapping.doctorIdCol] || '').toString().trim();
+    }
+    if (!doctorId) {
+      doctorId = `${centerName}-${doctorName}`.replace(/\s+/g, '-');
+    }
+    
     // Process each date column
-    for (const dateCol of dateColumns) {
-      const status = (row[dateCol.index] || "").toString().trim();
-
-      // Create schedule entry even for empty status (we'll store empty as "غير محدد")
+    for (const dateCol of columnMapping.dateColumns) {
+      const status = (row[dateCol.index] || '').toString().trim();
+      
       schedules.push({
         center_name: centerName,
         doctor_name: doctorName,
         doctor_id: doctorId,
         date: dateCol.dateStr,
-        status: status || "",
+        status: status || '',
       });
     }
   }
-
-  console.log(`Sheet "${sheetName}": parsed ${schedules.length} entries, skipped ${skippedRows} rows`);
-  return { schedules, skippedRows, rabwaSkipped, invalidDates };
+  
+  console.log(`  ✅ Parsed ${schedules.length} entries, skipped ${skippedRows} empty rows, ${rabwaSkipped} الربوة rows`);
+  
+  return { 
+    schedules, 
+    skippedRows, 
+    rabwaSkipped,
+    headerRowIndex: headerResult.headerRowIndex, 
+    dateColumnsFound: columnMapping.dateColumns.length,
+    status: 'success'
+  };
 }
+
+// ============= MAIN HANDLER =============
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -368,10 +389,10 @@ Deno.serve(async (req) => {
 
     // Get access token
     const accessToken = await getAccessToken(serviceAccount);
-    console.log("Successfully obtained access token");
+    console.log("✅ Successfully obtained access token");
 
-    // First, get all sheet names in the spreadsheet
-    console.log("Fetching spreadsheet metadata...");
+    // Get all sheet names
+    console.log("\n📊 Fetching spreadsheet metadata...");
     const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`;
 
     const metadataResponse = await fetch(metadataUrl, {
@@ -387,7 +408,7 @@ Deno.serve(async (req) => {
     const metadataData = await metadataResponse.json();
     const sheetNames: string[] = metadataData.sheets?.map((s: any) => s.properties?.title).filter(Boolean) || [];
 
-    console.log(`Found ${sheetNames.length} sheets:`, sheetNames.join(", "));
+    console.log(`📋 Found ${sheetNames.length} sheets: ${sheetNames.join(", ")}`);
 
     if (sheetNames.length === 0) {
       return new Response(
@@ -396,10 +417,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // First pass: collect all date patterns to detect format
-    console.log("Analyzing date patterns across all sheets...");
-    const allDatePatterns: { first: number; second: number }[] = [];
-    const sheetDataCache: Map<string, string[][]> = new Map();
+    // Process each sheet with smart detection
+    console.log("\n🔍 Processing sheets with Smart Detection Algorithm...");
+    const allSchedules: any[] = [];
+    let totalSkippedRows = 0;
+    let totalRabwaSkipped = 0;
+    const sheetReports: { name: string; status: string; headerRow: number; dateCols: number; entries: number }[] = [];
 
     for (const sheetName of sheetNames) {
       const encodedSheetName = encodeURIComponent(sheetName);
@@ -411,49 +434,47 @@ Deno.serve(async (req) => {
         });
 
         if (!sheetsResponse.ok) {
-          console.error(`Failed to fetch sheet "${sheetName}": ${sheetsResponse.status}`);
+          console.error(`❌ Failed to fetch sheet "${sheetName}": ${sheetsResponse.status}`);
+          sheetReports.push({ name: sheetName, status: 'fetch_error', headerRow: -1, dateCols: 0, entries: 0 });
           continue;
         }
 
         const sheetsData = await sheetsResponse.json();
         const rows = sheetsData.values || [];
         
-        if (rows.length >= 2) {
-          sheetDataCache.set(sheetName, rows);
-          const headers = rows[0] || [];
-          const patterns = extractDatePatterns(headers);
-          allDatePatterns.push(...patterns);
-        }
+        // Process with smart detection
+        const result = processSheetDataSmart(rows, sheetName);
+        
+        allSchedules.push(...result.schedules);
+        totalSkippedRows += result.skippedRows;
+        totalRabwaSkipped += result.rabwaSkipped;
+        
+        sheetReports.push({
+          name: sheetName,
+          status: result.status,
+          headerRow: result.headerRowIndex + 1,
+          dateCols: result.dateColumnsFound,
+          entries: result.schedules.length
+        });
+        
       } catch (err) {
-        console.error(`Error fetching sheet "${sheetName}":`, err);
+        console.error(`❌ Error fetching sheet "${sheetName}":`, err);
+        sheetReports.push({ name: sheetName, status: 'error', headerRow: -1, dateCols: 0, entries: 0 });
       }
     }
 
-    // Detect date format from all patterns
-    const dateFormat = detectDateFormat(allDatePatterns);
-    console.log(`=== DETECTED DATE FORMAT: ${dateFormat} ===`);
-
-    // Second pass: process all sheets with detected format
-    const allSchedules: any[] = [];
-    let totalSkippedRows = 0;
-    let totalRabwaSkipped = 0;
-    let totalInvalidDates = 0;
-    const processedSheets: string[] = [];
-
-    for (const [sheetName, rows] of sheetDataCache) {
-      const result = processSheetData(rows, sheetName, dateFormat);
-      allSchedules.push(...result.schedules);
-      totalSkippedRows += result.skippedRows;
-      totalRabwaSkipped += result.rabwaSkipped;
-      totalInvalidDates += result.invalidDates;
-      
-      if (result.schedules.length > 0) {
-        processedSheets.push(sheetName);
-      }
+    // Summary
+    console.log("\n" + "=".repeat(60));
+    console.log("📊 SYNC SUMMARY");
+    console.log("=".repeat(60));
+    console.log(`Total schedules: ${allSchedules.length}`);
+    console.log(`Skipped rows: ${totalSkippedRows}`);
+    console.log(`الربوة skipped: ${totalRabwaSkipped}`);
+    console.log("\nSheet-by-sheet report:");
+    for (const report of sheetReports) {
+      const icon = report.status === 'success' ? '✅' : '⚠️';
+      console.log(`  ${icon} ${report.name}: ${report.status}, header row ${report.headerRow}, ${report.dateCols} date cols, ${report.entries} entries`);
     }
-
-    console.log(`Total: parsed ${allSchedules.length} schedule entries from ${processedSheets.length} sheets`);
-    console.log(`Total skipped: ${totalSkippedRows} rows (missing data), ${totalRabwaSkipped} rows (الربوة), ${totalInvalidDates} invalid dates`);
 
     if (allSchedules.length === 0) {
       return new Response(
@@ -461,18 +482,18 @@ Deno.serve(async (req) => {
           success: true,
           message: "No schedule entries to sync",
           syncedCount: 0,
-          sheetsProcessed: processedSheets.length,
+          sheetsProcessed: sheetReports.filter(r => r.status === 'success').length,
           totalSheets: sheetNames.length,
           skippedRows: totalSkippedRows,
           rabwaSkipped: totalRabwaSkipped,
-          dateFormat,
+          sheetReports,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Clear existing schedules and insert new ones (full sync)
-    console.log("Clearing existing schedules...");
+    // Clear existing schedules and insert new ones
+    console.log("\n🗑️ Clearing existing schedules...");
     const { error: deleteError } = await supabase.from("schedules").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     
     if (deleteError) {
@@ -480,7 +501,7 @@ Deno.serve(async (req) => {
     }
 
     // Insert all schedules in batches
-    console.log("Inserting new schedules...");
+    console.log("📥 Inserting new schedules...");
     const batchSize = 500;
     let insertedCount = 0;
     const insertErrors: string[] = [];
@@ -497,19 +518,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Successfully synced ${insertedCount} schedules from ${processedSheets.length} sheets`);
+    console.log(`\n✅ Successfully synced ${insertedCount} schedules from ${sheetReports.filter(r => r.status === 'success').length} sheets`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Synced ${insertedCount} entries from ${processedSheets.length} sheets`,
+        message: `Synced ${insertedCount} entries from ${sheetReports.filter(r => r.status === 'success').length} sheets`,
         syncedCount: insertedCount,
-        sheetsProcessed: processedSheets.length,
+        sheetsProcessed: sheetReports.filter(r => r.status === 'success').length,
         totalSheets: sheetNames.length,
-        processedSheetNames: processedSheets,
         skippedRows: totalSkippedRows,
         rabwaSkipped: totalRabwaSkipped,
-        dateFormat,
+        sheetReports,
         errors: insertErrors.length > 0 ? insertErrors : undefined,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
