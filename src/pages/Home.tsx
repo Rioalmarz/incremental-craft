@@ -3,46 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  LogOut, 
-  Users, 
-  ClipboardList, 
-  Stethoscope, 
-  CheckCircle, 
-  XCircle, 
-  Database, 
-  BarChart3, 
-  Settings,
-  UserCog,
-  User,
-  ChevronDown,
-  Shield,
-  Activity,
-  Heart,
-  Sparkles,
-  CalendarDays
-} from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { LogOut, Users, ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Settings, UserCog, User, ChevronDown, Shield, Activity, Heart, Sparkles, CalendarDays } from "lucide-react";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 
 // Particle component for animated background with mouse interaction
 const ParticlesBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: -1000, y: -1000 });
-  
+  const mouseRef = useRef({
+    x: -1000,
+    y: -1000
+  });
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
     let animationFrameId: number;
     let particles: Array<{
       x: number;
@@ -55,16 +31,13 @@ const ParticlesBackground = () => {
       opacity: number;
       color: string;
     }> = [];
-    
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
-    
     const createParticles = () => {
       particles = [];
-      const particleCount = Math.floor((canvas.width * canvas.height) / 12000);
-      
+      const particleCount = Math.floor(canvas.width * canvas.height / 12000);
       for (let i = 0; i < particleCount; i++) {
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
@@ -81,19 +54,17 @@ const ParticlesBackground = () => {
         });
       }
     };
-    
     const drawParticles = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const mouse = mouseRef.current;
       const interactionRadius = 150;
       const repelStrength = 80;
-      
       particles.forEach((particle, i) => {
         // Calculate distance from mouse
         const dx = mouse.x - particle.x;
         const dy = mouse.y - particle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         // Repel particles away from mouse
         if (distance < interactionRadius && distance > 0) {
           const force = (interactionRadius - distance) / interactionRadius;
@@ -105,37 +76,33 @@ const ParticlesBackground = () => {
           particle.x += particle.vx;
           particle.y += particle.vy;
         }
-        
+
         // Wrap around edges
         if (particle.x < 0) particle.x = canvas.width;
         if (particle.x > canvas.width) particle.x = 0;
         if (particle.y < 0) particle.y = canvas.height;
         if (particle.y > canvas.height) particle.y = 0;
-        
+
         // Pulsing size effect near mouse
         let currentSize = particle.size;
         if (distance < interactionRadius) {
           currentSize = particle.size * (1 + (1 - distance / interactionRadius) * 0.5);
         }
-        
+
         // Draw particle with glow
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(
-          particle.x, particle.y, 0,
-          particle.x, particle.y, currentSize * 2
-        );
+        const gradient = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, currentSize * 2);
         gradient.addColorStop(0, `rgba(${particle.color}, ${particle.opacity})`);
         gradient.addColorStop(1, `rgba(${particle.color}, 0)`);
         ctx.fillStyle = gradient;
         ctx.fill();
-        
+
         // Draw connections
         particles.slice(i + 1).forEach(other => {
           const dx2 = particle.x - other.x;
           const dy2 = particle.y - other.y;
           const dist = Math.sqrt(dx2 * dx2 + dy2 * dy2);
-          
           if (dist < 100) {
             ctx.beginPath();
             ctx.moveTo(particle.x, particle.y);
@@ -146,29 +113,29 @@ const ParticlesBackground = () => {
           }
         });
       });
-      
       animationFrameId = requestAnimationFrame(drawParticles);
     };
-    
     const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
+      mouseRef.current = {
+        x: e.clientX,
+        y: e.clientY
+      };
     };
-    
     const handleMouseLeave = () => {
-      mouseRef.current = { x: -1000, y: -1000 };
+      mouseRef.current = {
+        x: -1000,
+        y: -1000
+      };
     };
-    
     resize();
     createParticles();
     drawParticles();
-    
     window.addEventListener('resize', () => {
       resize();
       createParticles();
     });
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseleave', handleMouseLeave);
-    
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', resize);
@@ -176,29 +143,31 @@ const ParticlesBackground = () => {
       window.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
-  
-  return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0"
-      style={{ opacity: 0.7 }}
-    />
-  );
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" style={{
+    opacity: 0.7
+  }} />;
 };
-
 const Home = () => {
-  const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
+  const {
+    user,
+    profile,
+    role,
+    signOut,
+    loading,
+    isSuperAdmin
+  } = useAuth();
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [mousePosition, setMousePosition] = useState({
+    x: 0,
+    y: 0
+  });
   const heroRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 100);
     return () => clearTimeout(timer);
@@ -211,110 +180,101 @@ const Home = () => {
         const rect = heroRef.current.getBoundingClientRect();
         setMousePosition({
           x: (e.clientX - rect.left - rect.width / 2) / 50,
-          y: (e.clientY - rect.top - rect.height / 2) / 50,
+          y: (e.clientY - rect.top - rect.height / 2) / 50
         });
       }
     };
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
-
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+    return <div className="min-h-screen flex items-center justify-center bg-background">
         <FlowerLogo animate size={100} />
-      </div>
-    );
+      </div>;
   }
-
-  const menuItems = [
-    { 
-      title: "الفرز الأولي", 
-      icon: ClipboardList, 
-      path: "/screening",
-      description: "فرز المستفيدين الجدد وتحديد الأولويات",
-      gradient: "from-[hsl(var(--primary))] to-[hsl(var(--accent))]"
-    },
-    { 
-      title: "العيادة الافتراضية", 
-      icon: Stethoscope, 
-      path: "/virtual-clinic",
-      description: "متابعة المستفيدين المحولين للعيادة",
-      gradient: "from-[hsl(var(--accent))] to-[hsl(180,70%,35%)]"
-    },
-    { 
-      title: "الرعاية الوقائية", 
-      icon: Shield, 
-      path: "/preventive-care",
-      description: "الفحوصات والتطعيمات والتثقيف الصحي",
-      gradient: "from-[hsl(var(--info))] to-[hsl(220,70%,50%)]"
-    },
-    { 
-      title: "المكتملين", 
-      icon: CheckCircle, 
-      path: "/completed",
-      description: "الحالات المكتملة والمتابعة",
-      gradient: "from-[hsl(var(--success))] to-[hsl(145,60%,35%)]"
-    },
-    { 
-      title: "المستبعدين", 
-      icon: XCircle, 
-      path: "/excluded",
-      description: "الحالات المستبعدة مع الأسباب",
-      gradient: "from-[hsl(var(--destructive))] to-[hsl(0,60%,45%)]"
-    },
-    { 
-      title: "جميع البيانات", 
-      icon: Database, 
-      path: "/all-patients",
-      description: "عرض جميع بيانات المستفيدين",
-      gradient: "from-[hsl(var(--muted-foreground))] to-[hsl(220,10%,50%)]"
-    },
-    { 
-      title: "الإحصائيات", 
-      icon: BarChart3, 
-      path: "/statistics",
-      description: "تقارير وإحصائيات شاملة",
-      gradient: "from-[hsl(var(--info))] to-[hsl(200,80%,45%)]"
-    },
-  ];
-
-  const adminMenuItems = [
-    { 
-      title: "جدولة الأطباء (محدث)", 
-      icon: CalendarDays, 
-      path: "/doctor-scheduling",
-      description: "جداول الأطباء لجميع المراكز الصحية",
-      gradient: "from-[hsl(280,60%,50%)] to-[hsl(320,60%,45%)]"
-    },
-    { 
-      title: "إدارة المستخدمين", 
-      icon: UserCog, 
-      path: "/admin/users",
-      description: "إضافة وإدارة حسابات المراكز",
-      gradient: "from-[hsl(var(--primary))] to-[hsl(var(--accent))]"
-    },
-    { 
-      title: "الإعدادات", 
-      icon: Settings, 
-      path: "/admin/settings",
-      description: "إعدادات النظام والتكاملات",
-      gradient: "from-[hsl(var(--accent))] to-[hsl(180,70%,35%)]"
-    },
-  ];
-
-  const pillItems = [
-    { text: "الوقاية", icon: Shield, delay: "0s" },
-    { text: "الاستباقية", icon: Activity, delay: "0.2s" },
-    { text: "الاستمرارية", icon: Heart, delay: "0.4s" },
-    { text: "جودة الحياة", icon: Sparkles, delay: "0.6s" },
-  ];
-
+  const menuItems = [{
+    title: "الفرز الأولي",
+    icon: ClipboardList,
+    path: "/screening",
+    description: "فرز المستفيدين الجدد وتحديد الأولويات",
+    gradient: "from-[hsl(var(--primary))] to-[hsl(var(--accent))]"
+  }, {
+    title: "العيادة الافتراضية",
+    icon: Stethoscope,
+    path: "/virtual-clinic",
+    description: "متابعة المستفيدين المحولين للعيادة",
+    gradient: "from-[hsl(var(--accent))] to-[hsl(180,70%,35%)]"
+  }, {
+    title: "الرعاية الوقائية",
+    icon: Shield,
+    path: "/preventive-care",
+    description: "الفحوصات والتطعيمات والتثقيف الصحي",
+    gradient: "from-[hsl(var(--info))] to-[hsl(220,70%,50%)]"
+  }, {
+    title: "المكتملين",
+    icon: CheckCircle,
+    path: "/completed",
+    description: "الحالات المكتملة والمتابعة",
+    gradient: "from-[hsl(var(--success))] to-[hsl(145,60%,35%)]"
+  }, {
+    title: "المستبعدين",
+    icon: XCircle,
+    path: "/excluded",
+    description: "الحالات المستبعدة مع الأسباب",
+    gradient: "from-[hsl(var(--destructive))] to-[hsl(0,60%,45%)]"
+  }, {
+    title: "جميع البيانات",
+    icon: Database,
+    path: "/all-patients",
+    description: "عرض جميع بيانات المستفيدين",
+    gradient: "from-[hsl(var(--muted-foreground))] to-[hsl(220,10%,50%)]"
+  }, {
+    title: "الإحصائيات",
+    icon: BarChart3,
+    path: "/statistics",
+    description: "تقارير وإحصائيات شاملة",
+    gradient: "from-[hsl(var(--info))] to-[hsl(200,80%,45%)]"
+  }];
+  const adminMenuItems = [{
+    title: "جدولة الأطباء (محدث)",
+    icon: CalendarDays,
+    path: "/doctor-scheduling",
+    description: "جداول الأطباء لجميع المراكز الصحية",
+    gradient: "from-[hsl(280,60%,50%)] to-[hsl(320,60%,45%)]"
+  }, {
+    title: "إدارة المستخدمين",
+    icon: UserCog,
+    path: "/admin/users",
+    description: "إضافة وإدارة حسابات المراكز",
+    gradient: "from-[hsl(var(--primary))] to-[hsl(var(--accent))]"
+  }, {
+    title: "الإعدادات",
+    icon: Settings,
+    path: "/admin/settings",
+    description: "إعدادات النظام والتكاملات",
+    gradient: "from-[hsl(var(--accent))] to-[hsl(180,70%,35%)]"
+  }];
+  const pillItems = [{
+    text: "الوقاية",
+    icon: Shield,
+    delay: "0s"
+  }, {
+    text: "الاستباقية",
+    icon: Activity,
+    delay: "0.2s"
+  }, {
+    text: "الاستمرارية",
+    icon: Heart,
+    delay: "0.4s"
+  }, {
+    text: "جودة الحياة",
+    icon: Sparkles,
+    delay: "0.6s"
+  }];
   const isSuperAdminUser = profile?.username === 'mahdi' || profile?.username === 'rayan' || profile?.username === 'firas';
   const userDisplayName = profile?.name_ar || profile?.username;
   const userTeam = profile?.team || '';
@@ -348,20 +308,23 @@ const Home = () => {
       'nahda': 'مركز صحي النهضة',
       'faisaliyah': 'مركز صحي الفيصلية',
       'mushrifah': 'مركز صحي المشرفة',
-      'rabwah': 'مركز صحي الربوة',
+      'rabwah': 'مركز صحي الربوة'
     };
     return centerNames[centerId] || centerId;
   }
-
-  return (
-    <div className={`min-h-screen bg-background overflow-hidden transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+  return <div className={`min-h-screen bg-background overflow-hidden transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
       {/* Animated Particles Background */}
       <ParticlesBackground />
       
       {/* Gradient Overlays */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-accent/5 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '2s' }} />
+        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl animate-pulse" style={{
+        animationDuration: '8s'
+      }} />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-accent/5 to-transparent rounded-full blur-3xl animate-pulse" style={{
+        animationDuration: '10s',
+        animationDelay: '2s'
+      }} />
       </div>
 
       {/* Top Header - Vision 2030 Premium Style */}
@@ -378,9 +341,7 @@ const Home = () => {
                 <h1 className="text-base font-bold text-foreground leading-tight tracking-tight">
                   الرعاية الأولية المحسّنة
                 </h1>
-                <p className="text-xs text-primary font-medium tracking-wide">
-                  Enhanced Based Care
-                </p>
+                <p className="text-xs text-primary font-medium tracking-wide">Enhanced Primary Care</p>
               </div>
             </div>
 
@@ -388,8 +349,7 @@ const Home = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-secondary/30 border border-border/50 transition-all duration-300 hover:bg-secondary/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 group">
-                  {isSuperAdminUser ? (
-                    <>
+                  {isSuperAdminUser ? <>
                       <div className="text-right hidden md:block">
                         <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                           {userDisplayName}
@@ -401,19 +361,13 @@ const Home = () => {
                       <div className="relative">
                         <div className="absolute inset-0 bg-primary/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
                         <Avatar className="h-10 w-10 border-2 border-primary/30 shadow-md group-hover:border-primary/50 group-hover:shadow-lg transition-all relative z-10">
-                          {isMahdi ? (
-                            <AvatarImage src={mahdiProfile} alt={userDisplayName || ''} className="object-cover" />
-                          ) : profile?.avatar_url ? (
-                            <AvatarImage src={profile.avatar_url} alt={userDisplayName || ''} className="object-cover" />
-                          ) : null}
+                          {isMahdi ? <AvatarImage src={mahdiProfile} alt={userDisplayName || ''} className="object-cover" /> : profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={userDisplayName || ''} className="object-cover" /> : null}
                           <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                             {userDisplayName?.charAt(0) || 'م'}
                           </AvatarFallback>
                         </Avatar>
                       </div>
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       <div className="text-right hidden md:block">
                         <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                           {userDisplayName}
@@ -423,15 +377,12 @@ const Home = () => {
                         </p>
                       </div>
                       <Avatar className="h-10 w-10 border-2 border-primary/30 shadow-md group-hover:border-primary/50 group-hover:shadow-lg transition-all">
-                        {profile?.avatar_url ? (
-                          <AvatarImage src={profile.avatar_url} alt={userDisplayName || ''} className="object-cover" />
-                        ) : null}
+                        {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt={userDisplayName || ''} className="object-cover" /> : null}
                         <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
                           {userDisplayName?.charAt(0) || 'م'}
                         </AvatarFallback>
                       </Avatar>
-                    </>
-                  )}
+                    </>}
                   <ChevronDown size={16} className="text-muted-foreground group-hover:text-primary transition-colors" />
                 </button>
               </DropdownMenuTrigger>
@@ -444,12 +395,10 @@ const Home = () => {
                   <User size={16} className="text-primary" />
                   <span>الملف الشخصي</span>
                 </DropdownMenuItem>
-                {isSuperAdmin && (
-                  <DropdownMenuItem className="cursor-pointer gap-3 rounded-lg py-2.5" onClick={() => navigate("/admin/settings")}>
+                {isSuperAdmin && <DropdownMenuItem className="cursor-pointer gap-3 rounded-lg py-2.5" onClick={() => navigate("/admin/settings")}>
                     <Settings size={16} className="text-primary" />
                     <span>الإعدادات</span>
-                  </DropdownMenuItem>
-                )}
+                  </DropdownMenuItem>}
                 <DropdownMenuSeparator className="my-2" />
                 <DropdownMenuItem className="cursor-pointer gap-3 rounded-lg py-2.5 text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleSignOut}>
                   <LogOut size={16} />
@@ -462,33 +411,28 @@ const Home = () => {
       </header>
 
       {/* Hero Section - Vision 2030 Premium Style */}
-      <section 
-        ref={heroRef}
-        className="relative py-20 md:py-28 px-4 overflow-hidden"
-        style={{
-          background: 'linear-gradient(180deg, hsl(var(--secondary)/0.3) 0%, hsl(var(--background)) 100%)'
-        }}
-      >
+      <section ref={heroRef} className="relative py-20 md:py-28 px-4 overflow-hidden" style={{
+      background: 'linear-gradient(180deg, hsl(var(--secondary)/0.3) 0%, hsl(var(--background)) 100%)'
+    }}>
         {/* Decorative Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div 
-            className="absolute top-20 right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl"
-            style={{ transform: `translate(${mousePosition.x * 2}px, ${mousePosition.y * 2}px)` }}
-          />
-          <div 
-            className="absolute bottom-20 left-20 w-80 h-80 bg-accent/10 rounded-full blur-3xl"
-            style={{ transform: `translate(${-mousePosition.x * 1.5}px, ${-mousePosition.y * 1.5}px)` }}
-          />
+          <div className="absolute top-20 right-20 w-64 h-64 bg-primary/10 rounded-full blur-3xl" style={{
+          transform: `translate(${mousePosition.x * 2}px, ${mousePosition.y * 2}px)`
+        }} />
+          <div className="absolute bottom-20 left-20 w-80 h-80 bg-accent/10 rounded-full blur-3xl" style={{
+          transform: `translate(${-mousePosition.x * 1.5}px, ${-mousePosition.y * 1.5}px)`
+        }} />
         </div>
 
         <div className="container mx-auto text-center relative z-10">
           {/* Animated Logo */}
-          <div 
-            className={`transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`}
-            style={{ transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)` }}
-          >
+          <div className={`transition-all duration-1000 delay-200 ${isLoaded ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'}`} style={{
+          transform: `translate(${mousePosition.x}px, ${mousePosition.y}px)`
+        }}>
             <div className="relative inline-block">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full blur-3xl scale-150 animate-pulse" style={{ animationDuration: '4s' }} />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-accent/30 rounded-full blur-3xl scale-150 animate-pulse" style={{
+              animationDuration: '4s'
+            }} />
               <FlowerLogo animate size={160} className="relative z-10 drop-shadow-2xl" />
             </div>
           </div>
@@ -523,21 +467,15 @@ const Home = () => {
 
           {/* Animated Pills */}
           <div className={`flex flex-wrap items-center justify-center gap-3 md:gap-4 mt-10 transition-all duration-1000 delay-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-            {pillItems.map((pill, index) => (
-              <div
-                key={pill.text}
-                className="group relative"
-                style={{ 
-                  animation: isLoaded ? `fadeSlideUp 0.6s ease-out ${0.8 + index * 0.15}s both` : 'none'
-                }}
-              >
+            {pillItems.map((pill, index) => <div key={pill.text} className="group relative" style={{
+            animation: isLoaded ? `fadeSlideUp 0.6s ease-out ${0.8 + index * 0.15}s both` : 'none'
+          }}>
                 <div className="absolute inset-0 bg-gradient-to-l from-primary to-accent rounded-full blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
                 <div className="relative flex items-center gap-2 px-5 py-2.5 bg-background/80 backdrop-blur-sm border border-primary/20 rounded-full shadow-lg hover:shadow-xl hover:border-primary/40 hover:-translate-y-1 transition-all duration-300 cursor-default">
                   <pill.icon size={16} className="text-primary" />
                   <span className="text-sm font-semibold text-foreground">{pill.text}</span>
                 </div>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </section>
@@ -556,35 +494,25 @@ const Home = () => {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto perspective-1000">
-            {menuItems.map((item, index) => (
-              <div
-                key={item.path}
-                className={`group relative cursor-pointer transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
-                style={{ 
-                  transitionDelay: `${800 + index * 150}ms`,
-                  animation: isLoaded ? `float 6s ease-in-out ${index * 0.5}s infinite` : 'none'
-                }}
-                onClick={() => navigate(item.path)}
-              >
+            {menuItems.map((item, index) => <div key={item.path} className={`group relative cursor-pointer transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`} style={{
+            transitionDelay: `${800 + index * 150}ms`,
+            animation: isLoaded ? `float 6s ease-in-out ${index * 0.5}s infinite` : 'none'
+          }} onClick={() => navigate(item.path)}>
                 {/* Animated Gradient Border */}
                 <div className="absolute -inset-[2px] rounded-3xl overflow-hidden">
-                  <div 
-                    className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
-                    style={{ animation: 'spin-slow 4s linear infinite' }}
-                  />
+                  <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} style={{
+                animation: 'spin-slow 4s linear infinite'
+              }} />
                 </div>
                 
                 {/* Outer Glow */}
                 <div className={`absolute -inset-4 bg-gradient-to-r ${item.gradient} rounded-3xl blur-2xl opacity-0 group-hover:opacity-25 transition-all duration-700`} />
                 
                 {/* Card Container with 3D Transform */}
-                <div 
-                  className="relative bg-background/90 backdrop-blur-2xl rounded-3xl p-8 shadow-xl transition-all duration-500 group-hover:shadow-2xl overflow-hidden border border-border/30 group-hover:border-transparent"
-                  style={{
-                    transformStyle: 'preserve-3d',
-                    transform: 'translateZ(0)',
-                  }}
-                >
+                <div className="relative bg-background/90 backdrop-blur-2xl rounded-3xl p-8 shadow-xl transition-all duration-500 group-hover:shadow-2xl overflow-hidden border border-border/30 group-hover:border-transparent" style={{
+              transformStyle: 'preserve-3d',
+              transform: 'translateZ(0)'
+            }}>
                   {/* Inner Gradient Overlay */}
                   <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-[0.08] transition-opacity duration-500`} />
                   
@@ -602,21 +530,20 @@ const Home = () => {
                         <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} rounded-2xl blur-xl opacity-50 group-hover:opacity-80 group-hover:scale-125 transition-all duration-500`} />
                         
                         {/* Icon Box */}
-                        <div 
-                          className={`relative p-5 rounded-2xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:shadow-2xl transition-all duration-500 group-hover:scale-110`}
-                          style={{
-                            transform: 'translateZ(30px)',
-                          }}
-                        >
-                          <item.icon 
-                            size={36} 
-                            className="text-background relative z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12" 
-                          />
+                        <div className={`relative p-5 rounded-2xl bg-gradient-to-br ${item.gradient} shadow-lg group-hover:shadow-2xl transition-all duration-500 group-hover:scale-110`} style={{
+                      transform: 'translateZ(30px)'
+                    }}>
+                          <item.icon size={36} className="text-background relative z-10 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-12" />
                         </div>
                         
                         {/* Floating Particles */}
-                        <div className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-primary/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{ animationDuration: '1.5s' }} />
-                        <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-accent/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                        <div className="absolute -top-2 -right-2 w-3 h-3 rounded-full bg-primary/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{
+                      animationDuration: '1.5s'
+                    }} />
+                        <div className="absolute -bottom-1 -left-1 w-2 h-2 rounded-full bg-accent/60 opacity-0 group-hover:opacity-100 group-hover:animate-ping" style={{
+                      animationDuration: '2s',
+                      animationDelay: '0.5s'
+                    }} />
                       </div>
                     </div>
                     
@@ -643,13 +570,11 @@ const Home = () => {
                   <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${item.gradient} opacity-10 rounded-bl-full`} />
                   <div className={`absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr ${item.gradient} opacity-10 rounded-tr-full`} />
                 </div>
-              </div>
-            ))}
+              </div>)}
           </div>
 
           {/* Admin Section */}
-          {isSuperAdmin && (
-            <>
+          {isSuperAdmin && <>
               <h2 className={`text-3xl font-bold mb-16 mt-24 text-center text-foreground transition-all duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
                 <span className="relative inline-block">
                   <span className="bg-gradient-to-l from-primary via-accent to-primary bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
@@ -659,22 +584,15 @@ const Home = () => {
                 </span>
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-                {adminMenuItems.map((item, index) => (
-                  <div
-                    key={item.path}
-                    className={`group relative cursor-pointer transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
-                    style={{ 
-                      transitionDelay: `${1400 + index * 150}ms`,
-                      animation: isLoaded ? `float 6s ease-in-out ${index * 0.5 + 3}s infinite` : 'none'
-                    }}
-                    onClick={() => navigate(item.path)}
-                  >
+                {adminMenuItems.map((item, index) => <div key={item.path} className={`group relative cursor-pointer transition-all duration-700 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`} style={{
+              transitionDelay: `${1400 + index * 150}ms`,
+              animation: isLoaded ? `float 6s ease-in-out ${index * 0.5 + 3}s infinite` : 'none'
+            }} onClick={() => navigate(item.path)}>
                     {/* Animated Border */}
                     <div className="absolute -inset-[2px] rounded-3xl overflow-hidden">
-                      <div 
-                        className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`}
-                        style={{ animation: 'spin-slow 4s linear infinite' }}
-                      />
+                      <div className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`} style={{
+                  animation: 'spin-slow 4s linear infinite'
+                }} />
                     </div>
                     
                     {/* Glow */}
@@ -711,11 +629,9 @@ const Home = () => {
                       <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${item.gradient} opacity-10 rounded-bl-full`} />
                       <div className={`absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-tr ${item.gradient} opacity-10 rounded-tr-full`} />
                     </div>
-                  </div>
-                ))}
+                  </div>)}
               </div>
-            </>
-          )}
+            </>}
         </div>
       </section>
 
@@ -787,8 +703,6 @@ const Home = () => {
           transform: rotateX(5deg) rotateY(-5deg) translateZ(20px);
         }
       `}</style>
-    </div>
-  );
+    </div>;
 };
-
 export default Home;
