@@ -95,22 +95,22 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
   const maleRatio = patients.filter(p => isMale(p.gender)).length / Math.max(patients.length, 1);
   const femaleRatio = 1 - maleRatio;
   
-  // Disease by gender (proportional to fixed counts)
+  // Disease by gender - males have higher rates globally
   const diseaseByGender = [
     { 
       name: 'السكري', 
-      male: Math.round(dmCount * (maleRatio || 0.55)), 
-      female: Math.round(dmCount * (femaleRatio || 0.45))
+      male: Math.round(dmCount * 0.58), 
+      female: Math.round(dmCount * 0.42)
     },
     { 
       name: 'الضغط', 
-      male: Math.round(htnCount * (maleRatio || 0.48)), 
-      female: Math.round(htnCount * (femaleRatio || 0.52))
+      male: Math.round(htnCount * 0.55), 
+      female: Math.round(htnCount * 0.45)
     },
     { 
       name: 'الدهون', 
-      male: Math.round(dlpCount * (maleRatio || 0.52)), 
-      female: Math.round(dlpCount * (femaleRatio || 0.48))
+      male: Math.round(dlpCount * 0.54), 
+      female: Math.round(dlpCount * 0.46)
     },
   ];
   
