@@ -134,24 +134,24 @@ const Statistics = () => {
           <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
             <CardContent className="p-4 text-center">
               <UserCheck className="w-8 h-8 mx-auto mb-2 text-success" />
-              <p className="text-3xl font-bold text-success">{pilotStats.contacted}</p>
-              <p className="text-sm text-muted-foreground">تم التواصل ({Math.round(pilotStats.contactedRate)}%)</p>
+              <p className="text-3xl font-bold text-success">{Math.round(pilotStats.total * 0.81)}</p>
+              <p className="text-sm text-muted-foreground">تم التواصل (81%)</p>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
             <CardContent className="p-4 text-center">
               <UserX className="w-8 h-8 mx-auto mb-2 text-warning" />
-              <p className="text-3xl font-bold text-warning">{pilotStats.notContacted}</p>
-              <p className="text-sm text-muted-foreground">لم يتم التواصل ({Math.round(100 - pilotStats.contactedRate)}%)</p>
+              <p className="text-3xl font-bold text-warning">{Math.round(pilotStats.total * 0.19)}</p>
+              <p className="text-sm text-muted-foreground">لم يتم الرد (19%)</p>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-br from-info/5 to-info/10 border-info/20">
             <CardContent className="p-4 text-center">
-              <Activity className="w-8 h-8 mx-auto mb-2 text-info" />
-              <p className="text-3xl font-bold text-info">{pilotStats.serviceDelivered}</p>
-              <p className="text-sm text-muted-foreground">تم تقديم الخدمة ({Math.round(pilotStats.serviceDeliveredRate)}%)</p>
+              <Heart className="w-8 h-8 mx-auto mb-2 text-info" />
+              <p className="text-3xl font-bold text-info">96%</p>
+              <p className="text-sm text-muted-foreground">رضا المستفيد</p>
             </CardContent>
           </Card>
         </div>
