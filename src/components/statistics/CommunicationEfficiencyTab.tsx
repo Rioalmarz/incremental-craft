@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Phone, Clock, TrendingUp, AlertTriangle } from "lucide-react";
+import { Phone, Clock, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import GaugeChart from "./GaugeChart";
 import { PILOT_CONFIG, calculatePilotStatistics } from "@/lib/pilotDataGenerator";
 
@@ -12,13 +12,16 @@ interface CommunicationEfficiencyTabProps {
 const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProps) => {
   const stats = calculatePilotStatistics(patients);
   
+  // Use the configured communication efficiency (91%)
+  const communicationEfficiency = PILOT_CONFIG.communicationEfficiency;
+  
   // Simulated response time data
-  const avgResponseTime = 2.3; // days
+  const avgResponseTime = 1.8; // days (improved)
   const targetResponseTime = 3; // days
   const responseEfficiency = Math.min((targetResponseTime / avgResponseTime) * 100, 100);
   
-  // Opportunity gap
-  const opportunityGap = 100 - stats.contactedRate;
+  // Opportunity gap based on new efficiency
+  const opportunityGap = 100 - communicationEfficiency;
 
   return (
     <div className="space-y-6">
@@ -27,8 +30,8 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
         <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
           <CardContent className="p-4 text-center">
             <GaugeChart 
-              value={Math.round(stats.contactedRate)} 
-              label="نسبة نجاح التواصل" 
+              value={communicationEfficiency} 
+              label="كفاءة التواصل" 
               color="success"
               size="md"
             />
@@ -53,7 +56,7 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
               <div className="w-12 h-12 bg-warning/20 rounded-full flex items-center justify-center">
                 <AlertTriangle className="w-6 h-6 text-warning" />
               </div>
-              <p className="text-3xl font-bold text-warning">{Math.round(opportunityGap)}%</p>
+              <p className="text-3xl font-bold text-warning">{opportunityGap}%</p>
               <p className="text-sm text-muted-foreground text-center">فجوة التحسين</p>
             </div>
           </CardContent>
@@ -114,42 +117,42 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-warning" />
-              فرص التحسين
+              <CheckCircle className="w-5 h-5 text-success" />
+              أداء متميز
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>النسبة المستهدفة</span>
-                <span className="font-medium">80%</span>
+                <span className="font-medium">90%</span>
               </div>
-              <Progress value={80} className="h-2" />
+              <Progress value={90} className="h-2" />
             </div>
             
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>النسبة الحالية</span>
-                <span className="font-medium text-success">{Math.round(stats.contactedRate)}%</span>
+                <span className="font-medium text-success">{communicationEfficiency}%</span>
               </div>
-              <Progress value={stats.contactedRate} className="h-2" />
+              <Progress value={communicationEfficiency} className="h-2" />
             </div>
             
-            <div className="p-3 bg-warning/10 rounded-lg border border-warning/20">
+            <div className="p-3 bg-success/10 rounded-lg border border-success/20">
               <p className="text-sm">
-                <span className="font-medium text-warning">فجوة التحسين: </span>
-                يمكن تحسين التواصل مع {stats.notContacted} مستفيد إضافي للوصول للهدف
+                <span className="font-medium text-success">إنجاز ممتاز: </span>
+                تجاوزنا الهدف بنسبة {communicationEfficiency - 90}% مع كفاءة تواصل {communicationEfficiency}%
               </p>
             </div>
             
             <div className="grid grid-cols-2 gap-2 text-center">
               <div className="p-2 bg-muted/30 rounded">
                 <p className="text-xs text-muted-foreground">متوسط المحاولات</p>
-                <p className="font-bold">2.4</p>
+                <p className="font-bold">1.6</p>
               </div>
               <div className="p-2 bg-muted/30 rounded">
                 <p className="text-xs text-muted-foreground">معدل الرد</p>
-                <p className="font-bold">72%</p>
+                <p className="font-bold">89%</p>
               </div>
             </div>
           </CardContent>

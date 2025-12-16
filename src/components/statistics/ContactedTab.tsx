@@ -2,10 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, Legend 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from "recharts";
-import { UserCheck, CheckCircle, Pill, Stethoscope, FileText } from "lucide-react";
+import { UserCheck, CheckCircle, Pill, Stethoscope, FileText, Activity, Heart, Droplets, Scale } from "lucide-react";
 import { calculatePilotStatistics } from "@/lib/pilotDataGenerator";
 
 interface ContactedTabProps {
@@ -13,24 +12,33 @@ interface ContactedTabProps {
 }
 
 const COLORS = {
-  success: '#4CAF50',
-  primary: '#00BCD4',
-  warning: '#FFC107',
-  danger: '#F44336',
-  purple: '#9C27B0',
+  preventive: '#00BCD4',
+  medication: '#4CAF50',
+  lab: '#2196F3',
+  referral: '#9C27B0',
+  noIntervention: '#9CA3AF',
 };
 
 const ContactedTab = ({ patients }: ContactedTabProps) => {
   const stats = calculatePilotStatistics(patients);
   
-  // Service types delivered (simulated distribution)
+  // Service types delivered with preventive care as TOP service
   const totalServiced = stats.serviceDelivered;
   const serviceTypes = [
-    { name: 'صرف أدوية', value: Math.round(totalServiced * 0.35), color: COLORS.primary },
-    { name: 'فحوصات مخبرية', value: Math.round(totalServiced * 0.25), color: COLORS.success },
-    { name: 'موعد عيادة', value: Math.round(totalServiced * 0.20), color: COLORS.warning },
-    { name: 'تحويل تخصصي', value: Math.round(totalServiced * 0.12), color: COLORS.purple },
-    { name: 'لا يحتاج تدخل', value: Math.round(totalServiced * 0.08), color: COLORS.danger },
+    { name: 'خدمات استباقية (وقائية)', value: Math.round(totalServiced * 0.40), color: COLORS.preventive, icon: Activity },
+    { name: 'صرف علاج', value: Math.round(totalServiced * 0.25), color: COLORS.medication, icon: Pill },
+    { name: 'فحوصات مخبرية', value: Math.round(totalServiced * 0.20), color: COLORS.lab, icon: FileText },
+    { name: 'تحويل تخصصي', value: Math.round(totalServiced * 0.10), color: COLORS.referral, icon: Stethoscope },
+    { name: 'لا يحتاج تدخل', value: Math.round(totalServiced * 0.05), color: COLORS.noIntervention, icon: CheckCircle },
+  ];
+
+  // Preventive services breakdown (proactive services by age)
+  const preventiveTotal = Math.round(totalServiced * 0.40);
+  const preventiveServices = [
+    { name: 'فحص سكر صائم', count: Math.round(preventiveTotal * 0.30), ageRequirement: '≥ 35 سنة', icon: Droplets, color: '#F44336' },
+    { name: 'قياس ضغط الدم', count: Math.round(preventiveTotal * 0.28), ageRequirement: '≥ 18 سنة', icon: Heart, color: '#2196F3' },
+    { name: 'فحص الدهون', count: Math.round(preventiveTotal * 0.25), ageRequirement: 'رجال ≥35 / نساء ≥45', icon: Activity, color: '#9C27B0' },
+    { name: 'قياس معدل الكتلة (BMI)', count: Math.round(preventiveTotal * 0.17), ageRequirement: 'جميع الأعمار', icon: Scale, color: '#FF9800' },
   ];
 
   return (
@@ -93,6 +101,36 @@ const ContactedTab = ({ patients }: ContactedTabProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Preventive Services Highlight */}
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-primary">
+            <Activity className="w-5 h-5" />
+            الخدمات الاستباقية (الأكثر استخداماً)
+            <Badge className="bg-primary/20 text-primary mr-2">40% من الخدمات</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {preventiveServices.map((service, index) => (
+              <div key={index} className="p-4 bg-background/80 rounded-xl border shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <div 
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: `${service.color}20` }}
+                  >
+                    <service.icon className="w-4 h-4" style={{ color: service.color }} />
+                  </div>
+                  <span className="font-bold text-xl">{service.count}</span>
+                </div>
+                <p className="text-sm font-medium">{service.name}</p>
+                <p className="text-xs text-muted-foreground mt-1">{service.ageRequirement}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
       
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -135,9 +173,11 @@ const ContactedTab = ({ patients }: ContactedTabProps) => {
                 <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: service.color }}
-                    />
+                      className="w-8 h-8 rounded-lg flex items-center justify-center" 
+                      style={{ backgroundColor: `${service.color}20` }}
+                    >
+                      <service.icon className="w-4 h-4" style={{ color: service.color }} />
+                    </div>
                     <span>{service.name}</span>
                   </div>
                   <Badge variant="outline">{service.value}</Badge>

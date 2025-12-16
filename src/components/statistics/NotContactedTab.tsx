@@ -2,8 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from "recharts";
 import { UserX, Phone, AlertTriangle, TrendingDown } from "lucide-react";
 import { calculatePilotStatistics, NON_CONTACT_REASONS } from "@/lib/pilotDataGenerator";
@@ -17,15 +16,17 @@ const COLORS = ['#F44336', '#FF9800', '#FFC107', '#9C27B0', '#607D8B'];
 const NotContactedTab = ({ patients }: NotContactedTabProps) => {
   const stats = calculatePilotStatistics(patients);
   
-  // Simulate non-contact reasons distribution
+  // Use actual not contacted count (should be 86 with new rates)
   const notContactedCount = stats.notContacted;
+  
+  // Simulate non-contact reasons distribution
   const reasonsData = NON_CONTACT_REASONS.map((reason, index) => ({
     name: reason,
     value: Math.round(notContactedCount * [0.35, 0.25, 0.18, 0.12, 0.10][index]),
     color: COLORS[index],
   }));
   
-  // Impact on coverage
+  // Impact on coverage - with high contact rate, gap is small
   const coverageWithContact = stats.contactedRate;
   const potentialCoverage = 100;
   const coverageGap = potentialCoverage - coverageWithContact;
@@ -41,7 +42,7 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
                 <UserX className="w-7 h-7 text-destructive" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-destructive">{stats.notContacted}</p>
+                <p className="text-3xl font-bold text-destructive">{notContactedCount}</p>
                 <p className="text-sm text-muted-foreground">لم يتم التواصل</p>
               </div>
             </div>
@@ -78,9 +79,9 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
       </div>
       
       {/* Impact Card */}
-      <Card className="border-destructive/20">
+      <Card className="border-warning/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-destructive">
+          <CardTitle className="flex items-center gap-2 text-warning">
             <AlertTriangle className="w-5 h-5" />
             تأثير عدم التواصل على التغطية الصحية
           </CardTitle>
@@ -97,10 +98,10 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
             </div>
           </div>
           
-          <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+          <div className="p-3 bg-success/10 rounded-lg border border-success/20">
             <p className="text-sm">
-              <span className="font-medium text-destructive">الأثر: </span>
-              عدم التواصل مع {stats.notContacted} مستفيد يؤثر على {Math.round(coverageGap)}% من التغطية الصحية المستهدفة
+              <span className="font-medium text-success">أداء جيد: </span>
+              تم الوصول لـ {Math.round(coverageWithContact)}% من المستفيدين، مع {notContactedCount} مستفيد فقط لم يتم التواصل معهم
             </p>
           </div>
         </CardContent>
@@ -155,7 +156,7 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
                     <span className="font-medium">{reason.value}</span>
                   </div>
                   <Progress 
-                    value={(reason.value / notContactedCount) * 100} 
+                    value={notContactedCount > 0 ? (reason.value / notContactedCount) * 100 : 0} 
                     className="h-1.5"
                   />
                 </div>
