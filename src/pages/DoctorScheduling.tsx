@@ -206,13 +206,137 @@ export default function DoctorScheduling() {
     return 'second-is-month';
   };
 
-  // Extract date patterns from headers
-  const extractDatePatterns = (headers: string[]): { first: number; second: number }[] => {
+  // Extract date from header - handles Date objects, Excel serial numbers, and text patterns
+  const extractDateFromHeader = (header: any, colIndex: number, dateFormat: 'first-is-month' | 'second-is-month', currentYear: number, currentMonth: number): string | null => {
+    if (!header) return null;
+    
+    // 1. If it's already a Date object (from cellDates: true)
+    if (header instanceof Date && !isNaN(header.getTime())) {
+      const result = format(header, 'yyyy-MM-dd');
+      console.log(`Column ${colIndex}: Date object -> ${result}`);
+      return result;
+    }
+    
+    // 2. If it's an Excel serial number (number between 40000-50000 typically represents 2009-2036)
+    if (typeof header === 'number' && header > 30000 && header < 60000) {
+      try {
+        // Excel serial to date: days since 1899-12-30
+        const excelEpoch = new Date(1899, 11, 30);
+        const date = new Date(excelEpoch.getTime() + header * 24 * 60 * 60 * 1000);
+        if (!isNaN(date.getTime())) {
+          const result = format(date, 'yyyy-MM-dd');
+          console.log(`Column ${colIndex}: Excel serial ${header} -> ${result}`);
+          return result;
+        }
+      } catch (e) {
+        console.log(`Column ${colIndex}: Failed to parse Excel serial ${header}`);
+      }
+    }
+    
+    // 3. Text-based date patterns
+    const headerStr = String(header);
+    
+    // Try various date patterns
+    // Pattern: DD/MM/YYYY or MM/DD/YYYY with full year
+    const fullDateMatch = headerStr.match(/(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+    if (fullDateMatch) {
+      const first = parseInt(fullDateMatch[1], 10);
+      const second = parseInt(fullDateMatch[2], 10);
+      const year = parseInt(fullDateMatch[3], 10);
+      
+      let month: number, day: number;
+      if (dateFormat === 'first-is-month') {
+        month = first;
+        day = second;
+      } else {
+        day = first;
+        month = second;
+      }
+      
+      // Validate
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        const testDate = new Date(year, month - 1, day);
+        if (testDate.getMonth() === month - 1 && testDate.getDate() === day) {
+          const result = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          console.log(`Column ${colIndex}: Full date "${headerStr}" -> ${result}`);
+          return result;
+        }
+      }
+    }
+    
+    // Pattern: DD/MM or MM/DD (without year)
+    const shortDateMatch = headerStr.match(/(\d{1,2})[-\/](\d{1,2})(?!\d)/);
+    if (shortDateMatch) {
+      const first = parseInt(shortDateMatch[1], 10);
+      const second = parseInt(shortDateMatch[2], 10);
+      
+      let month: number, day: number;
+      if (dateFormat === 'first-is-month') {
+        month = first;
+        day = second;
+      } else {
+        day = first;
+        month = second;
+      }
+      
+      // Validate
+      if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+        let year = currentYear;
+        if (month < currentMonth) {
+          year = currentYear + 1;
+        }
+        
+        const testDate = new Date(year, month - 1, day);
+        if (testDate.getMonth() === month - 1 && testDate.getDate() === day) {
+          const result = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          console.log(`Column ${colIndex}: Short date "${headerStr}" -> ${result}`);
+          return result;
+        }
+      }
+    }
+    
+    // Pattern: Just a day number (1-31)
+    const dayOnlyMatch = headerStr.match(/^(\d{1,2})$/);
+    if (dayOnlyMatch) {
+      const day = parseInt(dayOnlyMatch[1], 10);
+      if (day >= 1 && day <= 31) {
+        let year = currentYear;
+        let month = currentMonth;
+        
+        // If day < current day, probably next month
+        const today = new Date().getDate();
+        if (day < today - 7) {
+          month = currentMonth + 1;
+          if (month > 12) {
+            month = 1;
+            year = currentYear + 1;
+          }
+        }
+        
+        const testDate = new Date(year, month - 1, day);
+        if (testDate.getMonth() === month - 1 && testDate.getDate() === day) {
+          const result = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          console.log(`Column ${colIndex}: Day only "${headerStr}" -> ${result} (assumed month ${month})`);
+          return result;
+        }
+      }
+    }
+    
+    console.log(`Column ${colIndex}: Could not parse date from "${headerStr}" (type: ${typeof header})`);
+    return null;
+  };
+
+  // Extract date patterns from headers for format detection
+  const extractDatePatterns = (headers: any[]): { first: number; second: number }[] => {
     const patterns: { first: number; second: number }[] = [];
     const datePattern = /(\d{1,2})[-\/](\d{1,2})/;
     
     for (const header of headers) {
       if (!header) continue;
+      
+      // Skip Date objects and numbers for pattern detection (they're already parsed)
+      if (header instanceof Date || typeof header === 'number') continue;
+      
       const headerStr = String(header);
       const match = headerStr.match(datePattern);
       if (match) {
@@ -235,96 +359,79 @@ export default function DoctorScheduling() {
 
     try {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: "array" });
+      // Read with cellDates to convert Excel dates to Date objects
+      const workbook = XLSX.read(data, { type: "array", cellDates: true });
       
-      // First pass: collect all date patterns from all sheets
-      console.log("Analyzing date patterns across all sheets...");
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+      
+      // First pass: collect all date patterns from all sheets for text-based headers
+      console.log("=== EXCEL IMPORT DEBUG ===");
+      console.log(`Total sheets: ${workbook.SheetNames.length}`);
+      console.log(`Sheets: ${workbook.SheetNames.join(', ')}`);
+      
       const allDatePatterns: { first: number; second: number }[] = [];
       
       for (const sheetName of workbook.SheetNames) {
         if (sheetName.includes("الربوة")) continue;
         
         const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+        const rows = XLSX.utils.sheet_to_json<any>(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
         
         if (rows.length < 2) continue;
         
-        const headerRow = rows[0] as string[];
-        const patterns = extractDatePatterns(headerRow.slice(2)); // Skip first 2 columns
+        const headerRow = rows[0] as any[];
+        console.log(`Sheet "${sheetName}" headers:`, headerRow.slice(0, 10));
+        console.log(`Header types:`, headerRow.slice(0, 10).map((h: any) => `${typeof h}${h instanceof Date ? '(Date)' : ''}`));
+        
+        const patterns = extractDatePatterns(headerRow.slice(2));
         allDatePatterns.push(...patterns);
       }
       
-      // Detect date format from all patterns
+      // Detect date format from text patterns
       const dateFormat = detectDateFormat(allDatePatterns);
       console.log(`=== DETECTED DATE FORMAT: ${dateFormat} ===`);
+      console.log(`Total patterns found: ${allDatePatterns.length}`);
       
       const allRecords: ScheduleRecord[] = [];
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth() + 1;
       
-      // Second pass: process all sheets with detected format
+      // Second pass: process all sheets
       for (const sheetName of workbook.SheetNames) {
-        // Skip الربوة
         if (sheetName.includes("الربوة")) {
           console.log(`Skipping sheet: ${sheetName}`);
           continue;
         }
 
         const sheet = workbook.Sheets[sheetName];
-        const rows = XLSX.utils.sheet_to_json<any>(sheet, { header: 1 });
+        const rows = XLSX.utils.sheet_to_json<any>(sheet, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
         
-        if (rows.length < 2) continue;
+        if (rows.length < 2) {
+          console.log(`Sheet "${sheetName}": Skipped (less than 2 rows)`);
+          continue;
+        }
 
-        const headerRow = rows[0] as string[];
+        const headerRow = rows[0] as any[];
         
-        // Find date columns using detected format
+        // Find date columns - now handles multiple formats
         const dateColumns: { index: number; date: string }[] = [];
         
+        console.log(`\n--- Processing sheet: ${sheetName} ---`);
+        
         headerRow.forEach((header, idx) => {
-          if (idx < 2 || !header) return; // Skip first 2 columns (center, doctor)
+          if (idx < 2) return; // Skip first 2 columns (center, doctor name)
           
-          const headerStr = String(header);
-          const match = headerStr.match(/(\d{1,2})[-\/](\d{1,2})/);
-          if (match) {
-            const first = parseInt(match[1], 10);
-            const second = parseInt(match[2], 10);
-            
-            let month: number, day: number;
-            if (dateFormat === 'first-is-month') {
-              month = first;
-              day = second;
-            } else {
-              day = first;
-              month = second;
-            }
-            
-            // Validate
-            if (month < 1 || month > 12 || day < 1 || day > 31) {
-              console.log(`Invalid date values: month=${month}, day=${day} from header "${header}"`);
-              return;
-            }
-            
-            // Determine year
-            let year = currentYear;
-            if (month < currentMonth) {
-              year = currentYear + 1;
-            }
-            
-            // Validate the date is real
-            const testDate = new Date(year, month - 1, day);
-            if (testDate.getMonth() !== month - 1 || testDate.getDate() !== day) {
-              console.log(`Invalid date: ${year}-${month}-${day}`);
-              return;
-            }
-            
-            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const dateStr = extractDateFromHeader(header, idx, dateFormat, currentYear, currentMonth);
+          if (dateStr) {
             dateColumns.push({ index: idx, date: dateStr });
           }
         });
 
         console.log(`Sheet "${sheetName}": Found ${dateColumns.length} date columns`);
         if (dateColumns.length > 0) {
-          console.log(`Sample dates: ${dateColumns.slice(0, 3).map(d => `${headerRow[d.index]} -> ${d.date}`).join(', ')}`);
+          console.log(`Date columns: ${dateColumns.slice(0, 5).map(d => `col${d.index}=${d.date}`).join(', ')}`);
+        } else {
+          console.log(`WARNING: No date columns found in sheet "${sheetName}"`);
+          console.log(`Raw headers: ${headerRow.slice(2, 12).map((h: any) => `"${h}" (${typeof h})`).join(', ')}`);
         }
 
         // Process data rows
