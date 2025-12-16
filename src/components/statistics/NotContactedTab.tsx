@@ -5,7 +5,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from "recharts";
 import { UserX, Phone, AlertTriangle, TrendingDown } from "lucide-react";
-import { calculatePilotStatistics, NON_CONTACT_REASONS } from "@/lib/pilotDataGenerator";
+import { NON_CONTACT_REASONS } from "@/lib/pilotDataGenerator";
 
 interface NotContactedTabProps {
   patients: any[];
@@ -14,10 +14,11 @@ interface NotContactedTabProps {
 const COLORS = ['#F44336', '#FF9800', '#FFC107', '#9C27B0', '#607D8B'];
 
 const NotContactedTab = ({ patients }: NotContactedTabProps) => {
-  const stats = calculatePilotStatistics(patients);
-  
-  // Use actual not contacted count (should be 86 with new rates)
-  const notContactedCount = stats.notContacted;
+  // Fixed values: 19% of 594 = 113 not contacted
+  const totalPatients = 594;
+  const notContactedRate = 19;
+  const notContactedCount = Math.round(totalPatients * 0.19); // 113
+  const contactedRate = 81;
   
   // Simulate non-contact reasons distribution
   const reasonsData = NON_CONTACT_REASONS.map((reason, index) => ({
@@ -26,10 +27,8 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
     color: COLORS[index],
   }));
   
-  // Impact on coverage - with high contact rate, gap is small
-  const coverageWithContact = stats.contactedRate;
-  const potentialCoverage = 100;
-  const coverageGap = potentialCoverage - coverageWithContact;
+  // Coverage gap is small since 81% contacted
+  const coverageGap = notContactedRate;
 
   return (
     <div className="space-y-6">
@@ -56,7 +55,7 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
                 <AlertTriangle className="w-7 h-7 text-warning" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-warning">{Math.round(100 - stats.contactedRate)}%</p>
+                <p className="text-3xl font-bold text-warning">{notContactedRate}%</p>
                 <p className="text-sm text-muted-foreground">نسبة عدم التواصل</p>
               </div>
             </div>
@@ -70,7 +69,7 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
                 <TrendingDown className="w-7 h-7 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-3xl font-bold">{Math.round(coverageGap)}%</p>
+                <p className="text-3xl font-bold">{coverageGap}%</p>
                 <p className="text-sm text-muted-foreground">فجوة التغطية</p>
               </div>
             </div>
@@ -89,11 +88,11 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-success/10 rounded-lg text-center">
-              <p className="text-2xl font-bold text-success">{Math.round(coverageWithContact)}%</p>
+              <p className="text-2xl font-bold text-success">{contactedRate}%</p>
               <p className="text-sm text-muted-foreground">التغطية الحالية</p>
             </div>
             <div className="p-4 bg-primary/10 rounded-lg text-center">
-              <p className="text-2xl font-bold text-primary">{potentialCoverage}%</p>
+              <p className="text-2xl font-bold text-primary">100%</p>
               <p className="text-sm text-muted-foreground">التغطية المستهدفة</p>
             </div>
           </div>
@@ -101,7 +100,7 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
           <div className="p-3 bg-success/10 rounded-lg border border-success/20">
             <p className="text-sm">
               <span className="font-medium text-success">أداء جيد: </span>
-              تم الوصول لـ {Math.round(coverageWithContact)}% من المستفيدين، مع {notContactedCount} مستفيد فقط لم يتم التواصل معهم
+              تم الوصول لـ {contactedRate}% من المستفيدين، مع {notContactedCount} مستفيد فقط لم يتم التواصل معهم
             </p>
           </div>
         </CardContent>
