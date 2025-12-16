@@ -232,77 +232,158 @@ export type Database = {
       patients: {
         Row: {
           action: string | null
+          action_required: string | null
           age: number | null
+          avg_days_between_visits: number | null
+          bp_last_visit: string | null
           burden: string | null
+          call_date: string | null
+          call_notes: string | null
+          call_status: string | null
           center_id: string
+          chronic_risk_score: string | null
+          clinical_validation: string | null
           created_at: string
+          cycle_days: number | null
+          cycle_type_new: string | null
           days_until_visit: number | null
           doctor: string | null
+          eligible_dlp_screening: boolean | null
+          eligible_dm_screening: boolean | null
+          eligible_htn_screening: boolean | null
           exclusion_reason: string | null
+          fasting_blood_glucose: number | null
           gender: string | null
           has_dm: boolean | null
           has_dyslipidemia: boolean | null
           has_htn: boolean | null
+          hba1c: number | null
           id: string
+          last_visit_date: string | null
+          latest_prescription_date: string | null
+          ldl: number | null
+          med_prediction_confidence: number | null
+          medication_categories: string | null
           name: string
           national_id: string
+          obesity_class: string | null
           phone: string | null
+          predicted_medications: string | null
           predicted_visit_date: string | null
+          prescription_with_dosage: string | null
+          smoking_status: string | null
+          source: string | null
           status: string | null
           symptoms: Json | null
           team: string | null
+          total_chronic_meds: number | null
           updated_at: string
           urgency_status: string | null
+          visit_count: number | null
           visit_window_text: string | null
         }
         Insert: {
           action?: string | null
+          action_required?: string | null
           age?: number | null
+          avg_days_between_visits?: number | null
+          bp_last_visit?: string | null
           burden?: string | null
+          call_date?: string | null
+          call_notes?: string | null
+          call_status?: string | null
           center_id: string
+          chronic_risk_score?: string | null
+          clinical_validation?: string | null
           created_at?: string
+          cycle_days?: number | null
+          cycle_type_new?: string | null
           days_until_visit?: number | null
           doctor?: string | null
+          eligible_dlp_screening?: boolean | null
+          eligible_dm_screening?: boolean | null
+          eligible_htn_screening?: boolean | null
           exclusion_reason?: string | null
+          fasting_blood_glucose?: number | null
           gender?: string | null
           has_dm?: boolean | null
           has_dyslipidemia?: boolean | null
           has_htn?: boolean | null
+          hba1c?: number | null
           id?: string
+          last_visit_date?: string | null
+          latest_prescription_date?: string | null
+          ldl?: number | null
+          med_prediction_confidence?: number | null
+          medication_categories?: string | null
           name: string
           national_id: string
+          obesity_class?: string | null
           phone?: string | null
+          predicted_medications?: string | null
           predicted_visit_date?: string | null
+          prescription_with_dosage?: string | null
+          smoking_status?: string | null
+          source?: string | null
           status?: string | null
           symptoms?: Json | null
           team?: string | null
+          total_chronic_meds?: number | null
           updated_at?: string
           urgency_status?: string | null
+          visit_count?: number | null
           visit_window_text?: string | null
         }
         Update: {
           action?: string | null
+          action_required?: string | null
           age?: number | null
+          avg_days_between_visits?: number | null
+          bp_last_visit?: string | null
           burden?: string | null
+          call_date?: string | null
+          call_notes?: string | null
+          call_status?: string | null
           center_id?: string
+          chronic_risk_score?: string | null
+          clinical_validation?: string | null
           created_at?: string
+          cycle_days?: number | null
+          cycle_type_new?: string | null
           days_until_visit?: number | null
           doctor?: string | null
+          eligible_dlp_screening?: boolean | null
+          eligible_dm_screening?: boolean | null
+          eligible_htn_screening?: boolean | null
           exclusion_reason?: string | null
+          fasting_blood_glucose?: number | null
           gender?: string | null
           has_dm?: boolean | null
           has_dyslipidemia?: boolean | null
           has_htn?: boolean | null
+          hba1c?: number | null
           id?: string
+          last_visit_date?: string | null
+          latest_prescription_date?: string | null
+          ldl?: number | null
+          med_prediction_confidence?: number | null
+          medication_categories?: string | null
           name?: string
           national_id?: string
+          obesity_class?: string | null
           phone?: string | null
+          predicted_medications?: string | null
           predicted_visit_date?: string | null
+          prescription_with_dosage?: string | null
+          smoking_status?: string | null
+          source?: string | null
           status?: string | null
           symptoms?: Json | null
           team?: string | null
+          total_chronic_meds?: number | null
           updated_at?: string
           urgency_status?: string | null
+          visit_count?: number | null
           visit_window_text?: string | null
         }
         Relationships: []

@@ -263,11 +263,12 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
       .eq("national_id", nationalId)
       .maybeSingle();
 
-    const patientData = {
+    const patientData: Record<string, any> = {
       national_id: nationalId,
       name,
       age: data.age,
       gender: data.gender,
+      phone: data.phone,
       has_dm: data.has_dm ?? false,
       has_htn: data.has_htn ?? false,
       has_dyslipidemia: data.has_dyslipidemia ?? false,
@@ -279,7 +280,42 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
       center_id: data.center_id || "",
       predicted_visit_date: data.predicted_visit_date,
       status: "pending",
+      // New fields
+      source: data.source,
+      visit_count: data.visit_count,
+      obesity_class: data.obesity_class,
+      smoking_status: data.smoking_status,
+      eligible_dm_screening: data.eligible_dm_screening ?? false,
+      eligible_htn_screening: data.eligible_htn_screening ?? false,
+      eligible_dlp_screening: data.eligible_dlp_screening ?? false,
+      fasting_blood_glucose: data.fasting_blood_glucose,
+      hba1c: data.hba1c,
+      ldl: data.ldl,
+      bp_last_visit: data.bp_last_visit,
+      latest_prescription_date: data.latest_prescription_date,
+      chronic_risk_score: data.chronic_risk_score,
+      predicted_medications: data.predicted_medications,
+      prescription_with_dosage: data.prescription_with_dosage,
+      medication_categories: data.medication_categories,
+      total_chronic_meds: data.total_chronic_meds,
+      med_prediction_confidence: data.med_prediction_confidence,
+      clinical_validation: data.clinical_validation,
+      last_visit_date: data.last_visit_date,
+      avg_days_between_visits: data.avg_days_between_visits,
+      cycle_days: data.cycle_days,
+      cycle_type_new: data.cycle_type_new,
+      action_required: data.action_required,
+      call_status: data.call_status,
+      call_date: data.call_date,
+      call_notes: data.call_notes,
     };
+    
+    // Remove undefined/null values to avoid database issues
+    Object.keys(patientData).forEach(key => {
+      if (patientData[key] === undefined) {
+        delete patientData[key];
+      }
+    });
 
     let patientId: string;
     let isUpdate = false;
@@ -287,7 +323,7 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
     if (existingPatient) {
       const { error: updateError } = await supabase
         .from("patients")
-        .update(patientData)
+        .update(patientData as any)
         .eq("id", existingPatient.id);
 
       if (updateError) throw updateError;
@@ -296,7 +332,7 @@ const SmartExcelImport = ({ importType, onImportComplete }: SmartExcelImportProp
     } else {
       const { data: newPatient, error: insertError } = await supabase
         .from("patients")
-        .insert(patientData)
+        .insert(patientData as any)
         .select("id")
         .single();
 
