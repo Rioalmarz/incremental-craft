@@ -152,9 +152,9 @@ const STATUS_CONFIG = {
 
 const RISK_FILTER_OPTIONS = [
   { value: 'all', label: 'جميع التصنيفات' },
-  { value: 'طبيعي', label: '✅ طبيعي' },
+  { value: 'مسيطر عليه', label: '✅ مسيطر عليه' },
   { value: 'يحتاج مراقبة', label: '⚠️ يحتاج مراقبة' },
-  { value: 'خطر', label: '🔴 خطر' },
+  { value: 'يحتاج تعديل أو تدخل من الطبيب', label: '🔴 يحتاج تدخل' },
   { value: 'غير معروف', label: '❓ غير معروف' },
 ];
 
@@ -268,8 +268,8 @@ const PreventiveCare = () => {
       });
 
       patientsWithEligibility.sort((a, b) => {
-        // Sort by risk first (خطر > يحتاج مراقبة > طبيعي)
-        const riskOrder = { 'خطر': 0, 'يحتاج مراقبة': 1, 'طبيعي': 2, 'غير معروف': 3 };
+        // Sort by risk first (يحتاج تدخل > يحتاج مراقبة > مسيطر عليه)
+        const riskOrder = { 'يحتاج تعديل أو تدخل من الطبيب': 0, 'يحتاج مراقبة': 1, 'مسيطر عليه': 2, 'غير معروف': 3 };
         const riskDiff = (riskOrder[a.riskClassification] ?? 3) - (riskOrder[b.riskClassification] ?? 3);
         if (riskDiff !== 0) return riskDiff;
         return b.pendingCount - a.pendingCount;
@@ -415,16 +415,16 @@ const PreventiveCare = () => {
   // Statistics
   const stats = {
     total: patients.length,
-    normal: patients.filter(p => p.riskClassification === 'طبيعي').length,
+    normal: patients.filter(p => p.riskClassification === 'مسيطر عليه').length,
     needsMonitoring: patients.filter(p => p.riskClassification === 'يحتاج مراقبة').length,
-    atRisk: patients.filter(p => p.riskClassification === 'خطر').length,
+    atRisk: patients.filter(p => p.riskClassification === 'يحتاج تعديل أو تدخل من الطبيب').length,
   };
 
   const getRiskBadge = (risk: RiskLevel) => {
     const icons = {
-      'طبيعي': '✅',
+      'مسيطر عليه': '✅',
       'يحتاج مراقبة': '⚠️',
-      'خطر': '🔴',
+      'يحتاج تعديل أو تدخل من الطبيب': '🔴',
       'غير معروف': '❓',
     };
     return (

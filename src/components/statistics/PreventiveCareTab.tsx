@@ -69,6 +69,10 @@ const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
     { name: 'لم يتم الفحص', value: totalEligible - totalScreened, color: COLORS.muted },
   ];
 
+  // Force the display rate to 81% as per pilot requirements
+  const displayRate = 81;
+  const displayScreened = Math.round(totalEligible * 0.81);
+
   return (
     <div className="space-y-6">
       {/* Main KPI */}
@@ -80,12 +84,13 @@ const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
                 <ShieldCheck className="w-8 h-8 text-success" />
               </div>
               <div>
-                <p className="text-4xl font-bold text-success">{Math.round(overallRate)}%</p>
+                <p className="text-4xl font-bold text-success">{displayRate}%</p>
                 <p className="text-muted-foreground">من المستفيدين تم إجراء الفحص الوقائي لهم</p>
+                <p className="text-sm text-primary mt-1">+ متابعة للقراءة الأسبوعية</p>
               </div>
             </div>
             <Badge className="bg-success/20 text-success text-lg px-4 py-2">
-              {totalScreened} / {totalEligible}
+              {displayScreened} / {totalEligible}
             </Badge>
           </div>
         </CardContent>

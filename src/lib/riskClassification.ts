@@ -1,7 +1,7 @@
 // Risk Classification Logic for Preventive Care
 // Classifies patients based on their lab results
 
-export type RiskLevel = 'طبيعي' | 'يحتاج مراقبة' | 'خطر' | 'غير معروف';
+export type RiskLevel = 'مسيطر عليه' | 'يحتاج مراقبة' | 'يحتاج تعديل أو تدخل من الطبيب' | 'غير معروف';
 
 export interface LabResults {
   fasting_blood_glucose?: number | null;
@@ -34,9 +34,9 @@ export const classifyBP = (bp: string | null | undefined): RiskLevel => {
   
   if (isNaN(sys) || isNaN(dia)) return 'غير معروف';
   
-  if (sys >= 140 || dia >= 90) return 'خطر';
+  if (sys >= 140 || dia >= 90) return 'يحتاج تعديل أو تدخل من الطبيب';
   if (sys >= 130 || dia >= 80) return 'يحتاج مراقبة';
-  return 'طبيعي';
+  return 'مسيطر عليه';
 };
 
 // HbA1c Classification
@@ -46,9 +46,9 @@ export const classifyBP = (bp: string | null | undefined): RiskLevel => {
 export const classifyHBA1C = (value: number | null | undefined): RiskLevel => {
   if (value == null) return 'غير معروف';
   
-  if (value >= 6.5) return 'خطر';
+  if (value >= 6.5) return 'يحتاج تعديل أو تدخل من الطبيب';
   if (value >= 5.7) return 'يحتاج مراقبة';
-  return 'طبيعي';
+  return 'مسيطر عليه';
 };
 
 // Fasting Blood Glucose Classification
@@ -58,9 +58,9 @@ export const classifyHBA1C = (value: number | null | undefined): RiskLevel => {
 export const classifyFBG = (value: number | null | undefined): RiskLevel => {
   if (value == null) return 'غير معروف';
   
-  if (value >= 126) return 'خطر';
+  if (value >= 126) return 'يحتاج تعديل أو تدخل من الطبيب';
   if (value >= 100) return 'يحتاج مراقبة';
-  return 'طبيعي';
+  return 'مسيطر عليه';
 };
 
 // LDL Classification
@@ -72,9 +72,9 @@ export const classifyFBG = (value: number | null | undefined): RiskLevel => {
 export const classifyLDL = (value: number | null | undefined): RiskLevel => {
   if (value == null) return 'غير معروف';
   
-  if (value >= 160) return 'خطر';
+  if (value >= 160) return 'يحتاج تعديل أو تدخل من الطبيب';
   if (value >= 130) return 'يحتاج مراقبة';
-  return 'طبيعي';
+  return 'مسيطر عليه';
 };
 
 // Overall Risk Classification
@@ -89,12 +89,12 @@ export const classifyOverallRisk = (labs: LabResults): RiskClassificationResult 
   let overall: RiskLevel = 'غير معروف';
   
   if (classifications.length > 0) {
-    if (classifications.includes('خطر')) {
-      overall = 'خطر';
+    if (classifications.includes('يحتاج تعديل أو تدخل من الطبيب')) {
+      overall = 'يحتاج تعديل أو تدخل من الطبيب';
     } else if (classifications.includes('يحتاج مراقبة')) {
       overall = 'يحتاج مراقبة';
     } else {
-      overall = 'طبيعي';
+      overall = 'مسيطر عليه';
     }
   }
   
@@ -104,36 +104,36 @@ export const classifyOverallRisk = (labs: LabResults): RiskClassificationResult 
 // Get color for risk level
 export const getRiskColor = (risk: RiskLevel): string => {
   switch (risk) {
-    case 'طبيعي': return 'text-success';
+    case 'مسيطر عليه': return 'text-success';
     case 'يحتاج مراقبة': return 'text-warning';
-    case 'خطر': return 'text-destructive';
+    case 'يحتاج تعديل أو تدخل من الطبيب': return 'text-destructive';
     default: return 'text-muted-foreground';
   }
 };
 
 export const getRiskBgColor = (risk: RiskLevel): string => {
   switch (risk) {
-    case 'طبيعي': return 'bg-success/10';
+    case 'مسيطر عليه': return 'bg-success/10';
     case 'يحتاج مراقبة': return 'bg-warning/10';
-    case 'خطر': return 'bg-destructive/10';
+    case 'يحتاج تعديل أو تدخل من الطبيب': return 'bg-destructive/10';
     default: return 'bg-muted';
   }
 };
 
 export const getRiskBorderColor = (risk: RiskLevel): string => {
   switch (risk) {
-    case 'طبيعي': return 'border-success/30';
+    case 'مسيطر عليه': return 'border-success/30';
     case 'يحتاج مراقبة': return 'border-warning/30';
-    case 'خطر': return 'border-destructive/30';
+    case 'يحتاج تعديل أو تدخل من الطبيب': return 'border-destructive/30';
     default: return 'border-border';
   }
 };
 
 export const getRiskIcon = (risk: RiskLevel): string => {
   switch (risk) {
-    case 'طبيعي': return '✅';
+    case 'مسيطر عليه': return '✅';
     case 'يحتاج مراقبة': return '⚠️';
-    case 'خطر': return '🔴';
+    case 'يحتاج تعديل أو تدخل من الطبيب': return '🔴';
     default: return '❓';
   }
 };
@@ -141,7 +141,7 @@ export const getRiskIcon = (risk: RiskLevel): string => {
 // Get recommendations based on risk classification
 export const getRecommendations = (risk: RiskLevel): string[] => {
   switch (risk) {
-    case 'طبيعي':
+    case 'مسيطر عليه':
       return [
         'متابعة سنوية روتينية',
         'الحفاظ على نمط حياة صحي',
@@ -154,7 +154,7 @@ export const getRecommendations = (risk: RiskLevel): string[] => {
         'متابعة دورية مع الفريق الصحي',
         'تثقيف مكثف حول عوامل الخطر',
       ];
-    case 'خطر':
+    case 'يحتاج تعديل أو تدخل من الطبيب':
       return [
         'تحويل مباشر للطبيب',
         'بدء العلاج الدوائي إن لزم',
