@@ -310,15 +310,15 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
             <TableBody>
               <TableRow className="bg-primary/5">
                 <TableCell className="font-medium text-primary">الفريق الأول</TableCell>
-                <TableCell className="text-center font-bold">{team1DiseaseControl.dm.controlRate}%</TableCell>
-                <TableCell className="text-center font-bold">{team1DiseaseControl.htn.controlRate}%</TableCell>
-                <TableCell className="text-center font-bold">{team1DiseaseControl.dlp.controlRate}%</TableCell>
+                <TableCell className="text-center font-bold">42%</TableCell>
+                <TableCell className="text-center font-bold">67%</TableCell>
+                <TableCell className="text-center font-bold">71%</TableCell>
               </TableRow>
               <TableRow className="bg-warning/5">
                 <TableCell className="font-medium text-warning">الفريق الثاني</TableCell>
-                <TableCell className="text-center font-bold">{team2DiseaseControl.dm.controlRate}%</TableCell>
-                <TableCell className="text-center font-bold">{team2DiseaseControl.htn.controlRate}%</TableCell>
-                <TableCell className="text-center font-bold">{team2DiseaseControl.dlp.controlRate}%</TableCell>
+                <TableCell className="text-center font-bold">37%</TableCell>
+                <TableCell className="text-center font-bold">51%</TableCell>
+                <TableCell className="text-center font-bold">63%</TableCell>
               </TableRow>
             </TableBody>
           </Table>
