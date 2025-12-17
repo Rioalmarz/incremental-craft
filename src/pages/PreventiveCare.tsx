@@ -814,8 +814,8 @@ const PreventiveCare = () => {
                             <p className={cn("font-bold text-lg", getRiskColor(selectedPatient.riskDetails.bp))}>
                               {selectedPatient.bp_last_visit || '-'}
                             </p>
-                            <p className="text-xs text-success font-medium mt-1">
-                              المستهدف: {targets.bp.systolic.target}/{targets.bp.diastolic.target}
+                            <p className="text-xs mt-1">
+                              <span className="font-bold">المستهدف:</span> <span className="font-bold text-success">({targets.bp.systolic.target}/{targets.bp.diastolic.target})</span>
                             </p>
                             <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.bp), getRiskColor(selectedPatient.riskDetails.bp))}>
                               {selectedPatient.riskDetails.bp}
@@ -832,8 +832,8 @@ const PreventiveCare = () => {
                             <p className={cn("font-bold text-lg", getRiskColor(selectedPatient.riskDetails.fbg))}>
                               {selectedPatient.fasting_blood_glucose ?? '-'}
                             </p>
-                            <p className="text-xs text-success font-medium mt-1">
-                              المستهدف: {targets.fbg.target}
+                            <p className="text-xs mt-1">
+                              <span className="font-bold">المستهدف:</span> <span className="font-bold text-success">({targets.fbg.target})</span>
                             </p>
                             <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.fbg), getRiskColor(selectedPatient.riskDetails.fbg))}>
                               {selectedPatient.riskDetails.fbg}
@@ -850,8 +850,8 @@ const PreventiveCare = () => {
                             <p className={cn("font-bold text-lg", getRiskColor(selectedPatient.riskDetails.hba1c))}>
                               {selectedPatient.hba1c ?? '-'}
                             </p>
-                            <p className="text-xs text-success font-medium mt-1">
-                              المستهدف: {targets.hba1c.target}
+                            <p className="text-xs mt-1">
+                              <span className="font-bold">المستهدف:</span> <span className="font-bold text-success">({targets.hba1c.target})</span>
                             </p>
                             <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.hba1c), getRiskColor(selectedPatient.riskDetails.hba1c))}>
                               {selectedPatient.riskDetails.hba1c}
@@ -868,8 +868,8 @@ const PreventiveCare = () => {
                             <p className={cn("font-bold text-lg", getRiskColor(selectedPatient.riskDetails.ldl))}>
                               {selectedPatient.ldl ?? '-'}
                             </p>
-                            <p className="text-xs text-success font-medium mt-1">
-                              المستهدف: {targets.ldl.target}
+                            <p className="text-xs mt-1">
+                              <span className="font-bold">المستهدف:</span> <span className="font-bold text-success">({targets.ldl.target})</span>
                             </p>
                             <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.ldl), getRiskColor(selectedPatient.riskDetails.ldl))}>
                               {selectedPatient.riskDetails.ldl}
