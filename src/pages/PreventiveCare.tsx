@@ -80,6 +80,7 @@ import {
   getRecommendations,
   type RiskLevel,
 } from "@/lib/riskClassification";
+import { calculatePatientTargets, getTargetStatus, getBPTargetStatus, type PatientTargets } from "@/lib/targetCalculator";
 import { cn } from "@/lib/utils";
 
 interface Patient {
@@ -792,48 +793,91 @@ const PreventiveCare = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                      <div className="p-3 rounded-lg bg-muted/30 text-center">
-                        <Heart className="h-5 w-5 mx-auto mb-1 text-primary" />
-                        <p className="text-xs text-muted-foreground mb-1">ضغط الدم</p>
-                        <p className={cn("font-bold", getRiskColor(selectedPatient.riskDetails.bp))}>
-                          {selectedPatient.bp_last_visit || '-'}
-                        </p>
-                        <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.bp), getRiskColor(selectedPatient.riskDetails.bp))}>
-                          {selectedPatient.riskDetails.bp}
-                        </Badge>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30 text-center">
-                        <Activity className="h-5 w-5 mx-auto mb-1 text-warning" />
-                        <p className="text-xs text-muted-foreground mb-1">سكر صائم</p>
-                        <p className={cn("font-bold", getRiskColor(selectedPatient.riskDetails.fbg))}>
-                          {selectedPatient.fasting_blood_glucose ?? '-'}
-                        </p>
-                        <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.fbg), getRiskColor(selectedPatient.riskDetails.fbg))}>
-                          {selectedPatient.riskDetails.fbg}
-                        </Badge>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30 text-center">
-                        <Activity className="h-5 w-5 mx-auto mb-1 text-destructive" />
-                        <p className="text-xs text-muted-foreground mb-1">HBA1C</p>
-                        <p className={cn("font-bold", getRiskColor(selectedPatient.riskDetails.hba1c))}>
-                          {selectedPatient.hba1c ?? '-'}
-                        </p>
-                        <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.hba1c), getRiskColor(selectedPatient.riskDetails.hba1c))}>
-                          {selectedPatient.riskDetails.hba1c}
-                        </Badge>
-                      </div>
-                      <div className="p-3 rounded-lg bg-muted/30 text-center">
-                        <Droplets className="h-5 w-5 mx-auto mb-1 text-purple-500" />
-                        <p className="text-xs text-muted-foreground mb-1">LDL</p>
-                        <p className={cn("font-bold", getRiskColor(selectedPatient.riskDetails.ldl))}>
-                          {selectedPatient.ldl ?? '-'}
-                        </p>
-                        <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.ldl), getRiskColor(selectedPatient.riskDetails.ldl))}>
-                          {selectedPatient.riskDetails.ldl}
-                        </Badge>
-                      </div>
-                    </div>
+                    {(() => {
+                      const targets = calculatePatientTargets({
+                        age: selectedPatient.age,
+                        has_dm: selectedPatient.has_dm,
+                        has_htn: selectedPatient.has_htn,
+                        has_dyslipidemia: selectedPatient.has_dyslipidemia,
+                      });
+                      
+                      return (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                          <div className={cn(
+                            "p-3 rounded-lg text-center",
+                            selectedPatient.riskDetails.bp !== 'غير معروف' && selectedPatient.riskDetails.bp === 'يحتاج تعديل أو تدخل من الطبيب'
+                              ? "bg-destructive/10 border border-destructive/30"
+                              : "bg-muted/30"
+                          )}>
+                            <Heart className="h-5 w-5 mx-auto mb-1 text-primary" />
+                            <p className="text-xs text-muted-foreground mb-1">ضغط الدم</p>
+                            <p className={cn("font-bold text-lg", getRiskColor(selectedPatient.riskDetails.bp))}>
+                              {selectedPatient.bp_last_visit || '-'}
+                            </p>
+                            <p className="text-xs text-success font-medium mt-1">
+                              المستهدف: {targets.bp.systolic.target}/{targets.bp.diastolic.target}
+                            </p>
+                            <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.bp), getRiskColor(selectedPatient.riskDetails.bp))}>
+                              {selectedPatient.riskDetails.bp}
+                            </Badge>
+                          </div>
+                          <div className={cn(
+                            "p-3 rounded-lg text-center",
+                            selectedPatient.riskDetails.fbg !== 'غير معروف' && selectedPatient.riskDetails.fbg === 'يحتاج تعديل أو تدخل من الطبيب'
+                              ? "bg-destructive/10 border border-destructive/30"
+                              : "bg-muted/30"
+                          )}>
+                            <Activity className="h-5 w-5 mx-auto mb-1 text-warning" />
+                            <p className="text-xs text-muted-foreground mb-1">سكر صائم</p>
+                            <p className={cn("font-bold text-lg", getRiskColor(selectedPatient.riskDetails.fbg))}>
+                              {selectedPatient.fasting_blood_glucose ?? '-'}
+                            </p>
+                            <p className="text-xs text-success font-medium mt-1">
+                              المستهدف: {targets.fbg.target}
+                            </p>
+                            <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.fbg), getRiskColor(selectedPatient.riskDetails.fbg))}>
+                              {selectedPatient.riskDetails.fbg}
+                            </Badge>
+                          </div>
+                          <div className={cn(
+                            "p-3 rounded-lg text-center",
+                            selectedPatient.riskDetails.hba1c !== 'غير معروف' && selectedPatient.riskDetails.hba1c === 'يحتاج تعديل أو تدخل من الطبيب'
+                              ? "bg-destructive/10 border border-destructive/30"
+                              : "bg-muted/30"
+                          )}>
+                            <Activity className="h-5 w-5 mx-auto mb-1 text-destructive" />
+                            <p className="text-xs text-muted-foreground mb-1">HBA1C</p>
+                            <p className={cn("font-bold text-lg", getRiskColor(selectedPatient.riskDetails.hba1c))}>
+                              {selectedPatient.hba1c ?? '-'}
+                            </p>
+                            <p className="text-xs text-success font-medium mt-1">
+                              المستهدف: {targets.hba1c.target}
+                            </p>
+                            <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.hba1c), getRiskColor(selectedPatient.riskDetails.hba1c))}>
+                              {selectedPatient.riskDetails.hba1c}
+                            </Badge>
+                          </div>
+                          <div className={cn(
+                            "p-3 rounded-lg text-center",
+                            selectedPatient.riskDetails.ldl !== 'غير معروف' && selectedPatient.riskDetails.ldl === 'يحتاج تعديل أو تدخل من الطبيب'
+                              ? "bg-destructive/10 border border-destructive/30"
+                              : "bg-muted/30"
+                          )}>
+                            <Droplets className="h-5 w-5 mx-auto mb-1 text-purple-500" />
+                            <p className="text-xs text-muted-foreground mb-1">LDL</p>
+                            <p className={cn("font-bold text-lg", getRiskColor(selectedPatient.riskDetails.ldl))}>
+                              {selectedPatient.ldl ?? '-'}
+                            </p>
+                            <p className="text-xs text-success font-medium mt-1">
+                              المستهدف: {targets.ldl.target}
+                            </p>
+                            <Badge variant="outline" className={cn("text-xs mt-1", getRiskBgColor(selectedPatient.riskDetails.ldl), getRiskColor(selectedPatient.riskDetails.ldl))}>
+                              {selectedPatient.riskDetails.ldl}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Recommendations */}
                     <div className={cn(
