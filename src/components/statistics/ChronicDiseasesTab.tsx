@@ -198,21 +198,21 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-success"></span>
-                    مسيطر
+                    🟢 مسيطر
                   </span>
                   <span className="font-bold text-success">41%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-warning"></span>
-                    قريب
+                    🟡 قريب
                   </span>
                   <span className="font-bold text-warning">25%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-destructive"></span>
-                    غير مسيطر
+                    🔴 غير مسيطر
                   </span>
                   <span className="font-bold text-destructive">34%</span>
                 </div>
