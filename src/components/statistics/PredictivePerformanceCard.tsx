@@ -3,12 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Sparkles, Brain, TrendingUp } from "lucide-react";
 import { PILOT_CONFIG } from "@/lib/pilotDataGenerator";
-
 const PredictivePerformanceCard = () => {
   const accuracy = PILOT_CONFIG.predictionAccuracy;
-  
-  return (
-    <Card className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-primary/10 border-primary/20">
+  return <Card className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-primary/10 border-primary/20">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-24 h-24 bg-accent/10 rounded-full blur-2xl translate-x-1/2 translate-y-1/2" />
@@ -20,7 +17,7 @@ const PredictivePerformanceCard = () => {
               <Brain className="w-6 h-6 text-background" />
             </div>
             <div>
-              <h3 className="font-bold text-lg">التنبؤ بالخدمة الاستباقية</h3>
+              <h3 className="font-bold text-lg">التنبؤ بالخدمات الوقائية و العلاجية</h3>
               <p className="text-sm text-muted-foreground">Predictive Service Performance</p>
             </div>
           </div>
@@ -64,8 +61,6 @@ const PredictivePerformanceCard = () => {
           </p>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default PredictivePerformanceCard;
