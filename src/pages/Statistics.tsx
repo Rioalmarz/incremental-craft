@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ArrowRight, Users, RefreshCw, Printer, 
-  ShieldCheck, Activity, Baby, Phone, UserCheck, UserX, Heart, Ambulance 
+  ShieldCheck, Activity, Baby, Phone, UserCheck, UserX, Heart, Ambulance, UsersRound 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,7 @@ import ContactedTab from "@/components/statistics/ContactedTab";
 import NotContactedTab from "@/components/statistics/NotContactedTab";
 import SatisfactionTab from "@/components/statistics/SatisfactionTab";
 import EmergencyReferralTab from "@/components/statistics/EmergencyReferralTab";
+import MedicalTeamsTab from "@/components/statistics/MedicalTeamsTab";
 import PredictivePerformanceCard from "@/components/statistics/PredictivePerformanceCard";
 import { calculatePilotStatistics } from "@/lib/pilotDataGenerator";
 
@@ -84,6 +85,7 @@ const Statistics = () => {
     { id: "preventive", label: "الرعاية الوقائية", icon: ShieldCheck },
     { id: "chronic", label: "الأمراض المزمنة", icon: Activity },
     { id: "child", label: "الطفل السليم", icon: Baby },
+    { id: "teams", label: "الفرق الطبية", icon: UsersRound },
     { id: "efficiency", label: "كفاءة التواصل", icon: Phone },
     { id: "contacted", label: "المتواصل معهم", icon: UserCheck },
     { id: "notContacted", label: "لم يتم التواصل", icon: UserX },
@@ -185,6 +187,10 @@ const Statistics = () => {
             
             <TabsContent value="child">
               <HealthyChildTab patients={patients} />
+            </TabsContent>
+            
+            <TabsContent value="teams">
+              <MedicalTeamsTab patients={patients} />
             </TabsContent>
             
             <TabsContent value="efficiency">
