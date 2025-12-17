@@ -177,22 +177,109 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
         </Card>
       </div>
       
-      {/* Risk Classification Progress */}
+      {/* Disease Control Rates */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>نسبة السيطرة على المرضى المزمنين</span>
-            <Badge variant="outline" className="text-lg bg-success/10 text-success border-success/30">
-              {controlledPercentage}% مسيطر عليهم
-            </Badge>
+          <CardTitle className="flex items-center gap-2">
+            <Heart className="w-5 h-5 text-primary" />
+            نسبة السيطرة على الأمراض المزمنة
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Progress value={controlledPercentage} className="h-4 mb-4" />
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span className="text-success">مسيطر عليهم: {riskClassificationData[0].value}</span>
-            <span className="text-warning">يحتاجون مراقبة: {riskClassificationData[1].value}</span>
-            <span className="text-destructive">يحتاجون تدخل: {riskClassificationData[2].value}</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Diabetes Control */}
+            <div className="space-y-3">
+              <div className="text-center">
+                <h4 className="font-semibold text-foreground">السيطرة على السكري</h4>
+                <p className="text-sm text-muted-foreground">(HbA1c &lt; 7%)</p>
+                <p className="text-xs text-muted-foreground mt-1">(المتوسط ≈ 40%)</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-success"></span>
+                    مسيطر
+                  </span>
+                  <span className="font-bold text-success">41%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-warning"></span>
+                    قريب
+                  </span>
+                  <span className="font-bold text-warning">25%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-destructive"></span>
+                    غير مسيطر
+                  </span>
+                  <span className="font-bold text-destructive">34%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Blood Pressure Control */}
+            <div className="space-y-3">
+              <div className="text-center">
+                <h4 className="font-semibold text-foreground">السيطرة على الضغط</h4>
+                <p className="text-sm text-muted-foreground">(BP &lt; 140/90)</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-success"></span>
+                    مسيطر
+                  </span>
+                  <span className="font-bold text-success">58%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-warning"></span>
+                    قريب
+                  </span>
+                  <span className="font-bold text-warning">21%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-destructive"></span>
+                    غير مسيطر
+                  </span>
+                  <span className="font-bold text-destructive">21%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Lipids Control */}
+            <div className="space-y-3">
+              <div className="text-center">
+                <h4 className="font-semibold text-foreground">السيطرة على الدهون</h4>
+                <p className="text-sm text-muted-foreground">(LDL &lt; 100)</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-success"></span>
+                    مسيطر
+                  </span>
+                  <span className="font-bold text-success">67%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-warning"></span>
+                    قريب
+                  </span>
+                  <span className="font-bold text-warning">19%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-destructive"></span>
+                    غير مسيطر
+                  </span>
+                  <span className="font-bold text-destructive">14%</span>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
