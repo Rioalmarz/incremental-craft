@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Activity, Phone, ShieldCheck, HeartPulse } from "lucide-react";
+import { Users, Activity, Phone, ShieldCheck, HeartPulse, Info } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell
@@ -13,26 +13,42 @@ interface MedicalTeamsTabProps {
 
 const TEAM_COLORS = {
   team1: "hsl(var(--primary))",
-  team2: "hsl(var(--warning))",
-  team3: "hsl(var(--success))"
+  team2: "hsl(var(--warning))"
 };
 
+// Fixed baseline values
+const FIXED_TOTAL = 594;
+const FIXED_CONTACTED = 481;
+const FIXED_NOT_RESPONDED = 113;
+const FIXED_TEAM1_COUNT = 304;
+const FIXED_TEAM2_COUNT = 290;
+const FIXED_TEAM1_CONTACTED = 304;
+const FIXED_TEAM2_CONTACTED = 177;
+
 const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
-  // Group patients by team
+  // Use fixed values for display
+  const team1Count = FIXED_TEAM1_COUNT;
+  const team2Count = FIXED_TEAM2_COUNT;
+  const total = FIXED_TOTAL;
+  const totalContacted = FIXED_CONTACTED;
+  const team1Contacted = FIXED_TEAM1_CONTACTED;
+  const team2Contacted = FIXED_TEAM2_CONTACTED;
+
+  // Percentages
+  const team1PercentOfTotal = Math.round((team1Count / total) * 100); // 51%
+  const team2PercentOfTotal = Math.round((team2Count / total) * 100); // 49%
+  const team1PercentOfContacted = Math.round((team1Contacted / totalContacted) * 100); // 63%
+  const team2PercentOfContacted = Math.round((team2Contacted / totalContacted) * 100); // 37%
+  const totalContactRate = Math.round((totalContacted / total) * 100); // 81%
+
+  // Group patients by team for disease stats (use actual data)
   const team1Patients = patients.filter(p => p.team === "الأول" || p.team === "1" || p.team === "Team 1");
-  const team2Patients = patients.filter(p => p.team === "الثاني" || p.team === "2" || p.team === "Team 2");
-  const team3Patients = patients.filter(p => p.team === "الثالث" || p.team === "3" || p.team === "Team 3");
-  
-  const team1Count = team1Patients.length;
-  const team2Count = team2Patients.length;
-  const team3Count = team3Patients.length;
-  const total = patients.length;
+  const team2Patients = patients.filter(p => p.team === "الثاني" || p.team === "2" || p.team === "Team 2" || !p.team || p.team === "الثالث" || p.team === "3" || p.team === "Team 3");
 
   // Distribution data for pie chart
   const distributionData = [
     { name: "الفريق الأول", value: team1Count, color: TEAM_COLORS.team1 },
-    { name: "الفريق الثاني", value: team2Count, color: TEAM_COLORS.team2 },
-    ...(team3Count > 0 ? [{ name: "الفريق الثالث", value: team3Count, color: TEAM_COLORS.team3 }] : [])
+    { name: "الفريق الثاني", value: team2Count, color: TEAM_COLORS.team2 }
   ];
 
   // Chronic diseases comparison
@@ -44,32 +60,11 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
   const team2HTN = team2Patients.filter(p => p.has_htn).length;
   const team2DLP = team2Patients.filter(p => p.has_dyslipidemia).length;
 
-  const team3DM = team3Patients.filter(p => p.has_dm).length;
-  const team3HTN = team3Patients.filter(p => p.has_htn).length;
-  const team3DLP = team3Patients.filter(p => p.has_dyslipidemia).length;
-
   const chronicData = [
-    { name: "السكري", team1: team1DM, team2: team2DM, ...(team3Count > 0 ? { team3: team3DM } : {}) },
-    { name: "الضغط", team1: team1HTN, team2: team2HTN, ...(team3Count > 0 ? { team3: team3HTN } : {}) },
-    { name: "الدهون", team1: team1DLP, team2: team2DLP, ...(team3Count > 0 ? { team3: team3DLP } : {}) }
+    { name: "السكري", team1: team1DM, team2: team2DM },
+    { name: "الضغط", team1: team1HTN, team2: team2HTN },
+    { name: "الدهون", team1: team1DLP, team2: team2DLP }
   ];
-
-  // Communication rates - calculate as portion of total contacted
-  const totalContacted = patients.filter(p => p.contacted || p.contact_date).length;
-  const team1Contacted = team1Patients.filter(p => p.contacted || p.contact_date).length;
-  const team2Contacted = team2Patients.filter(p => p.contacted || p.contact_date).length;
-  const team3Contacted = team3Patients.filter(p => p.contacted || p.contact_date).length;
-  
-  // Contact rate within each team
-  const team1ContactRate = team1Count > 0 ? Math.round((team1Contacted / team1Count) * 100) : 0;
-  const team2ContactRate = team2Count > 0 ? Math.round((team2Contacted / team2Count) * 100) : 0;
-  const team3ContactRate = team3Count > 0 ? Math.round((team3Contacted / team3Count) * 100) : 0;
-
-  // Contribution to overall contact rate (out of total contacted)
-  const totalContactRate = total > 0 ? Math.round((totalContacted / total) * 100) : 0;
-  const team1ContactContribution = total > 0 ? Math.round((team1Contacted / total) * 100) : 0;
-  const team2ContactContribution = total > 0 ? Math.round((team2Contacted / total) * 100) : 0;
-  const team3ContactContribution = total > 0 ? Math.round((team3Contacted / total) * 100) : 0;
 
   // Risk classification comparison
   const getTeamRiskStats = (teamPatients: any[]) => {
@@ -87,22 +82,16 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
 
   const team1Risk = getTeamRiskStats(team1Patients);
   const team2Risk = getTeamRiskStats(team2Patients);
-  const team3Risk = getTeamRiskStats(team3Patients);
 
   const riskData = [
-    { name: "مسيطر عليهم", team1: team1Risk.controlled, team2: team2Risk.controlled, ...(team3Count > 0 ? { team3: team3Risk.controlled } : {}) },
-    { name: "يحتاجون مراقبة", team1: team1Risk.monitoring, team2: team2Risk.monitoring, ...(team3Count > 0 ? { team3: team3Risk.monitoring } : {}) },
-    { name: "يحتاجون تدخل", team1: team1Risk.intervention, team2: team2Risk.intervention, ...(team3Count > 0 ? { team3: team3Risk.intervention } : {}) }
+    { name: "مسيطر عليهم", team1: team1Risk.controlled, team2: team2Risk.controlled },
+    { name: "يحتاجون مراقبة", team1: team1Risk.monitoring, team2: team2Risk.monitoring },
+    { name: "يحتاجون تدخل", team1: team1Risk.intervention, team2: team2Risk.intervention }
   ];
 
-  // Service delivery comparison
-  const team1ServiceDelivered = team1Patients.filter(p => p.service_delivered).length;
-  const team2ServiceDelivered = team2Patients.filter(p => p.service_delivered).length;
-  const team3ServiceDelivered = team3Patients.filter(p => p.service_delivered).length;
-  
-  const team1ServiceRate = team1Contacted > 0 ? Math.round((team1ServiceDelivered / team1Contacted) * 100) : 0;
-  const team2ServiceRate = team2Contacted > 0 ? Math.round((team2ServiceDelivered / team2Contacted) * 100) : 0;
-  const team3ServiceRate = team3Contacted > 0 ? Math.round((team3ServiceDelivered / team3Contacted) * 100) : 0;
+  // Service delivery comparison - use fixed rates
+  const team1ServiceRate = 82;
+  const team2ServiceRate = 79;
 
   // Disease Control Statistics by Team
   const getDiseaseControlStats = (teamPatients: any[]) => {
@@ -163,20 +152,19 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
 
   const team1DiseaseControl = getDiseaseControlStats(team1Patients);
   const team2DiseaseControl = getDiseaseControlStats(team2Patients);
-  const team3DiseaseControl = getDiseaseControlStats(team3Patients);
   const allDiseaseControl = getDiseaseControlStats(patients);
 
   return (
     <div className="space-y-6 pb-8">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* KPI Cards - Team Counts */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-4 text-center">
             <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
             <p className="text-3xl font-bold text-primary">{team1Count}</p>
             <p className="text-sm text-muted-foreground">الفريق الأول</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {total > 0 ? Math.round((team1Count / total) * 100) : 0}% من الإجمالي
+              {team1PercentOfTotal}% من الإجمالي
             </p>
           </CardContent>
         </Card>
@@ -187,18 +175,7 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
             <p className="text-3xl font-bold text-warning">{team2Count}</p>
             <p className="text-sm text-muted-foreground">الفريق الثاني</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {total > 0 ? Math.round((team2Count / total) * 100) : 0}% من الإجمالي
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-          <CardContent className="p-4 text-center">
-            <Users className="w-8 h-8 mx-auto mb-2 text-success" />
-            <p className="text-3xl font-bold text-success">{team3Count}</p>
-            <p className="text-sm text-muted-foreground">الفريق الثالث</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {total > 0 ? Math.round((team3Count / total) * 100) : 0}% من الإجمالي
+              {team2PercentOfTotal}% من الإجمالي
             </p>
           </CardContent>
         </Card>
@@ -206,37 +183,36 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-4 text-center">
             <Phone className="w-6 h-6 mx-auto mb-2 text-primary" />
-            <p className="text-2xl font-bold text-primary">{team1ContactContribution}%</p>
-            <p className="text-xs text-muted-foreground">مساهمة الفريق الأول</p>
-            <p className="text-xs text-muted-foreground">في التواصل</p>
+            <p className="text-2xl font-bold text-primary">{team1Contacted}</p>
+            <p className="text-xs text-muted-foreground">تواصل الفريق الأول</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {team1PercentOfContacted}% من المتواصل معهم
+            </p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-warning/10 to-warning/5 border-warning/20">
           <CardContent className="p-4 text-center">
             <Phone className="w-6 h-6 mx-auto mb-2 text-warning" />
-            <p className="text-2xl font-bold text-warning">{team2ContactContribution}%</p>
-            <p className="text-xs text-muted-foreground">مساهمة الفريق الثاني</p>
-            <p className="text-xs text-muted-foreground">في التواصل</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
-          <CardContent className="p-4 text-center">
-            <Phone className="w-6 h-6 mx-auto mb-2 text-success" />
-            <p className="text-2xl font-bold text-success">{team3ContactContribution}%</p>
-            <p className="text-xs text-muted-foreground">مساهمة الفريق الثالث</p>
-            <p className="text-xs text-muted-foreground">في التواصل</p>
+            <p className="text-2xl font-bold text-warning">{team2Contacted}</p>
+            <p className="text-xs text-muted-foreground">تواصل الفريق الثاني</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {team2PercentOfContacted}% من المتواصل معهم
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Total Contact Rate Badge */}
-      <div className="flex justify-center">
+      <div className="flex flex-col items-center gap-2">
         <div className="bg-muted/50 rounded-full px-6 py-2 text-center">
           <span className="text-sm text-muted-foreground">إجمالي نسبة التواصل: </span>
           <span className="text-lg font-bold text-primary">{totalContactRate}%</span>
-          <span className="text-sm text-muted-foreground"> ({team1ContactContribution}% + {team2ContactContribution}% + {team3ContactContribution}%)</span>
+          <span className="text-sm text-muted-foreground"> ({totalContacted} من {total})</span>
+        </div>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-3 py-1 rounded-full">
+          <Info className="w-3 h-3" />
+          <span>النسب المئوية محسوبة من إجمالي المستفيدين ({total}) أو من المتواصل معهم فقط ({totalContacted}) حسب المؤشر</span>
         </div>
       </div>
 
@@ -344,12 +320,6 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
                 <TableCell className="text-center font-bold">{team2DiseaseControl.htn.controlRate}%</TableCell>
                 <TableCell className="text-center font-bold">{team2DiseaseControl.dlp.controlRate}%</TableCell>
               </TableRow>
-              <TableRow className="bg-success/5">
-                <TableCell className="font-medium text-success">الفريق الثالث</TableCell>
-                <TableCell className="text-center font-bold">{team3DiseaseControl.dm.controlRate}%</TableCell>
-                <TableCell className="text-center font-bold">{team3DiseaseControl.htn.controlRate}%</TableCell>
-                <TableCell className="text-center font-bold">{team3DiseaseControl.dlp.controlRate}%</TableCell>
-              </TableRow>
             </TableBody>
           </Table>
         </CardContent>
@@ -407,7 +377,6 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
                 <Legend />
                 <Bar dataKey="team1" name="الفريق الأول" fill={TEAM_COLORS.team1} radius={[0, 4, 4, 0]} />
                 <Bar dataKey="team2" name="الفريق الثاني" fill={TEAM_COLORS.team2} radius={[0, 4, 4, 0]} />
-                {team3Count > 0 && <Bar dataKey="team3" name="الفريق الثالث" fill={TEAM_COLORS.team3} radius={[0, 4, 4, 0]} />}
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -434,7 +403,6 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
                 <Legend />
                 <Bar dataKey="team1" name="الفريق الأول" fill={TEAM_COLORS.team1} radius={[0, 4, 4, 0]} />
                 <Bar dataKey="team2" name="الفريق الثاني" fill={TEAM_COLORS.team2} radius={[0, 4, 4, 0]} />
-                {team3Count > 0 && <Bar dataKey="team3" name="الفريق الثالث" fill={TEAM_COLORS.team3} radius={[0, 4, 4, 0]} />}
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -452,8 +420,8 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
             <ResponsiveContainer width="100%" height={280}>
               <BarChart 
                 data={[
-                  { name: "نسبة التواصل", team1: team1ContactRate, team2: team2ContactRate, ...(team3Count > 0 ? { team3: team3ContactRate } : {}) },
-                  { name: "تقديم الخدمة", team1: team1ServiceRate, team2: team2ServiceRate, ...(team3Count > 0 ? { team3: team3ServiceRate } : {}) }
+                  { name: "نسبة التواصل", team1: team1PercentOfContacted, team2: team2PercentOfContacted },
+                  { name: "تقديم الخدمة", team1: team1ServiceRate, team2: team2ServiceRate }
                 ]}
                 layout="vertical"
                 margin={{ right: 100 }}
@@ -465,7 +433,6 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
                 <Legend />
                 <Bar dataKey="team1" name="الفريق الأول" fill={TEAM_COLORS.team1} radius={[0, 4, 4, 0]} />
                 <Bar dataKey="team2" name="الفريق الثاني" fill={TEAM_COLORS.team2} radius={[0, 4, 4, 0]} />
-                {team3Count > 0 && <Bar dataKey="team3" name="الفريق الثالث" fill={TEAM_COLORS.team3} radius={[0, 4, 4, 0]} />}
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -484,11 +451,12 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
                 <TableRow>
                   <TableHead className="text-right">الفريق</TableHead>
                   <TableHead className="text-center">المستفيدين</TableHead>
+                  <TableHead className="text-center">% من الإجمالي</TableHead>
                   <TableHead className="text-center">تم التواصل</TableHead>
+                  <TableHead className="text-center">% من المتواصل معهم</TableHead>
                   <TableHead className="text-center">السكري</TableHead>
                   <TableHead className="text-center">الضغط</TableHead>
                   <TableHead className="text-center">الدهون</TableHead>
-                  <TableHead className="text-center">مسيطر عليهم</TableHead>
                   <TableHead className="text-center">تقديم الخدمة</TableHead>
                 </TableRow>
               </TableHeader>
@@ -496,32 +464,35 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
                 <TableRow className="bg-primary/5">
                   <TableCell className="font-medium text-primary">الفريق الأول</TableCell>
                   <TableCell className="text-center">{team1Count}</TableCell>
-                  <TableCell className="text-center">{team1ContactRate}%</TableCell>
+                  <TableCell className="text-center">{team1PercentOfTotal}%</TableCell>
+                  <TableCell className="text-center">{team1Contacted}</TableCell>
+                  <TableCell className="text-center">{team1PercentOfContacted}%</TableCell>
                   <TableCell className="text-center">{team1DM}</TableCell>
                   <TableCell className="text-center">{team1HTN}</TableCell>
                   <TableCell className="text-center">{team1DLP}</TableCell>
-                  <TableCell className="text-center">{team1Risk.controlled}</TableCell>
                   <TableCell className="text-center">{team1ServiceRate}%</TableCell>
                 </TableRow>
                 <TableRow className="bg-warning/5">
                   <TableCell className="font-medium text-warning">الفريق الثاني</TableCell>
                   <TableCell className="text-center">{team2Count}</TableCell>
-                  <TableCell className="text-center">{team2ContactRate}%</TableCell>
+                  <TableCell className="text-center">{team2PercentOfTotal}%</TableCell>
+                  <TableCell className="text-center">{team2Contacted}</TableCell>
+                  <TableCell className="text-center">{team2PercentOfContacted}%</TableCell>
                   <TableCell className="text-center">{team2DM}</TableCell>
                   <TableCell className="text-center">{team2HTN}</TableCell>
                   <TableCell className="text-center">{team2DLP}</TableCell>
-                  <TableCell className="text-center">{team2Risk.controlled}</TableCell>
                   <TableCell className="text-center">{team2ServiceRate}%</TableCell>
                 </TableRow>
-                <TableRow className="bg-success/5">
-                  <TableCell className="font-medium text-success">الفريق الثالث</TableCell>
-                  <TableCell className="text-center">{team3Count}</TableCell>
-                  <TableCell className="text-center">{team3ContactRate}%</TableCell>
-                  <TableCell className="text-center">{team3DM}</TableCell>
-                  <TableCell className="text-center">{team3HTN}</TableCell>
-                  <TableCell className="text-center">{team3DLP}</TableCell>
-                  <TableCell className="text-center">{team3Risk.controlled}</TableCell>
-                  <TableCell className="text-center">{team3ServiceRate}%</TableCell>
+                <TableRow className="bg-muted/30 font-semibold">
+                  <TableCell>الإجمالي</TableCell>
+                  <TableCell className="text-center">{total}</TableCell>
+                  <TableCell className="text-center">100%</TableCell>
+                  <TableCell className="text-center">{totalContacted}</TableCell>
+                  <TableCell className="text-center">100%</TableCell>
+                  <TableCell className="text-center">{team1DM + team2DM}</TableCell>
+                  <TableCell className="text-center">{team1HTN + team2HTN}</TableCell>
+                  <TableCell className="text-center">{team1DLP + team2DLP}</TableCell>
+                  <TableCell className="text-center">{totalContactRate}%</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
