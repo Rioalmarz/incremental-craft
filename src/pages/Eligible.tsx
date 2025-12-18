@@ -178,9 +178,9 @@ const Eligible = () => {
           <CardHeader>
             <CardTitle>قائمة المؤهلين ({filteredData.length})</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-              <Table>
+          <CardContent className="p-0">
+            <div className="overflow-auto max-h-[600px] scrollbar-thin" style={{ overflowX: 'scroll', overflowY: 'auto' }}>
+              <Table className="min-w-max">
                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
                     <TableHead className="text-right bg-muted/50">#</TableHead>
