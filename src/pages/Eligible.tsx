@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Search, UserCheck, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+
 import * as XLSX from "xlsx";
 
 const Eligible = () => {
@@ -40,8 +40,16 @@ const Eligible = () => {
           setColumns(allColumns);
         }
         
-        setData(jsonData);
-        setFilteredData(jsonData);
+        // Filter out rows where age is not a valid number
+        const validData = jsonData.filter((row: any) => {
+          const ageValue = row["age"] || row["Age"] || row["العمر"];
+          // Check if age is a valid number
+          const numAge = Number(ageValue);
+          return !isNaN(numAge) && typeof ageValue !== 'boolean' && ageValue !== "نعم" && ageValue !== "لا";
+        });
+        
+        setData(validData);
+        setFilteredData(validData);
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -72,22 +80,26 @@ const Eligible = () => {
       return <span className="text-muted-foreground">-</span>;
     }
     
-    // Boolean values for diseases
-    if (value === true || value === 1 || value === "TRUE" || value === "نعم" || value === "Yes") {
-      return <Badge variant="destructive" className="text-xs">نعم</Badge>;
-    }
-    if (value === false || value === 0 || value === "FALSE" || value === "لا" || value === "No") {
-      return <Badge variant="secondary" className="text-xs">لا</Badge>;
+    // For age column, just return the number directly
+    const ageColumns = ["age", "Age", "العمر"];
+    if (ageColumns.includes(columnName)) {
+      return String(value);
     }
     
     // Check if column might be a disease column
-    const diseaseKeywords = ["dm", "htn", "dyslipidemia", "سكري", "ضغط", "دهون", "مرض"];
+    const diseaseKeywords = ["dm", "htn", "dyslipidemia", "سكري", "ضغط", "دهون", "مرض", "has_"];
     const isDisease = diseaseKeywords.some(keyword => 
       columnName.toLowerCase().includes(keyword)
     );
     
-    if (isDisease && (value === "1" || value === "true")) {
-      return <Badge variant="destructive" className="text-xs">نعم</Badge>;
+    // Boolean values for diseases only
+    if (isDisease) {
+      if (value === true || value === 1 || value === "TRUE" || value === "نعم" || value === "Yes" || value === "1" || value === "true") {
+        return <span className="text-destructive font-medium">نعم</span>;
+      }
+      if (value === false || value === 0 || value === "FALSE" || value === "لا" || value === "No" || value === "0" || value === "false") {
+        return <span className="text-muted-foreground">لا</span>;
+      }
     }
     
     return String(value);
