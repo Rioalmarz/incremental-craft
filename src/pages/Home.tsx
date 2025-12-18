@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, Users, ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Settings, UserCog, User, ChevronDown, Shield, Activity, Heart, Sparkles, CalendarDays } from "lucide-react";
+import { LogOut, Users, ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Settings, UserCog, User, ChevronDown, Shield, Activity, Heart, Sparkles, CalendarDays, UserCheck } from "lucide-react";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 
 // Particle component for animated background with mouse interaction
@@ -238,6 +238,12 @@ const Home = () => {
     path: "/statistics",
     description: "تقارير وإحصائيات شاملة",
     gradient: "from-[hsl(var(--info))] to-[hsl(200,80%,45%)]"
+  }, {
+    title: "المؤهلين",
+    icon: UserCheck,
+    path: "/eligible",
+    description: "قائمة المستفيدين المؤهلين للخدمات",
+    gradient: "from-[hsl(160,60%,45%)] to-[hsl(140,50%,40%)]"
   }];
   const adminMenuItems = [{
     title: "جدولة الأطباء (محدث)",
