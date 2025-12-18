@@ -6,23 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Search, UserCheck, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import * as XLSX from "xlsx";
-
-interface EligiblePatient {
-  name: string;
-  nationalId: string;
-  age: number;
-  gender: string;
-  phone: string;
-  center: string;
-  eligibilityReason: string;
-}
 
 const Eligible = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [patients, setPatients] = useState<EligiblePatient[]>([]);
-  const [filteredPatients, setFilteredPatients] = useState<EligiblePatient[]>([]);
+  const [data, setData] = useState<any[]>([]);
+  const [filteredData, setFilteredData] = useState<any[]>([]);
+  const [columns, setColumns] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -42,18 +34,14 @@ const Eligible = () => {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
-        const mappedData: EligiblePatient[] = jsonData.map((row: any) => ({
-          name: row["الاسم"] || row["name"] || row["Name"] || "",
-          nationalId: row["رقم الهوية"] || row["national_id"] || row["ID"] || "",
-          age: row["العمر"] || row["age"] || row["Age"] || 0,
-          gender: row["الجنس"] || row["gender"] || row["Gender"] || "",
-          phone: row["رقم الجوال"] || row["phone"] || row["Phone"] || "",
-          center: row["المركز"] || row["center"] || row["Center"] || "",
-          eligibilityReason: row["سبب الأهلية"] || row["eligibility"] || row["Reason"] || "مؤهل للرعاية الوقائية",
-        }));
+        if (jsonData.length > 0) {
+          // Get all column names from the first row
+          const allColumns = Object.keys(jsonData[0] as object);
+          setColumns(allColumns);
+        }
         
-        setPatients(mappedData);
-        setFilteredPatients(mappedData);
+        setData(jsonData);
+        setFilteredData(jsonData);
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -65,13 +53,45 @@ const Eligible = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = patients.filter(
-      (p) =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.nationalId.includes(searchTerm)
+    if (!searchTerm) {
+      setFilteredData(data);
+      return;
+    }
+    
+    const filtered = data.filter((row) => {
+      return Object.values(row).some((value) =>
+        String(value).toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+    setFilteredData(filtered);
+  }, [searchTerm, data]);
+
+  // Helper to render cell value with badges for diseases
+  const renderCellValue = (value: any, columnName: string) => {
+    if (value === null || value === undefined || value === "") {
+      return <span className="text-muted-foreground">-</span>;
+    }
+    
+    // Boolean values for diseases
+    if (value === true || value === 1 || value === "TRUE" || value === "نعم" || value === "Yes") {
+      return <Badge variant="destructive" className="text-xs">نعم</Badge>;
+    }
+    if (value === false || value === 0 || value === "FALSE" || value === "لا" || value === "No") {
+      return <Badge variant="secondary" className="text-xs">لا</Badge>;
+    }
+    
+    // Check if column might be a disease column
+    const diseaseKeywords = ["dm", "htn", "dyslipidemia", "سكري", "ضغط", "دهون", "مرض"];
+    const isDisease = diseaseKeywords.some(keyword => 
+      columnName.toLowerCase().includes(keyword)
     );
-    setFilteredPatients(filtered);
-  }, [searchTerm, patients]);
+    
+    if (isDisease && (value === "1" || value === "true")) {
+      return <Badge variant="destructive" className="text-xs">نعم</Badge>;
+    }
+    
+    return String(value);
+  };
 
   if (loading || isLoading) {
     return (
@@ -83,7 +103,7 @@ const Eligible = () => {
 
   return (
     <div className="min-h-screen bg-background p-6" dir="rtl">
-      <div className="container mx-auto max-w-7xl">
+      <div className="container mx-auto max-w-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
@@ -109,7 +129,18 @@ const Eligible = () => {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">إجمالي المؤهلين</p>
-                <p className="text-2xl font-bold text-foreground">{patients.length}</p>
+                <p className="text-2xl font-bold text-foreground">{data.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 bg-accent/20 rounded-xl">
+                <UserCheck className="h-6 w-6 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">عدد الأعمدة</p>
+                <p className="text-2xl font-bold text-foreground">{columns.length}</p>
               </div>
             </CardContent>
           </Card>
@@ -121,7 +152,7 @@ const Eligible = () => {
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="البحث بالاسم أو رقم الهوية..."
+                placeholder="البحث في جميع البيانات..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pr-10"
@@ -133,34 +164,30 @@ const Eligible = () => {
         {/* Table */}
         <Card>
           <CardHeader>
-            <CardTitle>قائمة المؤهلين ({filteredPatients.length})</CardTitle>
+            <CardTitle>قائمة المؤهلين ({filteredData.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
-                    <TableHead className="text-right">#</TableHead>
-                    <TableHead className="text-right">الاسم</TableHead>
-                    <TableHead className="text-right">رقم الهوية</TableHead>
-                    <TableHead className="text-right">العمر</TableHead>
-                    <TableHead className="text-right">الجنس</TableHead>
-                    <TableHead className="text-right">رقم الجوال</TableHead>
-                    <TableHead className="text-right">المركز</TableHead>
-                    <TableHead className="text-right">سبب الأهلية</TableHead>
+                    <TableHead className="text-right bg-muted/50">#</TableHead>
+                    {columns.map((col, index) => (
+                      <TableHead key={index} className="text-right bg-muted/50 whitespace-nowrap">
+                        {col}
+                      </TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPatients.map((patient, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-medium">{patient.name}</TableCell>
-                      <TableCell>{patient.nationalId}</TableCell>
-                      <TableCell>{patient.age}</TableCell>
-                      <TableCell>{patient.gender}</TableCell>
-                      <TableCell dir="ltr" className="text-right">{patient.phone}</TableCell>
-                      <TableCell>{patient.center}</TableCell>
-                      <TableCell>{patient.eligibilityReason}</TableCell>
+                  {filteredData.map((row, rowIndex) => (
+                    <TableRow key={rowIndex} className="hover:bg-muted/30">
+                      <TableCell className="font-medium">{rowIndex + 1}</TableCell>
+                      {columns.map((col, colIndex) => (
+                        <TableCell key={colIndex} className="whitespace-nowrap">
+                          {renderCellValue(row[col], col)}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   ))}
                 </TableBody>
