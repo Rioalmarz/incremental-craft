@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,29 @@ const Eligible = () => {
   const [columns, setColumns] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidth] = useState(0);
+
+  // Sync scrollbars
+  const handleTopScroll = () => {
+    if (tableScrollRef.current && topScrollRef.current) {
+      tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    }
+  };
+
+  const handleTableScroll = () => {
+    if (topScrollRef.current && tableScrollRef.current) {
+      topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft;
+    }
+  };
+
+  // Update table width for top scrollbar
+  useEffect(() => {
+    if (tableScrollRef.current) {
+      setTableWidth(tableScrollRef.current.scrollWidth);
+    }
+  }, [filteredData, columns]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -179,7 +202,22 @@ const Eligible = () => {
             <CardTitle>قائمة المؤهلين ({filteredData.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-auto max-h-[600px] scrollbar-thin" style={{ overflowX: 'scroll', overflowY: 'auto' }}>
+            {/* Top Scrollbar */}
+            <div 
+              ref={topScrollRef}
+              onScroll={handleTopScroll}
+              className="overflow-x-auto overflow-y-hidden border-b border-border"
+              style={{ height: '20px' }}
+            >
+              <div style={{ width: tableWidth, height: '1px' }}></div>
+            </div>
+            
+            {/* Table with bottom scrollbar */}
+            <div 
+              ref={tableScrollRef}
+              onScroll={handleTableScroll}
+              className="overflow-auto max-h-[600px]"
+            >
               <Table className="min-w-max">
                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
