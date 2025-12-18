@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Search, UserCheck, Users } from "lucide-react";
 
@@ -36,10 +36,20 @@ const Eligible = () => {
 
   // Update table width for top scrollbar
   useEffect(() => {
-    if (tableScrollRef.current) {
-      setTableWidth(tableScrollRef.current.scrollWidth);
-    }
-  }, [filteredData, columns]);
+    const el = tableScrollRef.current;
+    if (!el) return;
+
+    const raf = requestAnimationFrame(() => {
+      setTableWidth(el.scrollWidth);
+
+      // Start from the right side (RTL-friendly)
+      const max = Math.max(0, el.scrollWidth - el.clientWidth);
+      el.scrollLeft = max;
+      if (topScrollRef.current) topScrollRef.current.scrollLeft = max;
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [filteredData.length, columns.length]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -202,23 +212,25 @@ const Eligible = () => {
             <CardTitle>قائمة المؤهلين ({filteredData.length})</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {/* Top Scrollbar */}
-            <div 
+            {/* Top horizontal scrollbar */}
+            <div
               ref={topScrollRef}
+              dir="ltr"
               onScroll={handleTopScroll}
-              className="overflow-x-auto overflow-y-hidden border-b border-border"
-              style={{ height: '20px' }}
+              className="overflow-x-scroll overflow-y-hidden border-b border-border bg-muted/10"
+              style={{ height: "22px" }}
             >
-              <div style={{ width: tableWidth, height: '1px' }}></div>
+              <div style={{ width: tableWidth, height: 1 }} />
             </div>
-            
+
             {/* Table with bottom scrollbar */}
-            <div 
+            <div
               ref={tableScrollRef}
+              dir="ltr"
               onScroll={handleTableScroll}
               className="overflow-auto max-h-[600px]"
             >
-              <Table className="min-w-max">
+              <table className="w-full caption-bottom text-sm min-w-max" dir="rtl">
                 <TableHeader className="sticky top-0 bg-background z-10">
                   <TableRow>
                     <TableHead className="text-right bg-muted/50">#</TableHead>
@@ -241,7 +253,7 @@ const Eligible = () => {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+              </table>
             </div>
           </CardContent>
         </Card>
