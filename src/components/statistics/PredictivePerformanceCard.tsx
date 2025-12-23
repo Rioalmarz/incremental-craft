@@ -2,9 +2,26 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Sparkles, Brain, TrendingUp } from "lucide-react";
-import { PILOT_CONFIG } from "@/lib/pilotDataGenerator";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
 const PredictivePerformanceCard = () => {
-  const accuracy = PILOT_CONFIG.predictionAccuracy;
+  const { data: patients = [] } = useQuery({
+    queryKey: ['patients-prediction-accuracy'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('med_prediction_confidence')
+        .not('med_prediction_confidence', 'is', null);
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Calculate average prediction accuracy from real data, or 0 if no data
+  const accuracy = patients.length > 0
+    ? Math.round(patients.reduce((sum, p) => sum + (Number(p.med_prediction_confidence) || 0), 0) / patients.length)
+    : 0;
   return <Card className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-primary/10 border-primary/20">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
