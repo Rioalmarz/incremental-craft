@@ -20,24 +20,35 @@ const COLORS = {
 };
 
 const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
+  const totalPatients = patients.length;
   
-  // Fixed display values as per requirements
-  const displayTotal = 334;
-  const displayRate = 83;
-  const displayScreened = Math.round(displayTotal * 0.83); // 277
+  // Calculate eligible patients for each screening based on age/gender criteria
+  // BP screening: >= 18 years
+  const bpEligible = patients.filter(p => p.age != null && p.age >= 18).length;
+  // FBG screening: >= 35 years
+  const fbgEligible = patients.filter(p => p.age != null && p.age >= 35).length;
+  // Lipid screening: males >= 35, females >= 45
+  const lipidEligible = patients.filter(p => {
+    if (p.age == null) return false;
+    const isMale = p.gender === "Male" || p.gender === "ذكر" || p.gender === "male";
+    const isFemale = p.gender === "Female" || p.gender === "أنثى" || p.gender === "female";
+    return (isMale && p.age >= 35) || (isFemale && p.age >= 45);
+  }).length;
   
-  // Individual screening rates that sum to ~77%
-  const bpScreened = 89;
-  const bpEligible = 112;
-  const bpRate = 79;
+  // Calculate screened patients (those with results)
+  const bpScreened = patients.filter(p => p.bp_last_visit != null && p.bp_last_visit !== "").length;
+  const fbgScreened = patients.filter(p => p.fasting_blood_glucose != null).length;
+  const lipidScreened = patients.filter(p => p.ldl != null).length;
   
-  const fbgScreened = 78;
-  const fbgEligible = 104;
-  const fbgRate = 75;
+  // Calculate rates
+  const bpRate = bpEligible > 0 ? Math.round((bpScreened / bpEligible) * 100) : 0;
+  const fbgRate = fbgEligible > 0 ? Math.round((fbgScreened / fbgEligible) * 100) : 0;
+  const lipidRate = lipidEligible > 0 ? Math.round((lipidScreened / lipidEligible) * 100) : 0;
   
-  const lipidScreened = 74;
-  const lipidEligible = 98;
-  const lipidRate = 76;
+  // Overall screening rate
+  const totalEligible = bpEligible + fbgEligible + lipidEligible;
+  const totalScreened = bpScreened + fbgScreened + lipidScreened;
+  const overallRate = totalEligible > 0 ? Math.round((totalScreened / totalEligible) * 100) : 0;
   
   const screeningByAge = [
     { name: 'ضغط الدم (≥18)', eligible: bpEligible, screened: bpScreened },
@@ -45,12 +56,9 @@ const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
     { name: 'دهون (ذكور ≥35, إناث ≥45)', eligible: lipidEligible, screened: lipidScreened },
   ];
   
-  // Pie chart: 77% screened, 23% not screened
-  const pieScreened = 77;
-  const pieNotScreened = 23;
   const pieData = [
-    { name: 'تم الفحص', value: pieScreened, color: COLORS.success },
-    { name: 'لم يتم الفحص', value: pieNotScreened, color: COLORS.muted },
+    { name: 'تم الفحص', value: totalScreened, color: COLORS.success },
+    { name: 'لم يتم الفحص', value: Math.max(0, totalEligible - totalScreened), color: COLORS.muted },
   ];
 
   return (
@@ -64,13 +72,15 @@ const PreventiveCareTab = ({ patients }: PreventiveCareTabProps) => {
                 <ShieldCheck className="w-8 h-8 text-success" />
               </div>
               <div>
-                <p className="text-4xl font-bold text-success">{displayRate}%</p>
+                <p className="text-4xl font-bold text-success">{overallRate}%</p>
                 <p className="text-muted-foreground">من المستفيدين تم إجراء الفحص الوقائي لهم</p>
-                <p className="text-sm text-primary mt-1">+ متابعة للقراءة الأسبوعية</p>
+                {totalPatients === 0 && (
+                  <p className="text-sm text-warning mt-1">لا توجد بيانات متاحة</p>
+                )}
               </div>
             </div>
             <Badge className="bg-success/20 text-success text-lg px-4 py-2">
-              {displayScreened} / {displayTotal}
+              {totalScreened} / {totalEligible}
             </Badge>
           </div>
         </CardContent>

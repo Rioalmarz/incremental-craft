@@ -16,49 +16,43 @@ const TEAM_COLORS = {
   team2: "hsl(var(--warning))"
 };
 
-// Fixed baseline values
-const FIXED_TOTAL = 594;
-const FIXED_CONTACTED = 481;
-const FIXED_NOT_RESPONDED = 113;
-const FIXED_TEAM1_COUNT = 304;
-const FIXED_TEAM2_COUNT = 177;
-const FIXED_TEAM1_CONTACTED = 304;
-const FIXED_TEAM2_CONTACTED = 177;
-
 const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
-  // Use fixed values for display
-  const team1Count = FIXED_TEAM1_COUNT;
-  const team2Count = FIXED_TEAM2_COUNT;
-  const total = FIXED_TOTAL;
-  const totalContacted = FIXED_CONTACTED;
-  const team1Contacted = FIXED_TEAM1_CONTACTED;
-  const team2Contacted = FIXED_TEAM2_CONTACTED;
+  const totalPatients = patients.length;
+  const totalContacted = patients.filter(p => p.contacted === true).length;
+  
+  // Group patients by team
+  const team1Patients = patients.filter(p => p.team === "الأول" || p.team === "1" || p.team === "Team 1");
+  const team2Patients = patients.filter(p => p.team === "الثاني" || p.team === "2" || p.team === "Team 2" || p.team === "الثالث" || p.team === "3" || p.team === "Team 3");
+  const unassignedPatients = patients.filter(p => !p.team || (p.team !== "الأول" && p.team !== "1" && p.team !== "Team 1" && p.team !== "الثاني" && p.team !== "2" && p.team !== "Team 2" && p.team !== "الثالث" && p.team !== "3" && p.team !== "Team 3"));
+  
+  const team1Count = team1Patients.length;
+  const team2Count = team2Patients.length + unassignedPatients.length; // Include unassigned in team 2 for display
+  
+  const team1Contacted = team1Patients.filter(p => p.contacted === true).length;
+  const team2Contacted = (team2Patients.filter(p => p.contacted === true).length) + (unassignedPatients.filter(p => p.contacted === true).length);
 
   // Percentages
-  const team1PercentOfTotal = Math.round((team1Count / total) * 100); // 51%
-  const team2PercentOfTotal = Math.round((team2Count / total) * 100); // 49%
-  const team1PercentOfContacted = Math.round((team1Contacted / totalContacted) * 100); // 63%
-  const team2PercentOfContacted = Math.round((team2Contacted / totalContacted) * 100); // 37%
-  const totalContactRate = Math.round((totalContacted / total) * 100); // 81%
-
-  // Group patients by team for disease stats (use actual data)
-  const team1Patients = patients.filter(p => p.team === "الأول" || p.team === "1" || p.team === "Team 1");
-  const team2Patients = patients.filter(p => p.team === "الثاني" || p.team === "2" || p.team === "Team 2" || !p.team || p.team === "الثالث" || p.team === "3" || p.team === "Team 3");
+  const team1PercentOfTotal = totalPatients > 0 ? Math.round((team1Count / totalPatients) * 100) : 0;
+  const team2PercentOfTotal = totalPatients > 0 ? Math.round((team2Count / totalPatients) * 100) : 0;
+  const team1PercentOfContacted = totalContacted > 0 ? Math.round((team1Contacted / totalContacted) * 100) : 0;
+  const team2PercentOfContacted = totalContacted > 0 ? Math.round((team2Contacted / totalContacted) * 100) : 0;
+  const totalContactRate = totalPatients > 0 ? Math.round((totalContacted / totalPatients) * 100) : 0;
 
   // Distribution data for pie chart
   const distributionData = [
     { name: "الفريق الأول", value: team1Count, color: TEAM_COLORS.team1 },
     { name: "الفريق الثاني", value: team2Count, color: TEAM_COLORS.team2 }
-  ];
+  ].filter(d => d.value > 0);
 
   // Chronic diseases comparison
+  const allTeam2 = [...team2Patients, ...unassignedPatients];
   const team1DM = team1Patients.filter(p => p.has_dm).length;
   const team1HTN = team1Patients.filter(p => p.has_htn).length;
   const team1DLP = team1Patients.filter(p => p.has_dyslipidemia).length;
   
-  const team2DM = team2Patients.filter(p => p.has_dm).length;
-  const team2HTN = team2Patients.filter(p => p.has_htn).length;
-  const team2DLP = team2Patients.filter(p => p.has_dyslipidemia).length;
+  const team2DM = allTeam2.filter(p => p.has_dm).length;
+  const team2HTN = allTeam2.filter(p => p.has_htn).length;
+  const team2DLP = allTeam2.filter(p => p.has_dyslipidemia).length;
 
   const chronicData = [
     { name: "السكري", team1: team1DM, team2: team2DM },
@@ -81,17 +75,13 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
   };
 
   const team1Risk = getTeamRiskStats(team1Patients);
-  const team2Risk = getTeamRiskStats(team2Patients);
+  const team2Risk = getTeamRiskStats(allTeam2);
 
   const riskData = [
     { name: "مسيطر عليهم", team1: team1Risk.controlled, team2: team2Risk.controlled },
     { name: "يحتاجون مراقبة", team1: team1Risk.monitoring, team2: team2Risk.monitoring },
     { name: "يحتاجون تدخل", team1: team1Risk.intervention, team2: team2Risk.intervention }
   ];
-
-  // Service delivery comparison - use fixed rates
-  const team1ServiceRate = 82;
-  const team2ServiceRate = 79;
 
   // Disease Control Statistics by Team
   const getDiseaseControlStats = (teamPatients: any[]) => {
@@ -129,29 +119,23 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
       dm: {
         total: dmPatients.length,
         controlled: dmControlled,
-        nearControl: dmNearControl,
-        uncontrolled: dmUncontrolled,
         controlRate: dmPatients.length > 0 ? Math.round((dmControlled / dmPatients.length) * 100) : 0
       },
       htn: {
         total: htnPatients.length,
         controlled: htnControlled,
-        nearControl: htnNearControl,
-        uncontrolled: htnUncontrolled,
         controlRate: htnPatients.length > 0 ? Math.round((htnControlled / htnPatients.length) * 100) : 0
       },
       dlp: {
         total: dlpPatients.length,
         controlled: dlpControlled,
-        nearControl: dlpNearControl,
-        uncontrolled: dlpUncontrolled,
         controlRate: dlpPatients.length > 0 ? Math.round((dlpControlled / dlpPatients.length) * 100) : 0
       }
     };
   };
 
   const team1DiseaseControl = getDiseaseControlStats(team1Patients);
-  const team2DiseaseControl = getDiseaseControlStats(team2Patients);
+  const team2DiseaseControl = getDiseaseControlStats(allTeam2);
   const allDiseaseControl = getDiseaseControlStats(patients);
 
   return (
@@ -208,11 +192,7 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
         <div className="bg-muted/50 rounded-full px-6 py-2 text-center">
           <span className="text-sm text-muted-foreground">إجمالي نسبة التواصل: </span>
           <span className="text-lg font-bold text-primary">{totalContactRate}%</span>
-          <span className="text-sm text-muted-foreground"> ({totalContacted} من {total})</span>
-        </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground bg-muted/30 px-3 py-1 rounded-full">
-          <Info className="w-3 h-3" />
-          <span>النسب المئوية محسوبة من إجمالي المستفيدين ({total}) أو من المتواصل معهم فقط ({totalContacted}) حسب المؤشر</span>
+          <span className="text-sm text-muted-foreground"> ({totalContacted} من {totalPatients})</span>
         </div>
       </div>
 
@@ -230,19 +210,9 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
             <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
               <h4 className="font-semibold text-center">السيطرة على السكري</h4>
               <p className="text-xs text-center text-muted-foreground">(HbA1c &lt; 7%)</p>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🟢 مسيطر</span>
-                  <span className="font-bold text-success">{allDiseaseControl.dm.total > 0 ? Math.round((allDiseaseControl.dm.controlled / allDiseaseControl.dm.total) * 100) : 0}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🟡 قريب</span>
-                  <span className="font-bold text-warning">{allDiseaseControl.dm.total > 0 ? Math.round((allDiseaseControl.dm.nearControl / allDiseaseControl.dm.total) * 100) : 0}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🔴 غير مسيطر</span>
-                  <span className="font-bold text-destructive">{allDiseaseControl.dm.total > 0 ? Math.round((allDiseaseControl.dm.uncontrolled / allDiseaseControl.dm.total) * 100) : 0}%</span>
-                </div>
+              <div className="text-center">
+                <span className="text-2xl font-bold text-success">{allDiseaseControl.dm.controlRate}%</span>
+                <p className="text-xs text-muted-foreground">({allDiseaseControl.dm.controlled} من {allDiseaseControl.dm.total})</p>
               </div>
             </div>
 
@@ -250,19 +220,9 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
             <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
               <h4 className="font-semibold text-center">السيطرة على الضغط</h4>
               <p className="text-xs text-center text-muted-foreground">(BP &lt; 140/90)</p>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🟢 مسيطر</span>
-                  <span className="font-bold text-success">{allDiseaseControl.htn.total > 0 ? Math.round((allDiseaseControl.htn.controlled / allDiseaseControl.htn.total) * 100) : 0}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🟡 قريب</span>
-                  <span className="font-bold text-warning">{allDiseaseControl.htn.total > 0 ? Math.round((allDiseaseControl.htn.nearControl / allDiseaseControl.htn.total) * 100) : 0}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🔴 غير مسيطر</span>
-                  <span className="font-bold text-destructive">{allDiseaseControl.htn.total > 0 ? Math.round((allDiseaseControl.htn.uncontrolled / allDiseaseControl.htn.total) * 100) : 0}%</span>
-                </div>
+              <div className="text-center">
+                <span className="text-2xl font-bold text-success">{allDiseaseControl.htn.controlRate}%</span>
+                <p className="text-xs text-muted-foreground">({allDiseaseControl.htn.controlled} من {allDiseaseControl.htn.total})</p>
               </div>
             </div>
 
@@ -270,19 +230,9 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
             <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
               <h4 className="font-semibold text-center">السيطرة على الدهون</h4>
               <p className="text-xs text-center text-muted-foreground">(LDL &lt; 100)</p>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🟢 مسيطر</span>
-                  <span className="font-bold text-success">{allDiseaseControl.dlp.total > 0 ? Math.round((allDiseaseControl.dlp.controlled / allDiseaseControl.dlp.total) * 100) : 0}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🟡 قريب</span>
-                  <span className="font-bold text-warning">{allDiseaseControl.dlp.total > 0 ? Math.round((allDiseaseControl.dlp.nearControl / allDiseaseControl.dlp.total) * 100) : 0}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">🔴 غير مسيطر</span>
-                  <span className="font-bold text-destructive">{allDiseaseControl.dlp.total > 0 ? Math.round((allDiseaseControl.dlp.uncontrolled / allDiseaseControl.dlp.total) * 100) : 0}%</span>
-                </div>
+              <div className="text-center">
+                <span className="text-2xl font-bold text-success">{allDiseaseControl.dlp.controlRate}%</span>
+                <p className="text-xs text-muted-foreground">({allDiseaseControl.dlp.controlled} من {allDiseaseControl.dlp.total})</p>
               </div>
             </div>
           </div>
@@ -290,42 +240,48 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
       </Card>
 
       {/* Disease Control by Team Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5" />
-            نسبة السيطرة حسب الفريق
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-right">الفريق</TableHead>
-                <TableHead className="text-center">السيطرة على السكري<br/><span className="text-xs text-muted-foreground">(HbA1c at target)</span></TableHead>
-                <TableHead className="text-center">السيطرة على الضغط<br/><span className="text-xs text-muted-foreground">(BP &lt; 140/90)</span></TableHead>
-                <TableHead className="text-center">السيطرة على الدهون<br/><span className="text-xs text-muted-foreground">(LDL at target)</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow className="bg-primary/5">
-                <TableCell className="font-medium text-primary">الفريق الأول</TableCell>
-                <TableCell className="text-center font-bold">42%</TableCell>
-                <TableCell className="text-center font-bold">67%</TableCell>
-                <TableCell className="text-center font-bold">71%</TableCell>
-              </TableRow>
-              <TableRow className="bg-warning/5">
-                <TableCell className="font-medium text-warning">الفريق الثاني</TableCell>
-                <TableCell className="text-center font-bold">37%</TableCell>
-                <TableCell className="text-center font-bold">51%</TableCell>
-                <TableCell className="text-center font-bold">63%</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      {(team1Count > 0 || team2Count > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5" />
+              نسبة السيطرة حسب الفريق
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">الفريق</TableHead>
+                  <TableHead className="text-center">السيطرة على السكري</TableHead>
+                  <TableHead className="text-center">السيطرة على الضغط</TableHead>
+                  <TableHead className="text-center">السيطرة على الدهون</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {team1Count > 0 && (
+                  <TableRow className="bg-primary/5">
+                    <TableCell className="font-medium text-primary">الفريق الأول</TableCell>
+                    <TableCell className="text-center font-bold">{team1DiseaseControl.dm.controlRate}%</TableCell>
+                    <TableCell className="text-center font-bold">{team1DiseaseControl.htn.controlRate}%</TableCell>
+                    <TableCell className="text-center font-bold">{team1DiseaseControl.dlp.controlRate}%</TableCell>
+                  </TableRow>
+                )}
+                {team2Count > 0 && (
+                  <TableRow className="bg-warning/5">
+                    <TableCell className="font-medium text-warning">الفريق الثاني</TableCell>
+                    <TableCell className="text-center font-bold">{team2DiseaseControl.dm.controlRate}%</TableCell>
+                    <TableCell className="text-center font-bold">{team2DiseaseControl.htn.controlRate}%</TableCell>
+                    <TableCell className="text-center font-bold">{team2DiseaseControl.dlp.controlRate}%</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Charts Row 1 */}
+      {/* Charts Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Distribution Pie Chart */}
         <Card>
@@ -336,26 +292,32 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={distributionData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {distributionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => [value, "عدد المستفيدين"]} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {distributionData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={distributionData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {distributionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [value, "عدد المستفيدين"]} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                لا توجد بيانات
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -368,137 +330,36 @@ const MedicalTeamsTab = ({ patients }: MedicalTeamsTabProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={chronicData} layout="vertical" margin={{ right: 80 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={80} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="team1" name="الفريق الأول" fill={TEAM_COLORS.team1} radius={[0, 4, 4, 0]} />
-                <Bar dataKey="team2" name="الفريق الثاني" fill={TEAM_COLORS.team2} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {(team1DM > 0 || team2DM > 0 || team1HTN > 0 || team2HTN > 0) ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={chronicData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="team1" name="الفريق الأول" fill={TEAM_COLORS.team1} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="team2" name="الفريق الثاني" fill={TEAM_COLORS.team2} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                لا توجد بيانات
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Row 2 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Risk Classification Comparison */}
+      {/* No Data Message */}
+      {totalPatients === 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5" />
-              مقارنة تصنيف المخاطر
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={riskData} layout="vertical" margin={{ right: 100 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="team1" name="الفريق الأول" fill={TEAM_COLORS.team1} radius={[0, 4, 4, 0]} />
-                <Bar dataKey="team2" name="الفريق الثاني" fill={TEAM_COLORS.team2} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="p-8 text-center">
+            <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+            <p className="text-muted-foreground">لا توجد بيانات متاحة حالياً</p>
           </CardContent>
         </Card>
-
-        {/* Communication Rate Comparison */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Phone className="w-5 h-5" />
-              مقارنة معدل التواصل وتقديم الخدمة
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart 
-                data={[
-                  { name: "نسبة التواصل", team1: team1PercentOfContacted, team2: team2PercentOfContacted },
-                  { name: "تقديم الخدمة", team1: team1ServiceRate, team2: team2ServiceRate }
-                ]}
-                layout="vertical"
-                margin={{ right: 100 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                <XAxis type="number" domain={[0, 100]} unit="%" />
-                <YAxis dataKey="name" type="category" width={100} />
-                <Tooltip formatter={(value: number) => [`${value}%`, ""]} />
-                <Legend />
-                <Bar dataKey="team1" name="الفريق الأول" fill={TEAM_COLORS.team1} radius={[0, 4, 4, 0]} />
-                <Bar dataKey="team2" name="الفريق الثاني" fill={TEAM_COLORS.team2} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Summary Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">ملخص أداء الفرق الطبية</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-right">الفريق</TableHead>
-                  <TableHead className="text-center">المستفيدين</TableHead>
-                  <TableHead className="text-center">% من الإجمالي</TableHead>
-                  <TableHead className="text-center">تم التواصل</TableHead>
-                  <TableHead className="text-center">% من المتواصل معهم</TableHead>
-                  <TableHead className="text-center">السكري</TableHead>
-                  <TableHead className="text-center">الضغط</TableHead>
-                  <TableHead className="text-center">الدهون</TableHead>
-                  <TableHead className="text-center">تقديم الخدمة</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow className="bg-primary/5">
-                  <TableCell className="font-medium text-primary">الفريق الأول</TableCell>
-                  <TableCell className="text-center">{team1Count}</TableCell>
-                  <TableCell className="text-center">{team1PercentOfTotal}%</TableCell>
-                  <TableCell className="text-center">{team1Contacted}</TableCell>
-                  <TableCell className="text-center">{team1PercentOfContacted}%</TableCell>
-                  <TableCell className="text-center">{team1DM}</TableCell>
-                  <TableCell className="text-center">{team1HTN}</TableCell>
-                  <TableCell className="text-center">{team1DLP}</TableCell>
-                  <TableCell className="text-center">{team1ServiceRate}%</TableCell>
-                </TableRow>
-                <TableRow className="bg-warning/5">
-                  <TableCell className="font-medium text-warning">الفريق الثاني</TableCell>
-                  <TableCell className="text-center">{team2Count}</TableCell>
-                  <TableCell className="text-center">{team2PercentOfTotal}%</TableCell>
-                  <TableCell className="text-center">{team2Contacted}</TableCell>
-                  <TableCell className="text-center">{team2PercentOfContacted}%</TableCell>
-                  <TableCell className="text-center">{team2DM}</TableCell>
-                  <TableCell className="text-center">{team2HTN}</TableCell>
-                  <TableCell className="text-center">{team2DLP}</TableCell>
-                  <TableCell className="text-center">{team2ServiceRate}%</TableCell>
-                </TableRow>
-                <TableRow className="bg-muted/30 font-semibold">
-                  <TableCell>الإجمالي</TableCell>
-                  <TableCell className="text-center">{total}</TableCell>
-                  <TableCell className="text-center">100%</TableCell>
-                  <TableCell className="text-center">{totalContacted}</TableCell>
-                  <TableCell className="text-center">100%</TableCell>
-                  <TableCell className="text-center">{team1DM + team2DM}</TableCell>
-                  <TableCell className="text-center">{team1HTN + team2HTN}</TableCell>
-                  <TableCell className="text-center">{team1DLP + team2DLP}</TableCell>
-                  <TableCell className="text-center">{totalContactRate}%</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      )}
     </div>
   );
 };
