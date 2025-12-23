@@ -25,7 +25,6 @@ import SatisfactionTab from "@/components/statistics/SatisfactionTab";
 import EmergencyReferralTab from "@/components/statistics/EmergencyReferralTab";
 import MedicalTeamsTab from "@/components/statistics/MedicalTeamsTab";
 import PredictivePerformanceCard from "@/components/statistics/PredictivePerformanceCard";
-import { calculatePilotStatistics } from "@/lib/pilotDataGenerator";
 
 const Statistics = () => {
   const { user, profile, loading, isSuperAdmin } = useAuth();
@@ -69,7 +68,18 @@ const Statistics = () => {
     }
   };
 
-  const pilotStats = calculatePilotStatistics(patients);
+  // Calculate real statistics from data
+  const totalPatients = patients.length;
+  const contactedCount = patients.filter(p => p.contacted === true).length;
+  const notContactedCount = totalPatients - contactedCount;
+  const contactedRate = totalPatients > 0 ? Math.round((contactedCount / totalPatients) * 100) : 0;
+  const notContactedRate = totalPatients > 0 ? Math.round((notContactedCount / totalPatients) * 100) : 0;
+  
+  // Calculate satisfaction from real data
+  const patientsWithSatisfaction = patients.filter(p => p.satisfaction_score != null && p.satisfaction_score > 0);
+  const avgSatisfaction = patientsWithSatisfaction.length > 0 
+    ? Math.round((patientsWithSatisfaction.reduce((sum, p) => sum + p.satisfaction_score, 0) / patientsWithSatisfaction.length) * 20) 
+    : 0;
 
   const handlePrint = () => window.print();
 
@@ -128,7 +138,7 @@ const Statistics = () => {
           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
             <CardContent className="p-4 text-center">
               <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
-              <p className="text-3xl font-bold">{pilotStats.total}</p>
+              <p className="text-3xl font-bold">{totalPatients}</p>
               <p className="text-sm text-muted-foreground">إجمالي المستفيدين</p>
             </CardContent>
           </Card>
@@ -136,23 +146,23 @@ const Statistics = () => {
           <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
             <CardContent className="p-4 text-center">
               <UserCheck className="w-8 h-8 mx-auto mb-2 text-success" />
-              <p className="text-3xl font-bold text-success">{Math.round(pilotStats.total * 0.81)}</p>
-              <p className="text-sm text-muted-foreground">تم التواصل (81%)</p>
+              <p className="text-3xl font-bold text-success">{contactedCount}</p>
+              <p className="text-sm text-muted-foreground">تم التواصل ({contactedRate}%)</p>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
             <CardContent className="p-4 text-center">
               <UserX className="w-8 h-8 mx-auto mb-2 text-warning" />
-              <p className="text-3xl font-bold text-warning">{Math.round(pilotStats.total * 0.19)}</p>
-              <p className="text-sm text-muted-foreground">لم يتم الرد (19%)</p>
+              <p className="text-3xl font-bold text-warning">{notContactedCount}</p>
+              <p className="text-sm text-muted-foreground">لم يتم الرد ({notContactedRate}%)</p>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-br from-info/5 to-info/10 border-info/20">
             <CardContent className="p-4 text-center">
               <Heart className="w-8 h-8 mx-auto mb-2 text-info" />
-              <p className="text-3xl font-bold text-info">96%</p>
+              <p className="text-3xl font-bold text-info">{avgSatisfaction}%</p>
               <p className="text-sm text-muted-foreground">رضا المستفيد</p>
             </CardContent>
           </Card>

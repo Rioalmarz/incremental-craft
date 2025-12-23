@@ -6,7 +6,6 @@ import {
   Tooltip, ResponsiveContainer, Legend 
 } from "recharts";
 import { Baby, Phone, ClipboardCheck, BookOpen } from "lucide-react";
-import { generatePilotDataForPatient, hashPatientId } from "@/lib/pilotDataGenerator";
 
 interface HealthyChildTabProps {
   patients: any[];
@@ -23,21 +22,14 @@ const HealthyChildTab = ({ patients }: HealthyChildTabProps) => {
   // Filter children (< 18 years)
   const children = patients.filter(p => p.age != null && p.age < 18);
   
-  // Generate pilot data for children
-  const childrenWithPilot = children.map(p => {
-    if (p.contacted !== undefined && p.contacted !== null) return p;
-    const pilotData = generatePilotDataForPatient(hashPatientId(p.id), p.age, {});
-    return { ...p, ...pilotData };
-  });
-  
-  const contacted = childrenWithPilot.filter(p => p.contacted).length;
+  const contacted = children.filter(p => p.contacted === true).length;
   const contactRate = children.length > 0 ? (contacted / children.length) * 100 : 0;
   
-  // Service type distribution (simulated based on age)
+  // Service type distribution based on age
   const serviceTypes = {
-    assessment: childrenWithPilot.filter(p => p.age && p.age < 5).length,
-    followup: childrenWithPilot.filter(p => p.age && p.age >= 5 && p.age < 12).length,
-    guidance: childrenWithPilot.filter(p => p.age && p.age >= 12).length,
+    assessment: children.filter(p => p.age && p.age < 5).length,
+    followup: children.filter(p => p.age && p.age >= 5 && p.age < 12).length,
+    guidance: children.filter(p => p.age && p.age >= 12).length,
   };
   
   const ageGroups = [
@@ -51,7 +43,7 @@ const HealthyChildTab = ({ patients }: HealthyChildTabProps) => {
     { name: 'تقييم', value: serviceTypes.assessment, color: COLORS.primary },
     { name: 'متابعة', value: serviceTypes.followup, color: COLORS.success },
     { name: 'توجيه', value: serviceTypes.guidance, color: COLORS.warning },
-  ];
+  ].filter(s => s.value > 0);
 
   return (
     <div className="space-y-6">
@@ -134,55 +126,70 @@ const HealthyChildTab = ({ patients }: HealthyChildTabProps) => {
       </Card>
       
       {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {children.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">نوع الخدمة</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                {serviceData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={serviceData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {serviceData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    لا توجد بيانات
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">الفئات العمرية</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={ageGroups}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="value" name="العدد" fill={COLORS.primary} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">نوع الخدمة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={serviceData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {serviceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <CardContent className="p-8 text-center">
+            <Baby className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+            <p className="text-muted-foreground">لا توجد بيانات أطفال متاحة</p>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">الفئات العمرية</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={ageGroups}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" name="العدد" fill={COLORS.primary} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 };

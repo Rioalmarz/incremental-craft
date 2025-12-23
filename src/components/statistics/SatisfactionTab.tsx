@@ -6,29 +6,32 @@ import {
 } from "recharts";
 import { Heart, UserCheck, Star, ThumbsUp } from "lucide-react";
 import GaugeChart from "./GaugeChart";
-import { calculatePilotStatistics } from "@/lib/pilotDataGenerator";
 
 interface SatisfactionTabProps {
   patients: any[];
 }
 
 const SatisfactionTab = ({ patients }: SatisfactionTabProps) => {
-  const stats = calculatePilotStatistics(patients);
+  // Calculate satisfaction from real data
+  const patientsWithSatisfaction = patients.filter(p => p.satisfaction_score != null && p.satisfaction_score > 0);
+  const patientsWithProviderSatisfaction = patients.filter(p => p.provider_satisfaction_score != null && p.provider_satisfaction_score > 0);
+  
+  const avgSatisfactionScore = patientsWithSatisfaction.length > 0 
+    ? patientsWithSatisfaction.reduce((sum, p) => sum + p.satisfaction_score, 0) / patientsWithSatisfaction.length 
+    : 0;
+  const avgProviderScore = patientsWithProviderSatisfaction.length > 0 
+    ? patientsWithProviderSatisfaction.reduce((sum, p) => sum + p.provider_satisfaction_score, 0) / patientsWithProviderSatisfaction.length 
+    : 0;
   
   // Convert 1-5 scale to percentage (1=20%, 5=100%)
-  const beneficiarySatisfaction = stats.avgSatisfactionScore > 0 
-    ? (stats.avgSatisfactionScore / 5) * 100 
-    : 85; // Default high satisfaction
-  const providerSatisfaction = stats.avgProviderSatisfactionScore > 0 
-    ? (stats.avgProviderSatisfactionScore / 5) * 100 
-    : 88; // Default high satisfaction
+  const beneficiarySatisfaction = avgSatisfactionScore > 0 ? (avgSatisfactionScore / 5) * 100 : 0;
+  const providerSatisfaction = avgProviderScore > 0 ? (avgProviderScore / 5) * 100 : 0;
   
-  // Satisfaction breakdown (simulated)
+  // Total feedback count
+  const totalFeedback = patientsWithSatisfaction.length;
+  
+  // Satisfaction breakdown
   const satisfactionBreakdown = [
-    { category: 'سهولة التواصل', beneficiary: 92, provider: 85 },
-    { category: 'جودة الخدمة', beneficiary: 88, provider: 90 },
-    { category: 'سرعة الاستجابة', beneficiary: 78, provider: 82 },
-    { category: 'الاحترافية', beneficiary: 95, provider: 92 },
     { category: 'الرضا العام', beneficiary: Math.round(beneficiarySatisfaction), provider: Math.round(providerSatisfaction) },
   ];
 
@@ -52,8 +55,11 @@ const SatisfactionTab = ({ patients }: SatisfactionTabProps) => {
             />
             <div className="mt-4 flex items-center gap-2">
               <Star className="w-5 h-5 text-warning fill-warning" />
-              <span className="font-medium">{(stats.avgSatisfactionScore || 4.25).toFixed(1)} / 5</span>
+              <span className="font-medium">{avgSatisfactionScore.toFixed(1)} / 5</span>
             </div>
+            {totalFeedback === 0 && (
+              <p className="text-sm text-muted-foreground mt-2">لا توجد تقييمات</p>
+            )}
           </CardContent>
         </Card>
         
@@ -73,8 +79,11 @@ const SatisfactionTab = ({ patients }: SatisfactionTabProps) => {
             />
             <div className="mt-4 flex items-center gap-2">
               <Star className="w-5 h-5 text-warning fill-warning" />
-              <span className="font-medium">{(stats.avgProviderSatisfactionScore || 4.4).toFixed(1)} / 5</span>
+              <span className="font-medium">{avgProviderScore.toFixed(1)} / 5</span>
             </div>
+            {patientsWithProviderSatisfaction.length === 0 && (
+              <p className="text-sm text-muted-foreground mt-2">لا توجد تقييمات</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -84,15 +93,15 @@ const SatisfactionTab = ({ patients }: SatisfactionTabProps) => {
         <Card>
           <CardContent className="p-4 text-center">
             <ThumbsUp className="w-8 h-8 mx-auto mb-2 text-success" />
-            <p className="text-2xl font-bold">92%</p>
-            <p className="text-xs text-muted-foreground">يوصون بالخدمة</p>
+            <p className="text-2xl font-bold">{Math.round(beneficiarySatisfaction)}%</p>
+            <p className="text-xs text-muted-foreground">معدل الرضا</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardContent className="p-4 text-center">
             <Star className="w-8 h-8 mx-auto mb-2 text-warning fill-warning" />
-            <p className="text-2xl font-bold">4.3</p>
+            <p className="text-2xl font-bold">{avgSatisfactionScore.toFixed(1)}</p>
             <p className="text-xs text-muted-foreground">متوسط التقييم</p>
           </CardContent>
         </Card>
@@ -100,69 +109,51 @@ const SatisfactionTab = ({ patients }: SatisfactionTabProps) => {
         <Card>
           <CardContent className="p-4 text-center">
             <Heart className="w-8 h-8 mx-auto mb-2 text-destructive" />
-            <p className="text-2xl font-bold">89%</p>
-            <p className="text-xs text-muted-foreground">سيستخدمون الخدمة مجدداً</p>
+            <p className="text-2xl font-bold">{Math.round(providerSatisfaction)}%</p>
+            <p className="text-xs text-muted-foreground">رضا مقدم الخدمة</p>
           </CardContent>
         </Card>
         
         <Card>
           <CardContent className="p-4 text-center">
             <UserCheck className="w-8 h-8 mx-auto mb-2 text-primary" />
-            <p className="text-2xl font-bold">{stats.serviceDelivered}</p>
+            <p className="text-2xl font-bold">{totalFeedback}</p>
             <p className="text-xs text-muted-foreground">تقييمات مستلمة</p>
           </CardContent>
         </Card>
       </div>
       
       {/* Detailed Comparison */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">مقارنة الرضا بين المستفيدين ومقدمي الرعاية</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={satisfactionBreakdown} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 100]} />
-                <YAxis dataKey="category" type="category" width={100} tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => `${value}%`} />
-                <Bar dataKey="beneficiary" name="المستفيد" fill="#00BCD4" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="provider" name="مقدم الرعاية" fill="#4CAF50" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {(beneficiarySatisfaction > 0 || providerSatisfaction > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">مقارنة الرضا بين المستفيدين ومقدمي الرعاية</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={satisfactionBreakdown} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" domain={[0, 100]} />
+                  <YAxis dataKey="category" type="category" width={100} tick={{ fontSize: 12 }} />
+                  <Tooltip formatter={(value) => `${value}%`} />
+                  <Bar dataKey="beneficiary" name="المستفيد" fill="#00BCD4" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="provider" name="مقدم الرعاية" fill="#4CAF50" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
-      {/* Feedback Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">ملخص الملاحظات</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-success/10 rounded-lg border border-success/20">
-              <h4 className="font-medium text-success mb-2">نقاط القوة</h4>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• سهولة الوصول للخدمة</li>
-                <li>• احترافية الفريق الطبي</li>
-                <li>• جودة المتابعة</li>
-                <li>• وضوح التعليمات</li>
-              </ul>
-            </div>
-            <div className="p-4 bg-warning/10 rounded-lg border border-warning/20">
-              <h4 className="font-medium text-warning mb-2">فرص التحسين</h4>
-              <ul className="text-sm space-y-1 text-muted-foreground">
-                <li>• تقليل وقت الانتظار</li>
-                <li>• زيادة قنوات التواصل</li>
-                <li>• تحسين التنسيق بين الأقسام</li>
-                <li>• توفير مواعيد مرنة</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* No Data Message */}
+      {totalFeedback === 0 && patientsWithProviderSatisfaction.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">لا توجد بيانات رضا متاحة حالياً</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

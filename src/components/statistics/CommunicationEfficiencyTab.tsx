@@ -3,25 +3,30 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Phone, Clock, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import GaugeChart from "./GaugeChart";
-import { PILOT_CONFIG, calculatePilotStatistics } from "@/lib/pilotDataGenerator";
 
 interface CommunicationEfficiencyTabProps {
   patients: any[];
 }
 
 const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProps) => {
-  const stats = calculatePilotStatistics(patients);
+  const totalPatients = patients.length;
+  const contacted = patients.filter(p => p.contacted === true).length;
+  const notContacted = totalPatients - contacted;
+  const serviceDelivered = patients.filter(p => p.service_delivered === true).length;
   
-  // Use the configured communication efficiency (91%)
-  const communicationEfficiency = PILOT_CONFIG.communicationEfficiency;
+  // Calculate communication efficiency from real data
+  const communicationEfficiency = totalPatients > 0 ? Math.round((contacted / totalPatients) * 100) : 0;
+  const contactedRate = communicationEfficiency;
   
-  // Fixed response efficiency at 87%
-  const avgResponseTime = 2.1; // days
-  const targetResponseTime = 3; // days
-  const responseEfficiency = 87;
+  // Response efficiency (service delivered / contacted)
+  const responseEfficiency = contacted > 0 ? Math.round((serviceDelivered / contacted) * 100) : 0;
   
-  // Opportunity gap based on new efficiency
+  // Opportunity gap
   const opportunityGap = 100 - communicationEfficiency;
+  
+  // Target is 90%
+  const target = 90;
+  const gapFromTarget = target - communicationEfficiency;
 
   return (
     <div className="space-y-6">
@@ -44,8 +49,8 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
               <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center">
                 <Clock className="w-6 h-6 text-primary" />
               </div>
-              <p className="text-3xl font-bold text-primary">{avgResponseTime}</p>
-              <p className="text-sm text-muted-foreground text-center">متوسط وقت الاستجابة (أيام)</p>
+              <p className="text-3xl font-bold text-primary">{contacted}</p>
+              <p className="text-sm text-muted-foreground text-center">تم التواصل</p>
             </div>
           </CardContent>
         </Card>
@@ -68,7 +73,7 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
               <div className="w-12 h-12 bg-info/20 rounded-full flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-info" />
               </div>
-              <p className="text-3xl font-bold text-info">{Math.round(responseEfficiency)}%</p>
+              <p className="text-3xl font-bold text-info">{responseEfficiency}%</p>
               <p className="text-sm text-muted-foreground text-center">كفاءة الاستجابة</p>
             </div>
           </CardContent>
@@ -88,9 +93,9 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
             <div className="flex justify-between items-center p-3 bg-success/10 rounded-lg">
               <span>تم التواصل</span>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-success">{stats.contacted}</span>
+                <span className="font-bold text-success">{contacted}</span>
                 <Badge className="bg-success/20 text-success">
-                  {Math.round(stats.contactedRate)}%
+                  {contactedRate}%
                 </Badge>
               </div>
             </div>
@@ -98,9 +103,9 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
             <div className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
               <span>لم يتم التواصل</span>
               <div className="flex items-center gap-2">
-                <span className="font-bold">{stats.notContacted}</span>
+                <span className="font-bold">{notContacted}</span>
                 <Badge variant="outline">
-                  {Math.round(100 - stats.contactedRate)}%
+                  {100 - contactedRate}%
                 </Badge>
               </div>
             </div>
@@ -108,7 +113,7 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
             <div className="border-t pt-4">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">الإجمالي</span>
-                <span className="font-bold text-xl">{stats.total}</span>
+                <span className="font-bold text-xl">{totalPatients}</span>
               </div>
             </div>
           </CardContent>
@@ -118,41 +123,60 @@ const CommunicationEfficiencyTab = ({ patients }: CommunicationEfficiencyTabProp
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-success" />
-              أداء متميز
+              الأداء مقابل الهدف
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>النسبة المستهدفة</span>
-                <span className="font-medium">90%</span>
+                <span className="font-medium">{target}%</span>
               </div>
-              <Progress value={90} className="h-2" />
+              <Progress value={target} className="h-2" />
             </div>
             
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>النسبة الحالية</span>
-                <span className="font-medium text-success">{communicationEfficiency}%</span>
+                <span className={`font-medium ${communicationEfficiency >= target ? 'text-success' : 'text-warning'}`}>
+                  {communicationEfficiency}%
+                </span>
               </div>
               <Progress value={communicationEfficiency} className="h-2" />
             </div>
             
-            <div className="p-3 bg-success/10 rounded-lg border border-success/20">
-              <p className="text-sm">
-                <span className="font-medium text-success">إنجاز ممتاز: </span>
-                تجاوزنا الهدف بنسبة {communicationEfficiency - 90}% مع كفاءة تواصل {communicationEfficiency}%
-              </p>
-            </div>
+            {totalPatients > 0 ? (
+              communicationEfficiency >= target ? (
+                <div className="p-3 bg-success/10 rounded-lg border border-success/20">
+                  <p className="text-sm">
+                    <span className="font-medium text-success">إنجاز ممتاز: </span>
+                    تجاوزنا الهدف بنسبة {communicationEfficiency - target}% مع كفاءة تواصل {communicationEfficiency}%
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-warning/10 rounded-lg border border-warning/20">
+                  <p className="text-sm">
+                    <span className="font-medium text-warning">يحتاج تحسين: </span>
+                    أقل من الهدف بـ {gapFromTarget}% - النسبة الحالية {communicationEfficiency}%
+                  </p>
+                </div>
+              )
+            ) : (
+              <div className="p-3 bg-muted/30 rounded-lg border border-border">
+                <p className="text-sm text-muted-foreground text-center">
+                  لا توجد بيانات متاحة
+                </p>
+              </div>
+            )}
             
             <div className="grid grid-cols-2 gap-2 text-center">
               <div className="p-2 bg-muted/30 rounded">
-                <p className="text-xs text-muted-foreground">متوسط المحاولات</p>
-                <p className="font-bold">1.6</p>
+                <p className="text-xs text-muted-foreground">تم تقديم الخدمة</p>
+                <p className="font-bold">{serviceDelivered}</p>
               </div>
               <div className="p-2 bg-muted/30 rounded">
-                <p className="text-xs text-muted-foreground">معدل الرد</p>
-                <p className="font-bold">89%</p>
+                <p className="text-xs text-muted-foreground">معدل الإنجاز</p>
+                <p className="font-bold">{responseEfficiency}%</p>
               </div>
             </div>
           </CardContent>

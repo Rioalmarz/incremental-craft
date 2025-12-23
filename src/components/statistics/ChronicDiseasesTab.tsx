@@ -6,8 +6,7 @@ import {
   Tooltip, ResponsiveContainer, Legend 
 } from "recharts";
 import { Activity, Heart, Droplets, Users } from "lucide-react";
-import { hashPatientId, generatePilotDataForPatient } from "@/lib/pilotDataGenerator";
-import { classifyOverallRisk } from "@/lib/riskClassification";
+import { classifyOverallRisk, classifyHBA1C, classifyBP, classifyLDL } from "@/lib/riskClassification";
 
 interface ChronicDiseasesTabProps {
   patients: any[];
@@ -24,40 +23,23 @@ const COLORS = {
   intervention: '#F44336',
 };
 
-// Fixed chronic disease counts as specified
-const FIXED_COUNTS = {
-  dm: 118,
-  htn: 103,
-};
-
 const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
   const isMale = (gender: string | null) => 
     gender === "Male" || gender === "ذكر" || gender === "male";
   const isFemale = (gender: string | null) => 
     gender === "Female" || gender === "أنثى" || gender === "female";
 
+  // Calculate real counts from data
+  const dmCount = patients.filter(p => p.has_dm === true).length;
+  const htnCount = patients.filter(p => p.has_htn === true).length;
+  const dlpCount = patients.filter(p => p.has_dyslipidemia === true).length;
+  
   // Filter chronic patients
   const chronicPatients = patients.filter(p => p.has_dm || p.has_htn || p.has_dyslipidemia);
-  
-  // Calculate pilot data for each patient
-  const patientsWithPilot = chronicPatients.map(p => {
-    if (p.contacted !== undefined && p.contacted !== null) return p;
-    const pilotData = generatePilotDataForPatient(hashPatientId(p.id), p.age, {
-      fasting_blood_glucose: p.fasting_blood_glucose,
-      hba1c: p.hba1c,
-      ldl: p.ldl,
-      bp_last_visit: p.bp_last_visit,
-    });
-    return { ...p, ...pilotData };
-  });
-  
-  // Use fixed counts for DM and HTN as specified
-  const dmCount = FIXED_COUNTS.dm;
-  const htnCount = FIXED_COUNTS.htn;
-  const dlpCount = patients.filter(p => p.has_dyslipidemia).length || 87;
+  const totalChronic = chronicPatients.length;
   
   // Calculate risk classification for chronic patients
-  const riskStats = patientsWithPilot.reduce((acc, p) => {
+  const riskStats = chronicPatients.reduce((acc, p) => {
     const risk = classifyOverallRisk({
       fasting_blood_glucose: p.fasting_blood_glucose,
       hba1c: p.hba1c,
@@ -71,50 +53,66 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
     return acc;
   }, { controlled: 0, monitoring: 0, intervention: 0 });
 
-  // Fallback values if no real data
-  const totalChronic = chronicPatients.length || (dmCount + htnCount + dlpCount) / 2;
   const riskClassificationData = [
-    { 
-      name: 'مسيطر عليهم', 
-      value: riskStats.controlled || Math.round(totalChronic * 0.45), 
-      fill: COLORS.controlled 
-    },
-    { 
-      name: 'يحتاجون مراقبة', 
-      value: riskStats.monitoring || Math.round(totalChronic * 0.35), 
-      fill: COLORS.monitoring 
-    },
-    { 
-      name: 'يحتاجون تدخل', 
-      value: riskStats.intervention || Math.round(totalChronic * 0.20), 
-      fill: COLORS.intervention 
-    },
+    { name: 'مسيطر عليهم', value: riskStats.controlled, fill: COLORS.controlled },
+    { name: 'يحتاجون مراقبة', value: riskStats.monitoring, fill: COLORS.monitoring },
+    { name: 'يحتاجون تدخل', value: riskStats.intervention, fill: COLORS.intervention },
   ];
   
-  // Calculate proportional gender distribution based on fixed counts
-  const maleRatio = patients.filter(p => isMale(p.gender)).length / Math.max(patients.length, 1);
-  const femaleRatio = 1 - maleRatio;
-  
-  // Disease by gender - males have higher rates globally
+  // Calculate disease by gender from real data
+  const dmMale = patients.filter(p => p.has_dm && isMale(p.gender)).length;
+  const dmFemale = patients.filter(p => p.has_dm && isFemale(p.gender)).length;
+  const htnMale = patients.filter(p => p.has_htn && isMale(p.gender)).length;
+  const htnFemale = patients.filter(p => p.has_htn && isFemale(p.gender)).length;
+  const dlpMale = patients.filter(p => p.has_dyslipidemia && isMale(p.gender)).length;
+  const dlpFemale = patients.filter(p => p.has_dyslipidemia && isFemale(p.gender)).length;
+
   const diseaseByGender = [
-    { 
-      name: 'السكري', 
-      male: Math.round(dmCount * 0.58), 
-      female: Math.round(dmCount * 0.42)
-    },
-    { 
-      name: 'الضغط', 
-      male: Math.round(htnCount * 0.55), 
-      female: Math.round(htnCount * 0.45)
-    },
-    { 
-      name: 'الدهون', 
-      male: Math.round(dlpCount * 0.54), 
-      female: Math.round(dlpCount * 0.46)
-    },
+    { name: 'السكري', male: dmMale, female: dmFemale },
+    { name: 'الضغط', male: htnMale, female: htnFemale },
+    { name: 'الدهون', male: dlpMale, female: dlpFemale },
   ];
-  
-  const controlledPercentage = totalChronic > 0 ? Math.round((riskClassificationData[0].value / totalChronic) * 100) : 45;
+
+  // Calculate control rates for each disease
+  const dmPatients = patients.filter(p => p.has_dm);
+  const dmControlStats = dmPatients.reduce((acc, p) => {
+    const result = classifyHBA1C(p.hba1c);
+    if (result === "مسيطر عليه") acc.controlled++;
+    else if (result === "يحتاج مراقبة") acc.nearControl++;
+    else if (result === "يحتاج تعديل أو تدخل من الطبيب") acc.uncontrolled++;
+    return acc;
+  }, { controlled: 0, nearControl: 0, uncontrolled: 0 });
+
+  const htnPatients = patients.filter(p => p.has_htn);
+  const htnControlStats = htnPatients.reduce((acc, p) => {
+    const result = classifyBP(p.bp_last_visit);
+    if (result === "مسيطر عليه") acc.controlled++;
+    else if (result === "يحتاج مراقبة") acc.nearControl++;
+    else if (result === "يحتاج تعديل أو تدخل من الطبيب") acc.uncontrolled++;
+    return acc;
+  }, { controlled: 0, nearControl: 0, uncontrolled: 0 });
+
+  const dlpPatients = patients.filter(p => p.has_dyslipidemia);
+  const dlpControlStats = dlpPatients.reduce((acc, p) => {
+    const result = classifyLDL(p.ldl);
+    if (result === "مسيطر عليه") acc.controlled++;
+    else if (result === "يحتاج مراقبة") acc.nearControl++;
+    else if (result === "يحتاج تعديل أو تدخل من الطبيب") acc.uncontrolled++;
+    return acc;
+  }, { controlled: 0, nearControl: 0, uncontrolled: 0 });
+
+  // Calculate percentages
+  const dmControlledPct = dmPatients.length > 0 ? Math.round((dmControlStats.controlled / dmPatients.length) * 100) : 0;
+  const dmNearPct = dmPatients.length > 0 ? Math.round((dmControlStats.nearControl / dmPatients.length) * 100) : 0;
+  const dmUncontrolledPct = dmPatients.length > 0 ? Math.round((dmControlStats.uncontrolled / dmPatients.length) * 100) : 0;
+
+  const htnControlledPct = htnPatients.length > 0 ? Math.round((htnControlStats.controlled / htnPatients.length) * 100) : 0;
+  const htnNearPct = htnPatients.length > 0 ? Math.round((htnControlStats.nearControl / htnPatients.length) * 100) : 0;
+  const htnUncontrolledPct = htnPatients.length > 0 ? Math.round((htnControlStats.uncontrolled / htnPatients.length) * 100) : 0;
+
+  const dlpControlledPct = dlpPatients.length > 0 ? Math.round((dlpControlStats.controlled / dlpPatients.length) * 100) : 0;
+  const dlpNearPct = dlpPatients.length > 0 ? Math.round((dlpControlStats.nearControl / dlpPatients.length) * 100) : 0;
+  const dlpUncontrolledPct = dlpPatients.length > 0 ? Math.round((dlpControlStats.uncontrolled / dlpPatients.length) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -192,7 +190,7 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
               <div className="text-center">
                 <h4 className="font-semibold text-foreground">السيطرة على السكري</h4>
                 <p className="text-sm text-muted-foreground">(HbA1c &lt; 7%)</p>
-                <p className="text-xs text-muted-foreground mt-1">(المتوسط ≈ 40%)</p>
+                <p className="text-xs text-muted-foreground mt-1">({dmPatients.length} مريض)</p>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -200,21 +198,21 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
                     <span className="w-3 h-3 rounded-full bg-success"></span>
                     🟢 مسيطر
                   </span>
-                  <span className="font-bold text-success">41%</span>
+                  <span className="font-bold text-success">{dmControlledPct}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-warning"></span>
                     🟡 قريب
                   </span>
-                  <span className="font-bold text-warning">25%</span>
+                  <span className="font-bold text-warning">{dmNearPct}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-destructive"></span>
                     🔴 غير مسيطر
                   </span>
-                  <span className="font-bold text-destructive">34%</span>
+                  <span className="font-bold text-destructive">{dmUncontrolledPct}%</span>
                 </div>
               </div>
             </div>
@@ -224,6 +222,7 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
               <div className="text-center">
                 <h4 className="font-semibold text-foreground">السيطرة على الضغط</h4>
                 <p className="text-sm text-muted-foreground">(BP &lt; 140/90)</p>
+                <p className="text-xs text-muted-foreground mt-1">({htnPatients.length} مريض)</p>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -231,21 +230,21 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
                     <span className="w-3 h-3 rounded-full bg-success"></span>
                     مسيطر
                   </span>
-                  <span className="font-bold text-success">58%</span>
+                  <span className="font-bold text-success">{htnControlledPct}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-warning"></span>
                     قريب
                   </span>
-                  <span className="font-bold text-warning">21%</span>
+                  <span className="font-bold text-warning">{htnNearPct}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-destructive"></span>
                     غير مسيطر
                   </span>
-                  <span className="font-bold text-destructive">21%</span>
+                  <span className="font-bold text-destructive">{htnUncontrolledPct}%</span>
                 </div>
               </div>
             </div>
@@ -255,6 +254,7 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
               <div className="text-center">
                 <h4 className="font-semibold text-foreground">السيطرة على الدهون</h4>
                 <p className="text-sm text-muted-foreground">(LDL &lt; 100)</p>
+                <p className="text-xs text-muted-foreground mt-1">({dlpPatients.length} مريض)</p>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -262,21 +262,21 @@ const ChronicDiseasesTab = ({ patients }: ChronicDiseasesTabProps) => {
                     <span className="w-3 h-3 rounded-full bg-success"></span>
                     مسيطر
                   </span>
-                  <span className="font-bold text-success">67%</span>
+                  <span className="font-bold text-success">{dlpControlledPct}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-warning"></span>
                     قريب
                   </span>
-                  <span className="font-bold text-warning">19%</span>
+                  <span className="font-bold text-warning">{dlpNearPct}%</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded-full bg-destructive"></span>
                     غير مسيطر
                   </span>
-                  <span className="font-bold text-destructive">14%</span>
+                  <span className="font-bold text-destructive">{dlpUncontrolledPct}%</span>
                 </div>
               </div>
             </div>

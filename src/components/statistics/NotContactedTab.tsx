@@ -5,7 +5,6 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from "recharts";
 import { UserX, Phone, AlertTriangle, TrendingDown } from "lucide-react";
-import { NON_CONTACT_REASONS } from "@/lib/pilotDataGenerator";
 
 interface NotContactedTabProps {
   patients: any[];
@@ -13,21 +12,36 @@ interface NotContactedTabProps {
 
 const COLORS = ['#F44336', '#FF9800', '#FFC107', '#9C27B0', '#607D8B'];
 
+const NON_CONTACT_REASONS = [
+  'رقم خاطئ',
+  'لا يرد',
+  'خارج التغطية',
+  'رفض التواصل',
+  'أخرى'
+];
+
 const NotContactedTab = ({ patients }: NotContactedTabProps) => {
-  // Fixed values: 19% of 594 = 113 not contacted
-  const totalPatients = 594;
-  const notContactedRate = 19;
-  const notContactedCount = Math.round(totalPatients * 0.19); // 113
-  const contactedRate = 81;
+  const totalPatients = patients.length;
+  const contactedCount = patients.filter(p => p.contacted === true).length;
+  const notContactedCount = totalPatients - contactedCount;
+  const notContactedRate = totalPatients > 0 ? Math.round((notContactedCount / totalPatients) * 100) : 0;
+  const contactedRate = totalPatients > 0 ? Math.round((contactedCount / totalPatients) * 100) : 0;
   
-  // Simulate non-contact reasons distribution
-  const reasonsData = NON_CONTACT_REASONS.map((reason, index) => ({
-    name: reason,
-    value: Math.round(notContactedCount * [0.35, 0.25, 0.18, 0.12, 0.10][index]),
-    color: COLORS[index],
-  }));
+  // Get non-contact reasons from actual data
+  const notContactedPatients = patients.filter(p => p.contacted !== true);
+  const reasonsCount = notContactedPatients.reduce((acc, p) => {
+    const reason = p.non_delivery_reason || 'أخرى';
+    acc[reason] = (acc[reason] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
   
-  // Coverage gap is small since 81% contacted
+  const reasonsData = Object.entries(reasonsCount).map(([name, value], index) => ({
+    name,
+    value: value as number,
+    color: COLORS[index % COLORS.length],
+  })).sort((a, b) => b.value - a.value);
+  
+  // Coverage gap
   const coverageGap = notContactedRate;
 
   return (
@@ -97,12 +111,29 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
             </div>
           </div>
           
-          <div className="p-3 bg-success/10 rounded-lg border border-success/20">
-            <p className="text-sm">
-              <span className="font-medium text-success">أداء جيد: </span>
-              تم الوصول لـ {contactedRate}% من المستفيدين، مع {notContactedCount} مستفيد فقط لم يتم التواصل معهم
-            </p>
-          </div>
+          {totalPatients > 0 ? (
+            contactedRate >= 80 ? (
+              <div className="p-3 bg-success/10 rounded-lg border border-success/20">
+                <p className="text-sm">
+                  <span className="font-medium text-success">أداء جيد: </span>
+                  تم الوصول لـ {contactedRate}% من المستفيدين، مع {notContactedCount} مستفيد لم يتم التواصل معهم
+                </p>
+              </div>
+            ) : (
+              <div className="p-3 bg-warning/10 rounded-lg border border-warning/20">
+                <p className="text-sm">
+                  <span className="font-medium text-warning">يحتاج تحسين: </span>
+                  نسبة التواصل {contactedRate}% - يجب رفعها لتحقيق التغطية المستهدفة
+                </p>
+              </div>
+            )
+          ) : (
+            <div className="p-3 bg-muted/30 rounded-lg border border-border">
+              <p className="text-sm text-muted-foreground text-center">
+                لا توجد بيانات متاحة
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
       
@@ -114,24 +145,30 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
           </CardHeader>
           <CardContent>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={reasonsData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {reasonsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value, name) => [value, name]} />
-                </PieChart>
-              </ResponsiveContainer>
+              {reasonsData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={reasonsData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {reasonsData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value, name) => [value, name]} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-muted-foreground">
+                  لا توجد بيانات
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -142,24 +179,30 @@ const NotContactedTab = ({ patients }: NotContactedTabProps) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {reasonsData.map((reason, index) => (
-                <div key={index} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: reason.color }}
-                      />
-                      <span>{reason.name}</span>
+              {reasonsData.length > 0 ? (
+                reasonsData.map((reason, index) => (
+                  <div key={index} className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: reason.color }}
+                        />
+                        <span>{reason.name}</span>
+                      </div>
+                      <span className="font-medium">{reason.value}</span>
                     </div>
-                    <span className="font-medium">{reason.value}</span>
+                    <Progress 
+                      value={notContactedCount > 0 ? (reason.value / notContactedCount) * 100 : 0} 
+                      className="h-1.5"
+                    />
                   </div>
-                  <Progress 
-                    value={notContactedCount > 0 ? (reason.value / notContactedCount) * 100 : 0} 
-                    className="h-1.5"
-                  />
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground py-8">
+                  لا توجد بيانات
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
