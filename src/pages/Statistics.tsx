@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { 
-  ArrowRight, Users, RefreshCw, Printer, 
+  ArrowRight, ArrowLeft, Users, RefreshCw, Printer, 
   ShieldCheck, Activity, Baby, Phone, UserCheck, UserX, Heart, Ambulance, UsersRound 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ import PredictivePerformanceCard from "@/components/statistics/PredictivePerform
 
 const Statistics = () => {
   const { user, profile, loading, isSuperAdmin } = useAuth();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const dashboardRef = useRef<HTMLDivElement>(null);
   
@@ -92,40 +94,42 @@ const Statistics = () => {
   }
 
   const tabs = [
-    { id: "preventive", label: "الرعاية الوقائية", icon: ShieldCheck },
-    { id: "chronic", label: "الأمراض المزمنة", icon: Activity },
-    { id: "child", label: "الطفل السليم", icon: Baby },
-    { id: "teams", label: "الفرق الطبية", icon: UsersRound },
-    { id: "efficiency", label: "كفاءة التواصل", icon: Phone },
-    { id: "contacted", label: "المتواصل معهم", icon: UserCheck },
-    { id: "notContacted", label: "لم يتم التواصل", icon: UserX },
-    { id: "emergency", label: "التحويل للطوارئ", icon: Ambulance },
-    { id: "satisfaction", label: "قياس الرضا", icon: Heart },
+    { id: "preventive", labelAr: "الرعاية الوقائية", labelEn: "Preventive Care", icon: ShieldCheck },
+    { id: "chronic", labelAr: "الأمراض المزمنة", labelEn: "Chronic Diseases", icon: Activity },
+    { id: "child", labelAr: "الطفل السليم", labelEn: "Healthy Child", icon: Baby },
+    { id: "teams", labelAr: "الفرق الطبية", labelEn: "Medical Teams", icon: UsersRound },
+    { id: "efficiency", labelAr: "كفاءة التواصل", labelEn: "Communication", icon: Phone },
+    { id: "contacted", labelAr: "المتواصل معهم", labelEn: "Contacted", icon: UserCheck },
+    { id: "notContacted", labelAr: "لم يتم التواصل", labelEn: "Not Contacted", icon: UserX },
+    { id: "emergency", labelAr: "التحويل للطوارئ", labelEn: "Emergency", icon: Ambulance },
+    { id: "satisfaction", labelAr: "قياس الرضا", labelEn: "Satisfaction", icon: Heart },
   ];
 
+  const BackIcon = language === 'ar' ? ArrowRight : ArrowLeft;
+
   return (
-    <div className="min-h-screen bg-background" dir="rtl" ref={dashboardRef}>
+    <div className="min-h-screen bg-background" dir={language === 'ar' ? 'rtl' : 'ltr'} ref={dashboardRef}>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className={`flex items-center justify-between ${language === 'en' ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex items-center gap-4 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
               <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="rounded-full">
-                <ArrowRight className="h-5 w-5" />
+                <BackIcon className="h-5 w-5" />
               </Button>
-              <div>
-                <h1 className="text-xl font-bold">لوحة الإحصائيات</h1>
-                <p className="text-sm text-muted-foreground">Statistics Dashboard</p>
+              <div className={language === 'en' ? 'text-left' : ''}>
+                <h1 className="text-xl font-bold">{t('statisticsTitle')}</h1>
+                <p className="text-sm text-muted-foreground">{language === 'ar' ? 'Statistics Dashboard' : ''}</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={fetchData} className="gap-2">
+            <div className={`flex gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
+              <Button variant="outline" size="sm" onClick={fetchData} className={`gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                 <RefreshCw className="h-4 w-4" />
-                تحديث
+                {t('refresh')}
               </Button>
-              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
+              <Button variant="outline" size="sm" onClick={handlePrint} className={`gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                 <Printer className="h-4 w-4" />
-                طباعة
+                {t('print')}
               </Button>
             </div>
           </div>
@@ -139,7 +143,7 @@ const Statistics = () => {
             <CardContent className="p-4 text-center">
               <Users className="w-8 h-8 mx-auto mb-2 text-primary" />
               <p className="text-3xl font-bold">{totalPatients}</p>
-              <p className="text-sm text-muted-foreground">إجمالي المستفيدين</p>
+              <p className="text-sm text-muted-foreground">{t('totalBeneficiaries')}</p>
             </CardContent>
           </Card>
           
@@ -147,7 +151,7 @@ const Statistics = () => {
             <CardContent className="p-4 text-center">
               <UserCheck className="w-8 h-8 mx-auto mb-2 text-success" />
               <p className="text-3xl font-bold text-success">{contactedCount}</p>
-              <p className="text-sm text-muted-foreground">تم التواصل ({contactedRate}%)</p>
+              <p className="text-sm text-muted-foreground">{t('contacted')} ({contactedRate}%)</p>
             </CardContent>
           </Card>
           
@@ -155,7 +159,7 @@ const Statistics = () => {
             <CardContent className="p-4 text-center">
               <UserX className="w-8 h-8 mx-auto mb-2 text-warning" />
               <p className="text-3xl font-bold text-warning">{notContactedCount}</p>
-              <p className="text-sm text-muted-foreground">لم يتم الرد ({notContactedRate}%)</p>
+              <p className="text-sm text-muted-foreground">{t('notContacted')} ({notContactedRate}%)</p>
             </CardContent>
           </Card>
           
@@ -163,7 +167,7 @@ const Statistics = () => {
             <CardContent className="p-4 text-center">
               <Heart className="w-8 h-8 mx-auto mb-2 text-info" />
               <p className="text-3xl font-bold text-info">{avgSatisfaction}%</p>
-              <p className="text-sm text-muted-foreground">رضا المستفيد</p>
+              <p className="text-sm text-muted-foreground">{t('beneficiarySatisfaction')}</p>
             </CardContent>
           </Card>
         </div>
@@ -181,7 +185,7 @@ const Statistics = () => {
                 className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg px-4 py-2"
               >
                 <tab.icon className="w-4 h-4" />
-                <span className="hidden md:inline">{tab.label}</span>
+                <span className="hidden md:inline">{language === 'ar' ? tab.labelAr : tab.labelEn}</span>
               </TabsTrigger>
             ))}
           </TabsList>

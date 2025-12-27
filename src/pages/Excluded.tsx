@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowRight,
+  ArrowLeft,
   Search,
   Filter,
   XCircle,
@@ -35,7 +37,7 @@ import {
   Building,
 } from "lucide-react";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
+import { ar, enUS } from "date-fns/locale";
 
 interface Patient {
   id: string;
@@ -57,6 +59,7 @@ interface ScreeningData {
 
 const Excluded = () => {
   const { user, loading, isSuperAdmin } = useAuth();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -67,7 +70,6 @@ const Excluded = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [reasonFilter, setReasonFilter] = useState<string>("all");
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -97,7 +99,6 @@ const Excluded = () => {
       if (error) throw error;
       setPatients(data || []);
 
-      // Fetch screening data for all excluded patients
       const patientIds = (data || []).map(p => p.id);
       if (patientIds.length > 0) {
         const { data: screeningData } = await supabase
@@ -114,8 +115,8 @@ const Excluded = () => {
     } catch (error) {
       console.error("Error fetching patients:", error);
       toast({
-        title: "خطأ",
-        description: "فشل في تحميل بيانات المستفيدين",
+        title: t('error'),
+        description: t('loadError'),
         variant: "destructive",
       });
     } finally {
@@ -146,16 +147,17 @@ const Excluded = () => {
 
   const formatDate = (dateString: string) => {
     try {
-      return format(new Date(dateString), "dd / MM / yyyy", { locale: ar });
+      return format(new Date(dateString), "dd / MM / yyyy", { locale: language === 'ar' ? ar : enUS });
     } catch {
       return "-";
     }
   };
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedPatients = filteredPatients.slice(startIndex, startIndex + itemsPerPage);
+
+  const BackIcon = language === 'ar' ? ArrowRight : ArrowLeft;
 
   if (loading) {
     return (
@@ -166,22 +168,22 @@ const Excluded = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className={`container mx-auto px-4 py-3 flex items-center justify-between ${language === 'en' ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-3 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
             <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowRight size={20} />
+              <BackIcon size={20} />
             </Button>
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
               <XCircle className="text-destructive" size={24} />
-              <h1 className="text-lg font-bold">المستبعدين</h1>
+              <h1 className="text-lg font-bold">{t('excludedTitle')}</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {filteredPatients.length} مستفيد
+              {filteredPatients.length} {t('beneficiary')}
             </Badge>
           </div>
         </div>
@@ -190,39 +192,39 @@ const Excluded = () => {
       {/* Info Banner */}
       <section className="py-3 px-4 bg-destructive/10 border-b border-destructive/20">
         <div className="container mx-auto">
-          <p className="text-sm text-destructive flex items-center gap-2">
+          <p className={`text-sm text-destructive flex items-center gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
             <XCircle size={16} />
-            الحالات المستبعدة لا تعود للمسار إلا بإعادة تفعيل يدوي من المشرف
+            {t('excludedNote')}
           </p>
         </div>
       </section>
 
       {/* Filters */}
       <section className="py-4 px-4 border-b bg-card/50">
-        <div className="container mx-auto flex flex-wrap gap-4 items-center">
+        <div className={`container mx-auto flex flex-wrap gap-4 items-center ${language === 'en' ? 'flex-row-reverse' : ''}`}>
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+            <Search className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${language === 'ar' ? 'right-3' : 'left-3'}`} size={18} />
             <Input
-              placeholder="البحث بالاسم أو رقم الهوية..."
+              placeholder={t('searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10"
+              className={language === 'ar' ? 'pr-10' : 'pl-10'}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
             <Filter size={18} className="text-muted-foreground" />
             <Select value={reasonFilter} onValueChange={setReasonFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="سبب الاستبعاد" />
+                <SelectValue placeholder={t('exclusionReason')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">الكل</SelectItem>
-                <SelectItem value="لا يرد">لا يرد على الاتصال</SelectItem>
-                <SelectItem value="رقم غير صحيح">رقم غير صحيح</SelectItem>
-                <SelectItem value="خارج نطاق">خارج نطاق الخدمة</SelectItem>
-                <SelectItem value="لا تنطبق">لا تنطبق معايير المبادرة</SelectItem>
-                <SelectItem value="لا يحتاج">لا يحتاج متابعة</SelectItem>
-                <SelectItem value="انتقل">انتقل لمنطقة أخرى</SelectItem>
+                <SelectItem value="all">{t('all')}</SelectItem>
+                <SelectItem value="لا يرد">{t('noAnswer')}</SelectItem>
+                <SelectItem value="رقم غير صحيح">{t('wrongNumber')}</SelectItem>
+                <SelectItem value="خارج نطاق">{t('outOfService')}</SelectItem>
+                <SelectItem value="لا تنطبق">{t('notEligible')}</SelectItem>
+                <SelectItem value="لا يحتاج">{t('noFollowUp')}</SelectItem>
+                <SelectItem value="انتقل">{t('relocated')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -241,19 +243,19 @@ const Excluded = () => {
               ) : filteredPatients.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
                   <XCircle size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>لا يوجد مستفيدين مستبعدين</p>
+                  <p>{t('noExcludedPatients')}</p>
                 </div>
               ) : (
                 <>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">المستفيد</TableHead>
-                        <TableHead className="text-right">المركز / الفريق</TableHead>
-                        <TableHead className="text-right">سبب الاستبعاد</TableHead>
-                        <TableHead className="text-right">ملاحظات</TableHead>
-                        <TableHead className="text-right">تاريخ الاستبعاد</TableHead>
-                        <TableHead className="text-right">بواسطة</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('beneficiary')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('center')} / {t('team')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('exclusionReason')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('notes')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('exclusionDate')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('by')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -266,7 +268,7 @@ const Excluded = () => {
                                 <p className="font-medium">{patient.name}</p>
                                 <p className="text-xs text-muted-foreground">{patient.national_id}</p>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                  <span>{patient.age || "-"} سنة</span>
+                                  <span>{patient.age || "-"} {t('year')}</span>
                                   <span>•</span>
                                   <span>{patient.gender || "-"}</span>
                                 </div>
@@ -274,12 +276,12 @@ const Excluded = () => {
                             </TableCell>
                             <TableCell>
                               <div className="text-sm">
-                                <div className="flex items-center gap-1">
+                                <div className={`flex items-center gap-1 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                                   <Building size={14} className="text-muted-foreground" />
                                   <span>{patient.center_id}</span>
                                 </div>
                                 {patient.team && (
-                                  <div className="flex items-center gap-1 text-muted-foreground">
+                                  <div className={`flex items-center gap-1 text-muted-foreground ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                                     <User size={14} />
                                     <span>{patient.team}</span>
                                   </div>
@@ -288,7 +290,7 @@ const Excluded = () => {
                             </TableCell>
                             <TableCell>
                               <Badge variant="destructive" className="whitespace-nowrap">
-                                {patient.exclusion_reason || "غير محدد"}
+                                {patient.exclusion_reason || t('notSpecified')}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -297,7 +299,7 @@ const Excluded = () => {
                               </p>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1 text-sm">
+                              <div className={`flex items-center gap-1 text-sm ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                                 <Calendar size={14} className="text-muted-foreground" />
                                 <span>{formatDate(patient.updated_at)}</span>
                               </div>
@@ -320,10 +322,10 @@ const Excluded = () => {
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                       >
-                        <ChevronRight size={18} />
+                        {language === 'ar' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        صفحة {currentPage} من {totalPages}
+                        {t('page')} {currentPage} {t('of')} {totalPages}
                       </span>
                       <Button
                         variant="ghost"
@@ -331,7 +333,7 @@ const Excluded = () => {
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
                       >
-                        <ChevronLeft size={18} />
+                        {language === 'ar' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
                       </Button>
                     </div>
                   )}
