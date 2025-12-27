@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Search, UserCheck, Users } from "lucide-react";
-
+import { ArrowRight, Search, UserCheck, Users, CheckCircle, XCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 
 const Eligible = () => {
@@ -20,6 +21,24 @@ const Eligible = () => {
   const topScrollRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const [tableWidth, setTableWidth] = useState(0);
+
+  // Fetch real statistics from database
+  const { data: stats } = useQuery({
+    queryKey: ['eligible-stats'],
+    queryFn: async () => {
+      const { data: patients, error } = await supabase
+        .from('patients')
+        .select('id, status, exclusion_reason, service_delivered');
+      
+      if (error) throw error;
+      
+      const total = patients?.length || 0;
+      const completed = patients?.filter(p => p.status === 'مكتمل' || p.service_delivered).length || 0;
+      const excluded = patients?.filter(p => p.status === 'مستبعد' || p.exclusion_reason).length || 0;
+      
+      return { total, completed, excluded };
+    }
+  });
 
   // Sync scrollbars
   const handleTopScroll = () => {
@@ -165,12 +184,46 @@ const Eligible = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Database Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="glass-card">
+            <CardContent className="p-6 text-center">
+              <div className="p-3 bg-primary/10 rounded-xl w-fit mx-auto mb-3">
+                <Users className="h-8 w-8 text-primary" />
+              </div>
+              <p className="text-4xl font-bold text-foreground mb-1">{stats?.total?.toLocaleString() || 0}</p>
+              <p className="text-sm text-muted-foreground">المستفيدين</p>
+              <p className="text-xs text-primary mt-1">Beneficiaries</p>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-6 text-center">
+              <div className="p-3 bg-success/10 rounded-xl w-fit mx-auto mb-3">
+                <CheckCircle className="h-8 w-8 text-success" />
+              </div>
+              <p className="text-4xl font-bold text-foreground mb-1">{stats?.completed?.toLocaleString() || 0}</p>
+              <p className="text-sm text-muted-foreground">المكتملين</p>
+              <p className="text-xs text-primary mt-1">Completed</p>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-6 text-center">
+              <div className="p-3 bg-destructive/10 rounded-xl w-fit mx-auto mb-3">
+                <XCircle className="h-8 w-8 text-destructive" />
+              </div>
+              <p className="text-4xl font-bold text-foreground mb-1">{stats?.excluded?.toLocaleString() || 0}</p>
+              <p className="text-sm text-muted-foreground">المستبعدين</p>
+              <p className="text-xs text-primary mt-1">Excluded</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Eligible Table Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-3 bg-primary/20 rounded-xl">
-                <Users className="h-6 w-6 text-primary" />
+                <UserCheck className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">إجمالي المؤهلين</p>
@@ -181,7 +234,7 @@ const Eligible = () => {
           <Card className="bg-gradient-to-br from-accent/10 to-accent/5 border-accent/20">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-3 bg-accent/20 rounded-xl">
-                <UserCheck className="h-6 w-6 text-accent" />
+                <Users className="h-6 w-6 text-accent" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">عدد الأعمدة</p>

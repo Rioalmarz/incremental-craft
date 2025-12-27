@@ -4,11 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, Users, ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Settings, UserCog, User, Menu, Bell, Search, Shield, CalendarDays, UserCheck } from "lucide-react";
+import { LogOut, ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Settings, UserCog, User, Menu, Bell, Search, Shield, CalendarDays, UserCheck } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 
 const Home = () => {
@@ -17,23 +15,6 @@ const Home = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Fetch real statistics from database
-  const { data: stats } = useQuery({
-    queryKey: ['home-stats'],
-    queryFn: async () => {
-      const { data: patients, error } = await supabase
-        .from('patients')
-        .select('id, status, exclusion_reason, contacted, service_delivered');
-      
-      if (error) throw error;
-      
-      const total = patients?.length || 0;
-      const completed = patients?.filter(p => p.status === 'مكتمل' || p.service_delivered).length || 0;
-      const excluded = patients?.filter(p => p.status === 'مستبعد' || p.exclusion_reason).length || 0;
-      
-      return { total, completed, excluded };
-    }
-  });
 
   useEffect(() => {
     if (!loading && !user) {
@@ -60,12 +41,12 @@ const Home = () => {
   }
 
   const menuItems = [
-    { title: "الفرز الأولي", icon: ClipboardList, path: "/screening", count: stats?.total || 0 },
-    { title: "العيادة الافتراضية", icon: Stethoscope, path: "/virtual-clinic", count: 0 },
+    { title: "الفرز الأولي", icon: ClipboardList, path: "/screening" },
+    { title: "العيادة الافتراضية", icon: Stethoscope, path: "/virtual-clinic" },
     { title: "الإحصائيات", icon: BarChart3, path: "/statistics" },
-    { title: "المكتملين", icon: CheckCircle, path: "/completed", count: stats?.completed || 0 },
-    { title: "المستبعدين", icon: XCircle, path: "/excluded", count: stats?.excluded || 0 },
-    { title: "جميع البيانات", icon: Database, path: "/all-patients", count: stats?.total || 0 },
+    { title: "المكتملين", icon: CheckCircle, path: "/completed" },
+    { title: "المستبعدين", icon: XCircle, path: "/excluded" },
+    { title: "جميع البيانات", icon: Database, path: "/all-patients" },
     { title: "الرعاية الوقائية", icon: Shield, path: "/preventive-care" },
     { title: "المؤهلين", icon: UserCheck, path: "/eligible" },
     { title: "جدولة الأطباء", icon: CalendarDays, path: "/doctor-scheduling" },
@@ -224,24 +205,6 @@ const Home = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Stats Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="stat-card">
-            <p className="text-4xl md:text-5xl font-bold text-foreground mb-1">{stats?.total?.toLocaleString() || 0}</p>
-            <p className="text-sm text-muted-foreground">المستفيدين</p>
-            <p className="text-xs text-primary mt-1">Beneficiaries</p>
-          </div>
-          <div className="stat-card">
-            <p className="text-4xl md:text-5xl font-bold text-foreground mb-1">{stats?.completed?.toLocaleString() || 0}</p>
-            <p className="text-sm text-muted-foreground">المكتملين</p>
-            <p className="text-xs text-primary mt-1">Completed</p>
-          </div>
-          <div className="stat-card">
-            <p className="text-4xl md:text-5xl font-bold text-foreground mb-1">{stats?.excluded?.toLocaleString() || 0}</p>
-            <p className="text-sm text-muted-foreground">المستبعدين</p>
-            <p className="text-xs text-primary mt-1">Excluded</p>
-          </div>
-        </div>
 
         {/* Menu Cards Grid - First Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -256,9 +219,6 @@ const Home = () => {
                 <item.icon size={28} className="text-primary" />
               </div>
               <p className="font-semibold text-foreground text-sm mb-1">{item.title}</p>
-              {item.count !== undefined && (
-                <p className="text-xs text-muted-foreground">{item.count.toLocaleString()}</p>
-              )}
             </div>
           ))}
         </div>
@@ -276,9 +236,6 @@ const Home = () => {
                 <item.icon size={28} className="text-primary" />
               </div>
               <p className="font-semibold text-foreground text-sm mb-1">{item.title}</p>
-              {item.count !== undefined && (
-                <p className="text-xs text-muted-foreground">{item.count.toLocaleString()}</p>
-              )}
             </div>
           ))}
         </div>
