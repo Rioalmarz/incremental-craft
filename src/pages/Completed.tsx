@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowRight,
+  ArrowLeft,
   Search,
   Filter,
   CheckCircle,
@@ -39,7 +41,7 @@ import {
   Activity,
 } from "lucide-react";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
+import { ar, enUS } from "date-fns/locale";
 
 interface Patient {
   id: string;
@@ -63,19 +65,9 @@ interface ClinicData {
   final_action: string;
 }
 
-const ACTION_LABELS: Record<string, { label: string; icon: any }> = {
-  refill_rx: { label: "إعادة صرف علاج", icon: Pill },
-  order_labs: { label: "طلب تحاليل", icon: FlaskConical },
-  schedule_clinical: { label: "موعد فحص سريري", icon: CalendarCheck },
-  referral: { label: "تحويل خارجي", icon: ArrowRightLeft },
-  no_intervention: { label: "لا يحتاج تدخل", icon: CheckCircle },
-  "إعادة_صرف_علاج": { label: "إعادة صرف علاج", icon: Pill },
-  "عمل_تحاليل": { label: "طلب تحاليل", icon: FlaskConical },
-  "فحص_وقائي": { label: "فحص وقائي", icon: CalendarCheck },
-};
-
 const Completed = () => {
   const { user, loading } = useAuth();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -86,9 +78,19 @@ const Completed = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const ACTION_LABELS: Record<string, { labelAr: string; labelEn: string; icon: any }> = {
+    refill_rx: { labelAr: "إعادة صرف علاج", labelEn: "Refill Prescription", icon: Pill },
+    order_labs: { labelAr: "طلب تحاليل", labelEn: "Order Labs", icon: FlaskConical },
+    schedule_clinical: { labelAr: "موعد فحص سريري", labelEn: "Schedule Visit", icon: CalendarCheck },
+    referral: { labelAr: "تحويل خارجي", labelEn: "Referral", icon: ArrowRightLeft },
+    no_intervention: { labelAr: "لا يحتاج تدخل", labelEn: "No Intervention", icon: CheckCircle },
+    "إعادة_صرف_علاج": { labelAr: "إعادة صرف علاج", labelEn: "Refill Prescription", icon: Pill },
+    "عمل_تحاليل": { labelAr: "طلب تحاليل", labelEn: "Order Labs", icon: FlaskConical },
+    "فحص_وقائي": { labelAr: "فحص وقائي", labelEn: "Preventive Exam", icon: CalendarCheck },
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -116,7 +118,6 @@ const Completed = () => {
       if (error) throw error;
       setPatients(data || []);
 
-      // Fetch clinic data for all completed patients
       const patientIds = (data || []).map(p => p.id);
       if (patientIds.length > 0) {
         const { data: clinicData } = await supabase
@@ -138,8 +139,8 @@ const Completed = () => {
     } catch (error) {
       console.error("Error fetching patients:", error);
       toast({
-        title: "خطأ",
-        description: "فشل في تحميل بيانات المستفيدين",
+        title: t('error'),
+        description: t('loadError'),
         variant: "destructive",
       });
     } finally {
@@ -173,7 +174,7 @@ const Completed = () => {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
     try {
-      return format(new Date(dateString), "dd / MM / yyyy", { locale: ar });
+      return format(new Date(dateString), "dd / MM / yyyy", { locale: language === 'ar' ? ar : enUS });
     } catch {
       return "-";
     }
@@ -181,10 +182,10 @@ const Completed = () => {
 
   const getDiseasesBadges = (patient: Patient) => {
     const badges = [];
-    if (patient.has_dm) badges.push(<Badge key="dm" className="bg-primary/80">سكري</Badge>);
-    if (patient.has_htn) badges.push(<Badge key="htn" className="bg-accent/80">ضغط</Badge>);
-    if (patient.has_dyslipidemia) badges.push(<Badge key="dys" className="bg-muted-foreground/80">دهون</Badge>);
-    return badges.length > 0 ? badges : [<Badge key="none" variant="outline">لا يوجد</Badge>];
+    if (patient.has_dm) badges.push(<Badge key="dm" className="bg-primary/80">{t('diabetes')}</Badge>);
+    if (patient.has_htn) badges.push(<Badge key="htn" className="bg-accent/80">{t('hypertension')}</Badge>);
+    if (patient.has_dyslipidemia) badges.push(<Badge key="dys" className="bg-muted-foreground/80">{t('dyslipidemia')}</Badge>);
+    return badges.length > 0 ? badges : [<Badge key="none" variant="outline">{t('noDiseases')}</Badge>];
   };
 
   const getActionBadge = (action: string | null, clinicInfo?: ClinicData) => {
@@ -195,30 +196,31 @@ const Completed = () => {
       return (
         <Badge className="bg-green-600 hover:bg-green-700 flex items-center gap-1">
           <Icon size={12} />
-          {actionInfo.label}
+          {language === 'ar' ? actionInfo.labelAr : actionInfo.labelEn}
         </Badge>
       );
     }
-    return <Badge variant="outline">{action || "غير محدد"}</Badge>;
+    return <Badge variant="outline">{action || t('notSpecified')}</Badge>;
   };
 
   const getPredictionBadge = (accuracy: number | null) => {
     if (accuracy === null || accuracy === undefined) {
-      return <Badge variant="outline">غير متاح</Badge>;
+      return <Badge variant="outline">{t('notAvailable')}</Badge>;
     }
     if (accuracy >= 85) {
-      return <Badge className="bg-green-600 hover:bg-green-700">{accuracy}% (منتظم)</Badge>;
+      return <Badge className="bg-green-600 hover:bg-green-700">{accuracy}% ({t('regular')})</Badge>;
     }
     if (accuracy >= 60) {
-      return <Badge className="bg-amber-500 hover:bg-amber-600">{accuracy}% (متغير)</Badge>;
+      return <Badge className="bg-amber-500 hover:bg-amber-600">{accuracy}% ({t('variable')})</Badge>;
     }
-    return <Badge variant="destructive">{accuracy}% (غير منتظم)</Badge>;
+    return <Badge variant="destructive">{accuracy}% ({t('irregular')})</Badge>;
   };
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedPatients = filteredPatients.slice(startIndex, startIndex + itemsPerPage);
+
+  const BackIcon = language === 'ar' ? ArrowRight : ArrowLeft;
 
   if (loading) {
     return (
@@ -229,22 +231,22 @@ const Completed = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <header className="sticky top-0 z-50 glass border-b">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className={`container mx-auto px-4 py-3 flex items-center justify-between ${language === 'en' ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex items-center gap-3 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
             <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowRight size={20} />
+              <BackIcon size={20} />
             </Button>
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
               <CheckCircle className="text-green-600" size={24} />
-              <h1 className="text-lg font-bold">المكتملين</h1>
+              <h1 className="text-lg font-bold">{t('completedTitle')}</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-sm">
-              {filteredPatients.length} مستفيد
+              {filteredPatients.length} {t('beneficiary')}
             </Badge>
           </div>
         </div>
@@ -252,29 +254,29 @@ const Completed = () => {
 
       {/* Filters */}
       <section className="py-4 px-4 border-b bg-card/50">
-        <div className="container mx-auto flex flex-wrap gap-4 items-center">
+        <div className={`container mx-auto flex flex-wrap gap-4 items-center ${language === 'en' ? 'flex-row-reverse' : ''}`}>
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+            <Search className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${language === 'ar' ? 'right-3' : 'left-3'}`} size={18} />
             <Input
-              placeholder="البحث بالاسم أو رقم الهوية..."
+              placeholder={t('searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-10"
+              className={language === 'ar' ? 'pr-10' : 'pl-10'}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
             <Filter size={18} className="text-muted-foreground" />
             <Select value={actionFilter} onValueChange={setActionFilter}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="الإجراء" />
+                <SelectValue placeholder={t('finalAction')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">الكل</SelectItem>
-                <SelectItem value="refill_rx">إعادة صرف علاج</SelectItem>
-                <SelectItem value="order_labs">طلب تحاليل</SelectItem>
-                <SelectItem value="schedule_clinical">موعد فحص</SelectItem>
-                <SelectItem value="referral">تحويل خارجي</SelectItem>
-                <SelectItem value="no_intervention">لا يحتاج تدخل</SelectItem>
+                <SelectItem value="all">{t('all')}</SelectItem>
+                <SelectItem value="refill_rx">{t('refillRx')}</SelectItem>
+                <SelectItem value="order_labs">{t('orderLabs')}</SelectItem>
+                <SelectItem value="schedule_clinical">{t('scheduleClinical')}</SelectItem>
+                <SelectItem value="referral">{t('referral')}</SelectItem>
+                <SelectItem value="no_intervention">{t('noIntervention')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -293,20 +295,20 @@ const Completed = () => {
               ) : filteredPatients.length === 0 ? (
                 <div className="text-center py-20 text-muted-foreground">
                   <CheckCircle size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>لا يوجد مستفيدين مكتملين</p>
+                  <p>{t('noCompletedPatients')}</p>
                 </div>
               ) : (
                 <>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-right">المستفيد</TableHead>
-                        <TableHead className="text-right">الأمراض المزمنة</TableHead>
-                        <TableHead className="text-right">الإجراء المتخذ</TableHead>
-                        <TableHead className="text-right">الموعد المتوقع</TableHead>
-                        <TableHead className="text-right">دقة التنبؤ</TableHead>
-                        <TableHead className="text-right">تاريخ الإكمال</TableHead>
-                        <TableHead className="text-right">بواسطة</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('beneficiary')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('chronicDiseases')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('actionTaken')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('expectedDate')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('predictionAccuracy')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('completionDate')}</TableHead>
+                        <TableHead className={language === 'ar' ? 'text-right' : 'text-left'}>{t('by')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -331,29 +333,29 @@ const Completed = () => {
                             <TableCell>
                               <div className="text-sm">
                                 {patient.predicted_visit_date ? (
-                                  <div className="flex items-center gap-1">
+                                  <div className={`flex items-center gap-1 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                                     <Calendar size={14} className="text-muted-foreground" />
                                     <span>{formatDate(patient.predicted_visit_date)}</span>
                                   </div>
                                 ) : (
-                                  <span className="text-muted-foreground">غير متاح</span>
+                                  <span className="text-muted-foreground">{t('notAvailable')}</span>
                                 )}
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1">
+                              <div className={`flex items-center gap-1 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                                 <Activity size={14} className="text-muted-foreground" />
                                 {getPredictionBadge(patient.days_until_visit !== null ? Math.max(0, Math.min(100, 100 - Math.abs(patient.days_until_visit))) : null)}
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1 text-sm">
+                              <div className={`flex items-center gap-1 text-sm ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                                 <Calendar size={14} className="text-muted-foreground" />
                                 <span>{formatDate(clinicInfo?.examined_at || patient.updated_at)}</span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1 text-sm">
+                              <div className={`flex items-center gap-1 text-sm ${language === 'en' ? 'flex-row-reverse' : ''}`}>
                                 <User size={14} className="text-muted-foreground" />
                                 <span>{clinicInfo?.examined_by || "-"}</span>
                               </div>
@@ -373,10 +375,10 @@ const Completed = () => {
                         onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                       >
-                        <ChevronRight size={18} />
+                        {language === 'ar' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        صفحة {currentPage} من {totalPages}
+                        {t('page')} {currentPage} {t('of')} {totalPages}
                       </span>
                       <Button
                         variant="ghost"
@@ -384,7 +386,7 @@ const Completed = () => {
                         onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
                       >
-                        <ChevronLeft size={18} />
+                        {language === 'ar' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
                       </Button>
                     </div>
                   )}
