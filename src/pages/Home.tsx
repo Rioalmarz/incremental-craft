@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Settings, UserCog, User, Menu, Bell, Search, Shield, CalendarDays, UserCheck } from "lucide-react";
+import { LogOut, ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Settings, UserCog, User, Menu, Bell, Search, Shield, CalendarDays, UserCheck, Globe, Sun, Moon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 
 const Home = () => {
   const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
 
   useEffect(() => {
     if (!loading && !user) {
@@ -41,47 +45,51 @@ const Home = () => {
   }
 
   const menuItems = [
-    { title: "الفرز الأولي", icon: ClipboardList, path: "/screening" },
-    { title: "العيادة الافتراضية", icon: Stethoscope, path: "/virtual-clinic" },
-    { title: "الإحصائيات", icon: BarChart3, path: "/statistics" },
-    { title: "المكتملين", icon: CheckCircle, path: "/completed" },
-    { title: "المستبعدين", icon: XCircle, path: "/excluded" },
-    { title: "جميع البيانات", icon: Database, path: "/all-patients" },
-    { title: "الرعاية الوقائية", icon: Shield, path: "/preventive-care" },
-    { title: "المؤهلين", icon: UserCheck, path: "/eligible" },
-    { title: "جدولة الأطباء", icon: CalendarDays, path: "/doctor-scheduling" },
+    { titleAr: "الفرز الأولي", titleEn: "Screening", icon: ClipboardList, path: "/screening" },
+    { titleAr: "العيادة الافتراضية", titleEn: "Virtual Clinic", icon: Stethoscope, path: "/virtual-clinic" },
+    { titleAr: "الإحصائيات", titleEn: "Statistics", icon: BarChart3, path: "/statistics" },
+    { titleAr: "المكتملين", titleEn: "Completed", icon: CheckCircle, path: "/completed" },
+    { titleAr: "المستبعدين", titleEn: "Excluded", icon: XCircle, path: "/excluded" },
+    { titleAr: "جميع البيانات", titleEn: "All Data", icon: Database, path: "/all-patients" },
+    { titleAr: "الرعاية الوقائية", titleEn: "Preventive Care", icon: Shield, path: "/preventive-care" },
+    { titleAr: "المؤهلين", titleEn: "Eligible", icon: UserCheck, path: "/eligible" },
+    { titleAr: "جدولة الأطباء", titleEn: "Doctor Scheduling", icon: CalendarDays, path: "/doctor-scheduling" },
   ];
 
   const adminMenuItems = [
-    { title: "إدارة المستخدمين", icon: UserCog, path: "/admin/users" },
-    { title: "الإعدادات", icon: Settings, path: "/admin/settings" },
+    { titleAr: "إدارة المستخدمين", titleEn: "User Management", icon: UserCog, path: "/admin/users" },
+    { titleAr: "الإعدادات", titleEn: "Settings", icon: Settings, path: "/admin/settings" },
   ];
 
   function getCenterName(centerId: string): string {
-    const centerNames: Record<string, string> = {
-      'salamah': 'مركز صحي السلامة',
-      'khalid_model': 'مركز صحي خالد النموذجي',
-      'naeem': 'مركز صحي النعيم',
-      'obhur': 'مركز صحي أبحر',
-      'salhiyah': 'مركز صحي الصالحية',
-      'majed': 'مركز صحي الماجد',
-      'shatea': 'مركز صحي الشاطئ',
-      'sheraa': 'مركز صحي الشراع',
-      'wafa': 'مركز صحي الوفاء',
-      'rayyan': 'مركز صحي الريان',
-      'briman': 'مركز صحي بريمان',
-      'firdous': 'مركز صحي الفردوس',
-      'thuwal': 'مركز صحي ثول',
-      'dhahban': 'مركز صحي ذهبان',
-      'sawari': 'مركز صحي الصواري',
-      'rehab': 'مركز صحي الرحاب',
+    const centerNames: Record<string, { ar: string; en: string }> = {
+      'salamah': { ar: 'مركز صحي السلامة', en: 'Salamah Health Center' },
+      'khalid_model': { ar: 'مركز صحي خالد النموذجي', en: 'Khalid Model Health Center' },
+      'naeem': { ar: 'مركز صحي النعيم', en: 'Naeem Health Center' },
+      'obhur': { ar: 'مركز صحي أبحر', en: 'Obhur Health Center' },
+      'salhiyah': { ar: 'مركز صحي الصالحية', en: 'Salhiyah Health Center' },
+      'majed': { ar: 'مركز صحي الماجد', en: 'Majed Health Center' },
+      'shatea': { ar: 'مركز صحي الشاطئ', en: 'Shatea Health Center' },
+      'sheraa': { ar: 'مركز صحي الشراع', en: 'Sheraa Health Center' },
+      'wafa': { ar: 'مركز صحي الوفاء', en: 'Wafa Health Center' },
+      'rayyan': { ar: 'مركز صحي الريان', en: 'Rayyan Health Center' },
+      'briman': { ar: 'مركز صحي بريمان', en: 'Briman Health Center' },
+      'firdous': { ar: 'مركز صحي الفردوس', en: 'Firdous Health Center' },
+      'thuwal': { ar: 'مركز صحي ثول', en: 'Thuwal Health Center' },
+      'dhahban': { ar: 'مركز صحي ذهبان', en: 'Dhahban Health Center' },
+      'sawari': { ar: 'مركز صحي الصواري', en: 'Sawari Health Center' },
+      'rehab': { ar: 'مركز صحي الرحاب', en: 'Rehab Health Center' },
     };
-    return centerNames[centerId] || centerId;
+    const center = centerNames[centerId];
+    return center ? (language === 'ar' ? center.ar : center.en) : centerId;
   }
 
   const userDisplayName = profile?.name_ar || profile?.username;
   const userCenter = profile?.center_id ? getCenterName(profile.center_id) : '';
   const isMahdi = profile?.username === 'mahdi';
+
+  const getTitle = (item: { titleAr: string; titleEn: string }) => 
+    language === 'ar' ? item.titleAr : item.titleEn;
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full py-6 px-4">
@@ -90,7 +98,7 @@ const Home = () => {
           onClick={() => { navigate("/"); setSidebarOpen(false); }}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right transition-all duration-200 bg-primary/10 text-primary font-medium"
         >
-          <span>الرئيسية</span>
+          <span>{t('home')}</span>
         </button>
         
         {menuItems.map((item) => (
@@ -100,14 +108,14 @@ const Home = () => {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right transition-all duration-200 hover:bg-primary/10 text-foreground hover:text-primary"
           >
             <item.icon size={18} className="text-primary" />
-            <span>{item.title}</span>
+            <span>{getTitle(item)}</span>
           </button>
         ))}
 
         {isSuperAdmin && (
           <>
             <div className="border-t border-border/50 my-4" />
-            <p className="px-4 text-xs text-muted-foreground mb-2">الإدارة</p>
+            <p className="px-4 text-xs text-muted-foreground mb-2">{t('administration')}</p>
             {adminMenuItems.map((item) => (
               <button
                 key={item.path}
@@ -115,7 +123,7 @@ const Home = () => {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-right transition-all duration-200 hover:bg-primary/10 text-foreground hover:text-primary"
               >
                 <item.icon size={18} className="text-primary" />
-                <span>{item.title}</span>
+                <span>{getTitle(item)}</span>
               </button>
             ))}
           </>
@@ -126,18 +134,26 @@ const Home = () => {
 
   return (
     <div className={`min-h-screen transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Floating 3D Decorative Elements */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-20 left-10 w-32 h-32 rounded-full bg-primary/10 blur-3xl animate-pulse" />
+        <div className="absolute top-40 right-20 w-48 h-48 rounded-full bg-accent/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-40 left-1/4 w-40 h-40 rounded-full bg-primary/5 blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-20 right-1/3 w-36 h-36 rounded-full bg-accent/5 blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+      </div>
+
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-50 px-4 pt-4">
-        <div className="top-bar flex items-center justify-between max-w-7xl mx-auto">
+        <div className="top-bar flex items-center justify-between max-w-7xl mx-auto backdrop-blur-xl">
           {/* Left Section - Menu & Icons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10">
                   <Menu size={22} className="text-foreground" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-72 p-0 glass-card">
+              <SheetContent side={language === 'ar' ? 'right' : 'left'} className="w-72 p-0 glass-card">
                 <SidebarContent />
               </SheetContent>
             </Sheet>
@@ -148,11 +164,53 @@ const Home = () => {
             <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10">
               <Search size={20} className="text-foreground" />
             </Button>
+
+            {/* Language Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="rounded-xl hover:bg-primary/10 gap-1.5 px-3"
+                  onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+                >
+                  <Globe size={18} className="text-primary" />
+                  <span className="text-xs font-medium">{language === 'ar' ? 'EN' : 'عربي'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{language === 'ar' ? 'Switch to English' : 'التبديل للعربية'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Theme Toggle */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-xl hover:bg-primary/10"
+                  onClick={toggleTheme}
+                >
+                  {theme === 'light' ? (
+                    <Moon size={20} className="text-foreground" />
+                  ) : (
+                    <Sun size={20} className="text-primary" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{theme === 'light' ? t('darkMode') : t('lightMode')}</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
-          {/* Center - Logo */}
+          {/* Center - Logo with 3D effect */}
           <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2">
-            <FlowerLogo animate size={55} />
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl scale-150" />
+              <FlowerLogo animate size={55} />
+            </div>
           </div>
 
           {/* Right Section - User & Settings */}
@@ -161,7 +219,7 @@ const Home = () => {
             
             <Button variant="ghost" size="sm" className="gap-2 rounded-xl hover:bg-primary/10" onClick={() => navigate("/admin/settings")}>
               <Settings size={18} />
-              <span className="hidden md:inline">الإعدادات</span>
+              <span className="hidden md:inline">{t('settings')}</span>
             </Button>
 
             <DropdownMenu>
@@ -186,16 +244,16 @@ const Home = () => {
               <DropdownMenuContent align="start" className="w-56 glass-card p-2">
                 <div className="px-3 py-3 mb-2 bg-primary/5 rounded-xl">
                   <p className="text-sm font-semibold">{userDisplayName}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{isSuperAdmin ? "مدير النظام" : userCenter}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{isSuperAdmin ? t('systemAdmin') : userCenter}</p>
                 </div>
                 <DropdownMenuItem className="cursor-pointer gap-3 rounded-xl py-2.5" onClick={() => navigate("/profile")}>
                   <User size={16} className="text-primary" />
-                  <span>الملف الشخصي</span>
+                  <span>{t('profile')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-2" />
                 <DropdownMenuItem className="cursor-pointer gap-3 rounded-xl py-2.5 text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleSignOut}>
                   <LogOut size={16} />
-                  <span>تسجيل الخروج</span>
+                  <span>{t('logout')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -204,7 +262,7 @@ const Home = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
+      <main className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
 
         {/* Menu Cards Grid - First Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -212,13 +270,19 @@ const Home = () => {
             <div
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`menu-card flex flex-col items-center text-center transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-              style={{ transitionDelay: `${index * 100}ms` }}
+              className={`menu-card flex flex-col items-center text-center transition-all duration-500 group ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ 
+                transitionDelay: `${index * 100}ms`,
+                transform: isLoaded ? 'perspective(1000px) rotateX(0deg)' : 'perspective(1000px) rotateX(10deg)'
+              }}
             >
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110">
-                <item.icon size={28} className="text-primary" />
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 relative">
+                  <item.icon size={28} className="text-primary transition-transform duration-300 group-hover:scale-110" />
+                </div>
               </div>
-              <p className="font-semibold text-foreground text-sm mb-1">{item.title}</p>
+              <p className="font-semibold text-foreground text-sm mb-1">{getTitle(item)}</p>
             </div>
           ))}
         </div>
@@ -229,13 +293,19 @@ const Home = () => {
             <div
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`menu-card flex flex-col items-center text-center transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-              style={{ transitionDelay: `${(index + 4) * 100}ms` }}
+              className={`menu-card flex flex-col items-center text-center transition-all duration-500 group ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+              style={{ 
+                transitionDelay: `${(index + 4) * 100}ms`,
+                transform: isLoaded ? 'perspective(1000px) rotateX(0deg)' : 'perspective(1000px) rotateX(10deg)'
+              }}
             >
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
-                <item.icon size={28} className="text-primary" />
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 relative">
+                  <item.icon size={28} className="text-primary transition-transform duration-300 group-hover:scale-110" />
+                </div>
               </div>
-              <p className="font-semibold text-foreground text-sm mb-1">{item.title}</p>
+              <p className="font-semibold text-foreground text-sm mb-1">{getTitle(item)}</p>
             </div>
           ))}
         </div>
@@ -247,13 +317,19 @@ const Home = () => {
               <div
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`menu-card flex flex-col items-center text-center transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-                style={{ transitionDelay: `${(index + 8) * 100}ms` }}
+                className={`menu-card flex flex-col items-center text-center transition-all duration-500 group ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                style={{ 
+                  transitionDelay: `${(index + 8) * 100}ms`,
+                  transform: isLoaded ? 'perspective(1000px) rotateX(0deg)' : 'perspective(1000px) rotateX(10deg)'
+                }}
               >
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
-                  <item.icon size={28} className="text-primary" />
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 relative">
+                    <item.icon size={28} className="text-primary transition-transform duration-300 group-hover:scale-110" />
+                  </div>
                 </div>
-                <p className="font-semibold text-foreground text-sm mb-1">{item.title}</p>
+                <p className="font-semibold text-foreground text-sm mb-1">{getTitle(item)}</p>
               </div>
             ))}
           </div>
@@ -262,19 +338,25 @@ const Home = () => {
         {/* Admin Section */}
         {isSuperAdmin && (
           <div className="mt-8">
-            <h2 className="text-lg font-bold text-foreground mb-4 text-center">لوحة الإدارة</h2>
+            <h2 className="text-lg font-bold text-foreground mb-4 text-center">{t('adminPanel')}</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
               {adminMenuItems.map((item, index) => (
                 <div
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`menu-card flex flex-col items-center text-center transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-                  style={{ transitionDelay: `${(index + menuItems.length) * 100}ms` }}
+                  className={`menu-card flex flex-col items-center text-center transition-all duration-500 group ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                  style={{ 
+                    transitionDelay: `${(index + menuItems.length) * 100}ms`,
+                    transform: isLoaded ? 'perspective(1000px) rotateX(0deg)' : 'perspective(1000px) rotateX(10deg)'
+                  }}
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-3">
-                    <item.icon size={28} className="text-accent" />
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-accent/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
+                    <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-accent/20 relative">
+                      <item.icon size={28} className="text-accent transition-transform duration-300 group-hover:scale-110" />
+                    </div>
                   </div>
-                  <p className="font-semibold text-foreground text-sm">{item.title}</p>
+                  <p className="font-semibold text-foreground text-sm">{getTitle(item)}</p>
                 </div>
               ))}
             </div>
@@ -283,16 +365,19 @@ const Home = () => {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 text-center">
+      <footer className="py-8 text-center relative z-10">
         <div className="flex items-center justify-center gap-3 mb-3">
-          <FlowerLogo animate={false} size={30} />
-          <div className="text-right">
-            <p className="font-semibold text-sm text-foreground">التجمع الصحي الثاني بجدة</p>
-            <p className="text-xs text-primary">Jeddah Second Health Cluster</p>
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/10 rounded-full blur-lg scale-150" />
+            <FlowerLogo animate={false} size={30} />
+          </div>
+          <div className={language === 'ar' ? 'text-right' : 'text-left'}>
+            <p className="font-semibold text-sm text-foreground">{t('clusterName')}</p>
+            <p className="text-xs text-primary">{language === 'ar' ? t('clusterNameEn') : ''}</p>
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} الرعاية الأولية المحسّنة
+          © {new Date().getFullYear()} {t('copyright')}
         </p>
       </footer>
     </div>

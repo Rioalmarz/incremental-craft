@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Screening from "./pages/Screening";
@@ -24,32 +26,36 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/screening" element={<Screening />} />
-            <Route path="/virtual-clinic" element={<VirtualClinic />} />
-            <Route path="/statistics" element={<Statistics />} />
-            <Route path="/excluded" element={<Excluded />} />
-            <Route path="/completed" element={<Completed />} />
-            <Route path="/all-patients" element={<AllPatients />} />
-            <Route path="/preventive-care" element={<PreventiveCare />} />
-            <Route path="/doctor-scheduling" element={<DoctorScheduling />} />
-            <Route path="/eligible" element={<Eligible />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-            <Route path="/profile" element={<Profile />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <TooltipProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/screening" element={<Screening />} />
+                <Route path="/virtual-clinic" element={<VirtualClinic />} />
+                <Route path="/statistics" element={<Statistics />} />
+                <Route path="/excluded" element={<Excluded />} />
+                <Route path="/completed" element={<Completed />} />
+                <Route path="/all-patients" element={<AllPatients />} />
+                <Route path="/preventive-care" element={<PreventiveCare />} />
+                <Route path="/doctor-scheduling" element={<DoctorScheduling />} />
+                <Route path="/eligible" element={<Eligible />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/profile" element={<Profile />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
