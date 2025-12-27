@@ -150,6 +150,21 @@
   }
 }
 
+/* Page Transition Effects */
+.page-transition {
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.page-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.page-hidden {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
 @layer utilities {
   .glass {
     @apply bg-card/85 backdrop-blur-xl border border-border/60 shadow-lg;

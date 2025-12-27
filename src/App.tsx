@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import PageTransition from "@/components/PageTransition";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Screening from "./pages/Screening";
@@ -33,24 +34,26 @@ const App = () => (
             <AuthProvider>
               <Toaster />
               <Sonner />
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/screening" element={<Screening />} />
-                <Route path="/virtual-clinic" element={<VirtualClinic />} />
-                <Route path="/statistics" element={<Statistics />} />
-                <Route path="/excluded" element={<Excluded />} />
-                <Route path="/completed" element={<Completed />} />
-                <Route path="/all-patients" element={<AllPatients />} />
-                <Route path="/preventive-care" element={<PreventiveCare />} />
-                <Route path="/doctor-scheduling" element={<DoctorScheduling />} />
-                <Route path="/eligible" element={<Eligible />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                <Route path="/profile" element={<Profile />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <PageTransition>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/screening" element={<Screening />} />
+                  <Route path="/virtual-clinic" element={<VirtualClinic />} />
+                  <Route path="/statistics" element={<Statistics />} />
+                  <Route path="/excluded" element={<Excluded />} />
+                  <Route path="/completed" element={<Completed />} />
+                  <Route path="/all-patients" element={<AllPatients />} />
+                  <Route path="/preventive-care" element={<PreventiveCare />} />
+                  <Route path="/doctor-scheduling" element={<DoctorScheduling />} />
+                  <Route path="/eligible" element={<Eligible />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="/profile" element={<Profile />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </PageTransition>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
