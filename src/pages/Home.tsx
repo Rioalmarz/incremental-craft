@@ -144,9 +144,9 @@ const Home = () => {
 
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-50 px-4 pt-4">
-        <div className="top-bar flex items-center justify-between max-w-7xl mx-auto backdrop-blur-xl">
-          {/* Left Section - Menu & Icons */}
-          <div className="flex items-center gap-2">
+        <div className={`top-bar flex items-center justify-between max-w-7xl mx-auto backdrop-blur-xl ${language === 'en' ? 'flex-row-reverse' : ''}`}>
+          {/* Menu & Icons Section */}
+          <div className={`flex items-center gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
             <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10">
@@ -213,11 +213,11 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Right Section - User & Settings */}
-          <div className="flex items-center gap-3">
+          {/* User & Settings Section */}
+          <div className={`flex items-center gap-3 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
             <span className="text-sm text-foreground hidden md:block">{userCenter}</span>
             
-            <Button variant="ghost" size="sm" className="gap-2 rounded-xl hover:bg-primary/10" onClick={() => navigate("/admin/settings")}>
+            <Button variant="ghost" size="sm" className={`gap-2 rounded-xl hover:bg-primary/10 ${language === 'en' ? 'flex-row-reverse' : ''}`} onClick={() => navigate("/admin/settings")}>
               <Settings size={18} />
               <span className="hidden md:inline">{t('settings')}</span>
             </Button>
@@ -235,23 +235,23 @@ const Home = () => {
                       {userDisplayName?.charAt(0) || 'م'}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="relative flex h-3 w-3 -mr-2 -mt-6">
+                  <span className={`relative flex h-3 w-3 -mt-6 ${language === 'ar' ? '-mr-2' : '-ml-2'}`}>
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-3 w-3 bg-destructive text-[8px] text-destructive-foreground items-center justify-center font-bold">3</span>
                   </span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 glass-card p-2">
+              <DropdownMenuContent align={language === 'ar' ? 'start' : 'end'} className="w-56 glass-card p-2">
                 <div className="px-3 py-3 mb-2 bg-primary/5 rounded-xl">
-                  <p className="text-sm font-semibold">{userDisplayName}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{isSuperAdmin ? t('systemAdmin') : userCenter}</p>
+                  <p className={`text-sm font-semibold ${language === 'en' ? 'text-left' : ''}`}>{userDisplayName}</p>
+                  <p className={`text-xs text-muted-foreground mt-0.5 ${language === 'en' ? 'text-left' : ''}`}>{isSuperAdmin ? t('systemAdmin') : userCenter}</p>
                 </div>
-                <DropdownMenuItem className="cursor-pointer gap-3 rounded-xl py-2.5" onClick={() => navigate("/profile")}>
+                <DropdownMenuItem className={`cursor-pointer gap-3 rounded-xl py-2.5 ${language === 'en' ? 'flex-row-reverse' : ''}`} onClick={() => navigate("/profile")}>
                   <User size={16} className="text-primary" />
                   <span>{t('profile')}</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-2" />
-                <DropdownMenuItem className="cursor-pointer gap-3 rounded-xl py-2.5 text-destructive focus:text-destructive focus:bg-destructive/10" onClick={handleSignOut}>
+                <DropdownMenuItem className={`cursor-pointer gap-3 rounded-xl py-2.5 text-destructive focus:text-destructive focus:bg-destructive/10 ${language === 'en' ? 'flex-row-reverse' : ''}`} onClick={handleSignOut}>
                   <LogOut size={16} />
                   <span>{t('logout')}</span>
                 </DropdownMenuItem>
