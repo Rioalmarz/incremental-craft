@@ -4,52 +4,52 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap');
 
-/* TBC Design System - White + Cyan Medical Theme */
+/* TBC Design System - Ocean Blue Glass Theme */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 200 50% 15%;
+    --background: 195 80% 92%;
+    --foreground: 200 50% 20%;
 
     --card: 0 0% 100%;
-    --card-foreground: 200 50% 15%;
+    --card-foreground: 200 50% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 50% 15%;
+    --popover-foreground: 200 50% 20%;
 
-    /* Primary - Cyan/Teal */
+    /* Primary - Teal/Cyan */
     --primary: 187 70% 45%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary - Light Cyan */
-    --secondary: 187 50% 95%;
+    /* Secondary - Light Glass */
+    --secondary: 195 60% 96%;
     --secondary-foreground: 200 50% 20%;
 
     /* Muted */
-    --muted: 200 20% 96%;
-    --muted-foreground: 200 15% 45%;
+    --muted: 195 30% 90%;
+    --muted-foreground: 200 20% 45%;
 
-    /* Accent - Darker Cyan */
+    /* Accent - Darker Teal */
     --accent: 195 65% 35%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 20% 88%;
-    --input: 200 20% 88%;
+    --border: 195 40% 85%;
+    --input: 195 40% 88%;
     --ring: 187 70% 45%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
     /* Sidebar */
-    --sidebar-background: 200 30% 98%;
+    --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 200 50% 20%;
     --sidebar-primary: 187 70% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 187 50% 92%;
+    --sidebar-accent: 195 60% 94%;
     --sidebar-accent-foreground: 200 50% 20%;
-    --sidebar-border: 200 20% 90%;
+    --sidebar-border: 195 40% 90%;
     --sidebar-ring: 187 70% 45%;
 
     /* Custom tokens */
@@ -59,6 +59,10 @@
     --warning-foreground: 0 0% 10%;
     --info: 200 80% 50%;
     --info-foreground: 0 0% 100%;
+
+    /* Glass effect tokens */
+    --glass-bg: 0 0% 100%;
+    --glass-border: 195 40% 90%;
   }
 
   .dark {
@@ -105,6 +109,9 @@
     --warning-foreground: 0 0% 10%;
     --info: 200 70% 55%;
     --info-foreground: 0 0% 100%;
+
+    --glass-bg: 200 45% 15%;
+    --glass-border: 200 30% 25%;
   }
 }
 
@@ -118,17 +125,60 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply text-foreground font-sans antialiased;
     font-family: 'Tajawal', sans-serif;
+    background: linear-gradient(135deg, 
+      hsl(195, 85%, 88%) 0%, 
+      hsl(195, 80%, 82%) 25%,
+      hsl(200, 75%, 78%) 50%,
+      hsl(195, 80%, 85%) 75%,
+      hsl(195, 85%, 90%) 100%
+    );
+    background-attachment: fixed;
+    min-height: 100vh;
   }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-card/80 backdrop-blur-md border border-border/50 shadow-lg;
+    @apply bg-card/85 backdrop-blur-xl border border-border/60 shadow-lg;
+    background: linear-gradient(135deg, 
+      hsl(var(--card) / 0.9) 0%, 
+      hsl(var(--card) / 0.75) 100%
+    );
   }
   
   .glass-hover {
-    @apply hover:bg-card/90 hover:shadow-xl transition-all duration-300;
+    @apply hover:bg-card/95 hover:shadow-xl hover:border-primary/30 transition-all duration-300;
+  }
+
+  .glass-card {
+    @apply rounded-2xl backdrop-blur-xl border border-border/50 shadow-xl;
+    background: linear-gradient(145deg, 
+      hsl(var(--card) / 0.95) 0%, 
+      hsl(var(--card) / 0.85) 100%
+    );
+  }
+
+  .ocean-gradient {
+    background: linear-gradient(135deg, 
+      hsl(195, 85%, 88%) 0%, 
+      hsl(195, 80%, 82%) 25%,
+      hsl(200, 75%, 78%) 50%,
+      hsl(195, 80%, 85%) 75%,
+      hsl(195, 85%, 90%) 100%
+    );
+  }
+
+  .stat-card {
+    @apply glass-card p-4 text-center transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+  }
+
+  .menu-card {
+    @apply glass-card p-5 cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-2 hover:border-primary/40;
+  }
+
+  .top-bar {
+    @apply glass py-3 px-6 rounded-2xl;
   }
 }
