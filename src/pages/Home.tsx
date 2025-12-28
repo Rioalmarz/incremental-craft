@@ -45,25 +45,25 @@ const Home = () => {
   // GSAP Parallax Effect for decorative elements
   useGSAP(() => {
     const elements = [
-      { ref: parallaxRef1.current, speed: 0.3, x: -50 },
-      { ref: parallaxRef2.current, speed: 0.5, x: 80 },
-      { ref: parallaxRef3.current, speed: 0.4, x: -30 },
-      { ref: parallaxRef4.current, speed: 0.6, x: 60 },
+      { ref: parallaxRef1.current, ySpeed: 150, xSpeed: -80 },
+      { ref: parallaxRef2.current, ySpeed: 200, xSpeed: 100 },
+      { ref: parallaxRef3.current, ySpeed: 120, xSpeed: -60 },
+      { ref: parallaxRef4.current, ySpeed: 180, xSpeed: 80 },
     ];
 
-    elements.forEach(({ ref, speed, x }) => {
+    elements.forEach(({ ref, ySpeed, xSpeed }) => {
       if (!ref) return;
       
       gsap.to(ref, {
-        y: () => window.innerHeight * speed,
-        x: x,
-        scale: 1.2,
+        y: ySpeed,
+        x: xSpeed,
+        scale: 1.3,
         ease: "none",
         scrollTrigger: {
-          trigger: containerRef.current,
+          trigger: "body",
           start: "top top",
-          end: "bottom top",
-          scrub: 1.5,
+          end: "bottom bottom",
+          scrub: 2,
         },
       });
     });
