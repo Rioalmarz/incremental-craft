@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
+import ScrollScaleSection from "@/components/ScrollScaleSection";
 
 const Home = () => {
   const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
@@ -363,6 +364,9 @@ const Home = () => {
           </div>
         )}
       </main>
+
+      {/* Scroll Scale Demo Section */}
+      <ScrollScaleSection />
 
       {/* Footer */}
       <footer className="py-8 text-center relative z-10">
