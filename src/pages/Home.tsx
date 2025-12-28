@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -12,6 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 import ScrollScaleSection from "@/components/ScrollScaleSection";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const Home = () => {
   const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
@@ -20,6 +25,11 @@ const Home = () => {
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const parallaxRef1 = useRef<HTMLDivElement>(null);
+  const parallaxRef2 = useRef<HTMLDivElement>(null);
+  const parallaxRef3 = useRef<HTMLDivElement>(null);
+  const parallaxRef4 = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -31,6 +41,33 @@ const Home = () => {
     const timer = setTimeout(() => setIsLoaded(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // GSAP Parallax Effect for decorative elements
+  useGSAP(() => {
+    const elements = [
+      { ref: parallaxRef1.current, speed: 0.3, x: -50 },
+      { ref: parallaxRef2.current, speed: 0.5, x: 80 },
+      { ref: parallaxRef3.current, speed: 0.4, x: -30 },
+      { ref: parallaxRef4.current, speed: 0.6, x: 60 },
+    ];
+
+    elements.forEach(({ ref, speed, x }) => {
+      if (!ref) return;
+      
+      gsap.to(ref, {
+        y: () => window.innerHeight * speed,
+        x: x,
+        scale: 1.2,
+        ease: "none",
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top top",
+          end: "bottom top",
+          scrub: 1.5,
+        },
+      });
+    });
+  }, { scope: containerRef });
 
   const handleSignOut = async () => {
     await signOut();
@@ -134,13 +171,28 @@ const Home = () => {
   );
 
   return (
-    <div className={`min-h-screen transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Floating 3D Decorative Elements */}
+    <div ref={containerRef} className={`min-h-screen transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Floating 3D Decorative Elements with Parallax */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-20 left-10 w-32 h-32 rounded-full bg-primary/10 blur-3xl animate-pulse" />
-        <div className="absolute top-40 right-20 w-48 h-48 rounded-full bg-accent/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-40 left-1/4 w-40 h-40 rounded-full bg-primary/5 blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute bottom-20 right-1/3 w-36 h-36 rounded-full bg-accent/5 blur-3xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+        <div 
+          ref={parallaxRef1}
+          className="absolute top-20 left-10 w-32 h-32 rounded-full bg-primary/10 blur-3xl animate-pulse will-change-transform" 
+        />
+        <div 
+          ref={parallaxRef2}
+          className="absolute top-40 right-20 w-48 h-48 rounded-full bg-accent/10 blur-3xl animate-pulse will-change-transform" 
+          style={{ animationDelay: '1s' }} 
+        />
+        <div 
+          ref={parallaxRef3}
+          className="absolute bottom-40 left-1/4 w-40 h-40 rounded-full bg-primary/5 blur-3xl animate-pulse will-change-transform" 
+          style={{ animationDelay: '2s' }} 
+        />
+        <div 
+          ref={parallaxRef4}
+          className="absolute bottom-20 right-1/3 w-36 h-36 rounded-full bg-accent/5 blur-3xl animate-pulse will-change-transform" 
+          style={{ animationDelay: '0.5s' }} 
+        />
       </div>
 
       {/* Top Navigation Bar */}
