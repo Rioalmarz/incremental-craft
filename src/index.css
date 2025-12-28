@@ -207,4 +207,13 @@
   .top-bar {
     @apply glass py-3 px-6 rounded-2xl;
   }
+
+  /* Storytelling scroll utilities */
+  .min-w-screen {
+    min-width: 100vw;
+  }
+
+  .will-change-transform {
+    will-change: transform;
+  }
 }

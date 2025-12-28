@@ -6,17 +6,13 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { FlowerLogo } from "@/components/FlowerLogo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { LogOut, ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Settings, UserCog, User, Menu, Bell, Search, Shield, CalendarDays, UserCheck, Globe, Sun, Moon } from "lucide-react";
+import { LogOut, Settings, UserCog, User, Menu, Bell, Search, Globe, Sun, Moon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
-import ScrollScaleSection from "@/components/ScrollScaleSection";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
-
-gsap.registerPlugin(ScrollTrigger);
+import StorytellingScroll from "@/components/StorytellingScroll";
+import { ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Shield, CalendarDays, UserCheck } from "lucide-react";
 
 const Home = () => {
   const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
@@ -25,11 +21,6 @@ const Home = () => {
   const navigate = useNavigate();
   const [isLoaded, setIsLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const parallaxRef1 = useRef<HTMLDivElement>(null);
-  const parallaxRef2 = useRef<HTMLDivElement>(null);
-  const parallaxRef3 = useRef<HTMLDivElement>(null);
-  const parallaxRef4 = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -41,33 +32,6 @@ const Home = () => {
     const timer = setTimeout(() => setIsLoaded(true), 100);
     return () => clearTimeout(timer);
   }, []);
-
-  // GSAP Parallax Effect for decorative elements
-  useGSAP(() => {
-    const elements = [
-      { ref: parallaxRef1.current, ySpeed: 150, xSpeed: -80 },
-      { ref: parallaxRef2.current, ySpeed: 200, xSpeed: 100 },
-      { ref: parallaxRef3.current, ySpeed: 120, xSpeed: -60 },
-      { ref: parallaxRef4.current, ySpeed: 180, xSpeed: 80 },
-    ];
-
-    elements.forEach(({ ref, ySpeed, xSpeed }) => {
-      if (!ref) return;
-      
-      gsap.to(ref, {
-        y: ySpeed,
-        x: xSpeed,
-        scale: 1.3,
-        ease: "none",
-        scrollTrigger: {
-          trigger: "body",
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 2,
-        },
-      });
-    });
-  }, { scope: containerRef });
 
   const handleSignOut = async () => {
     await signOut();
@@ -171,32 +135,9 @@ const Home = () => {
   );
 
   return (
-    <div ref={containerRef} className={`min-h-screen transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
-      {/* Floating 3D Decorative Elements with Parallax */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div 
-          ref={parallaxRef1}
-          className="absolute top-20 left-10 w-32 h-32 rounded-full bg-primary/10 blur-3xl animate-pulse will-change-transform" 
-        />
-        <div 
-          ref={parallaxRef2}
-          className="absolute top-40 right-20 w-48 h-48 rounded-full bg-accent/10 blur-3xl animate-pulse will-change-transform" 
-          style={{ animationDelay: '1s' }} 
-        />
-        <div 
-          ref={parallaxRef3}
-          className="absolute bottom-40 left-1/4 w-40 h-40 rounded-full bg-primary/5 blur-3xl animate-pulse will-change-transform" 
-          style={{ animationDelay: '2s' }} 
-        />
-        <div 
-          ref={parallaxRef4}
-          className="absolute bottom-20 right-1/3 w-36 h-36 rounded-full bg-accent/5 blur-3xl animate-pulse will-change-transform" 
-          style={{ animationDelay: '0.5s' }} 
-        />
-      </div>
-
-      {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 px-4 pt-4">
+    <div className={`min-h-screen transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Top Navigation Bar - Fixed */}
+      <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-4">
         <div className={`top-bar flex items-center justify-between max-w-7xl mx-auto backdrop-blur-xl ${language === 'en' ? 'flex-row-reverse' : ''}`}>
           {/* Menu & Icons Section */}
           <div className={`flex items-center gap-2 ${language === 'en' ? 'flex-row-reverse' : ''}`}>
@@ -314,84 +255,16 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 max-w-7xl relative z-10">
+      {/* Storytelling Scroll Content */}
+      <main className="pt-20">
+        <StorytellingScroll isLoaded={isLoaded} />
+      </main>
 
-        {/* Menu Cards Grid - First Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          {menuItems.slice(0, 4).map((item, index) => (
-            <div
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`menu-card flex flex-col items-center text-center transition-all duration-500 group ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-              style={{ 
-                transitionDelay: `${index * 100}ms`,
-                transform: isLoaded ? 'perspective(1000px) rotateX(0deg)' : 'perspective(1000px) rotateX(10deg)'
-              }}
-            >
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 relative">
-                  <item.icon size={28} className="text-primary transition-transform duration-300 group-hover:scale-110" />
-                </div>
-              </div>
-              <p className="font-semibold text-foreground text-sm mb-1">{getTitle(item)}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Menu Cards Grid - Second Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          {menuItems.slice(4, 8).map((item, index) => (
-            <div
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={`menu-card flex flex-col items-center text-center transition-all duration-500 group ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-              style={{ 
-                transitionDelay: `${(index + 4) * 100}ms`,
-                transform: isLoaded ? 'perspective(1000px) rotateX(0deg)' : 'perspective(1000px) rotateX(10deg)'
-              }}
-            >
-              <div className="relative">
-                <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 relative">
-                  <item.icon size={28} className="text-primary transition-transform duration-300 group-hover:scale-110" />
-                </div>
-              </div>
-              <p className="font-semibold text-foreground text-sm mb-1">{getTitle(item)}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Third Row - Single Item */}
-        {menuItems.length > 8 && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {menuItems.slice(8).map((item, index) => (
-              <div
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={`menu-card flex flex-col items-center text-center transition-all duration-500 group ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-                style={{ 
-                  transitionDelay: `${(index + 8) * 100}ms`,
-                  transform: isLoaded ? 'perspective(1000px) rotateX(0deg)' : 'perspective(1000px) rotateX(10deg)'
-                }}
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/20 relative">
-                    <item.icon size={28} className="text-primary transition-transform duration-300 group-hover:scale-110" />
-                  </div>
-                </div>
-                <p className="font-semibold text-foreground text-sm mb-1">{getTitle(item)}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Admin Section */}
-        {isSuperAdmin && (
-          <div className="mt-8">
-            <h2 className="text-lg font-bold text-foreground mb-4 text-center">{t('adminPanel')}</h2>
+      {/* Admin Section - After storytelling */}
+      {isSuperAdmin && (
+        <section className="py-16 px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-lg font-bold text-foreground mb-6 text-center">{t('adminPanel')}</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
               {adminMenuItems.map((item, index) => (
                 <div
@@ -399,8 +272,7 @@ const Home = () => {
                   onClick={() => navigate(item.path)}
                   className={`menu-card flex flex-col items-center text-center transition-all duration-500 group ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
                   style={{ 
-                    transitionDelay: `${(index + menuItems.length) * 100}ms`,
-                    transform: isLoaded ? 'perspective(1000px) rotateX(0deg)' : 'perspective(1000px) rotateX(10deg)'
+                    transitionDelay: `${index * 100}ms`,
                   }}
                 >
                   <div className="relative">
@@ -414,11 +286,8 @@ const Home = () => {
               ))}
             </div>
           </div>
-        )}
-      </main>
-
-      {/* Scroll Scale Demo Section */}
-      <ScrollScaleSection />
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="py-8 text-center relative z-10">
