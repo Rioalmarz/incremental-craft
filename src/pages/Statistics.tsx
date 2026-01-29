@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ArrowRight, ArrowLeft, Users, RefreshCw, Printer, 
-  ShieldCheck, Activity, Baby, Phone, UserCheck, UserX, Heart, Ambulance, UsersRound 
+  ShieldCheck, Activity, Baby, Phone, UserCheck, UserX, Heart, Ambulance, UsersRound, Brain 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
