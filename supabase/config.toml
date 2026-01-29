@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.sync-doctor-schedules]
 verify_jwt = true
+
+[functions.ai-health-analysis]
+verify_jwt = false
