@@ -26,6 +26,7 @@ import SatisfactionTab from "@/components/statistics/SatisfactionTab";
 import EmergencyReferralTab from "@/components/statistics/EmergencyReferralTab";
 import MedicalTeamsTab from "@/components/statistics/MedicalTeamsTab";
 import PredictivePerformanceCard from "@/components/statistics/PredictivePerformanceCard";
+import AIPredictionTab from "@/components/statistics/AIPredictionTab";
 
 const Statistics = () => {
   const { user, profile, loading, isSuperAdmin } = useAuth();
