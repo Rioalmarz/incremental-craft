@@ -98,6 +98,7 @@ const Statistics = () => {
     { id: "preventive", labelAr: "الرعاية الوقائية", labelEn: "Preventive Care", icon: ShieldCheck },
     { id: "chronic", labelAr: "الأمراض المزمنة", labelEn: "Chronic Diseases", icon: Activity },
     { id: "child", labelAr: "الطفل السليم", labelEn: "Healthy Child", icon: Baby },
+    { id: "aiPrediction", labelAr: "التنبؤ AI", labelEn: "AI Prediction", icon: Brain },
     { id: "teams", labelAr: "الفرق الطبية", labelEn: "Medical Teams", icon: UsersRound },
     { id: "efficiency", labelAr: "كفاءة التواصل", labelEn: "Communication", icon: Phone },
     { id: "contacted", labelAr: "المتواصل معهم", labelEn: "Contacted", icon: UserCheck },
