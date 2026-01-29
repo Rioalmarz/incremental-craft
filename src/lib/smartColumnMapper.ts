@@ -239,6 +239,112 @@ export const patientFieldMappings: FieldMapping[] = [
     displayName: "ملاحظات الاتصال",
     keywords: ["call notes", "call_notes", "ملاحظات الاتصال", "contact notes", "ملاحظات التواصل"],
   },
+  // AI Prediction fields - NEW
+  {
+    dbField: "name_en",
+    displayName: "الاسم بالإنجليزية",
+    keywords: ["name_en", "english name", "الاسم بالإنجليزية", "الاسم_en", "full name english"],
+  },
+  {
+    dbField: "registration_status",
+    displayName: "حالة التسجيل",
+    keywords: ["registration status", "registration_status", "حالة التسجيل", "حالة_التسجيل", "تسجيل"],
+  },
+  {
+    dbField: "dispensing_pattern",
+    displayName: "نمط الصرف",
+    keywords: ["dispensing pattern", "dispensing_pattern", "نمط الصرف", "نمط_الصرف", "صرف"],
+  },
+  {
+    dbField: "dm_prediction_index",
+    displayName: "مؤشر تنبؤ السكري",
+    keywords: ["dm prediction", "dm_prediction_index", "مؤشر تنبؤ السكري", "مؤشر_تنبؤ_السكري", "تنبؤ السكري"],
+  },
+  {
+    dbField: "htn_prediction_index",
+    displayName: "مؤشر تنبؤ الضغط",
+    keywords: ["htn prediction", "htn_prediction_index", "مؤشر تنبؤ الضغط", "مؤشر_تنبؤ_الضغط", "تنبؤ الضغط"],
+  },
+  {
+    dbField: "ldl_prediction_index",
+    displayName: "مؤشر تنبؤ الدهون",
+    keywords: ["ldl prediction", "ldl_prediction_index", "مؤشر تنبؤ الدهون", "مؤشر_تنبؤ_الدهون", "تنبؤ الدهون"],
+  },
+  {
+    dbField: "priority_level",
+    displayName: "الأولوية",
+    keywords: ["priority level", "priority_level", "الأولوية", "مستوى الأولوية", "أولوية"],
+  },
+  {
+    dbField: "priority_reason",
+    displayName: "سبب الأولوية",
+    keywords: ["priority reason", "priority_reason", "سبب الأولوية", "سبب_الأولوية"],
+  },
+  {
+    dbField: "suggested_action",
+    displayName: "الإجراء المقترح",
+    keywords: ["suggested action", "suggested_action", "الإجراء المقترح", "الإجراء_المقترح", "إجراء مقترح"],
+  },
+  {
+    dbField: "dm_medications_count",
+    displayName: "عدد أدوية السكري",
+    keywords: ["dm medications count", "dm_medications_count", "أدوية سكري", "أدوية_سكري", "عدد أدوية السكري"],
+  },
+  {
+    dbField: "htn_medications_count",
+    displayName: "عدد أدوية الضغط",
+    keywords: ["htn medications count", "htn_medications_count", "أدوية ضغط", "أدوية_ضغط", "عدد أدوية الضغط"],
+  },
+  {
+    dbField: "dlp_medications_count",
+    displayName: "عدد أدوية الدهون",
+    keywords: ["dlp medications count", "dlp_medications_count", "أدوية دهون", "أدوية_دهون", "عدد أدوية الدهون"],
+  },
+  {
+    dbField: "anticoagulant_count",
+    displayName: "عدد أدوية السيولة",
+    keywords: ["anticoagulant count", "anticoagulant_count", "أدوية سيولة", "أدوية_سيولة", "عدد أدوية السيولة"],
+  },
+  {
+    dbField: "dm_medications_list",
+    displayName: "قائمة أدوية السكري",
+    keywords: ["dm medications list", "dm_medications_list", "قائمة أدوية السكري", "قائمة_أدوية_السكري"],
+  },
+  {
+    dbField: "htn_medications_list",
+    displayName: "قائمة أدوية الضغط",
+    keywords: ["htn medications list", "htn_medications_list", "قائمة أدوية الضغط", "قائمة_أدوية_الضغط"],
+  },
+  {
+    dbField: "dlp_medications_list",
+    displayName: "قائمة أدوية الدهون",
+    keywords: ["dlp medications list", "dlp_medications_list", "قائمة أدوية الدهون", "قائمة_أدوية_الدهون"],
+  },
+  {
+    dbField: "anticoagulant_list",
+    displayName: "قائمة أدوية السيولة",
+    keywords: ["anticoagulant list", "anticoagulant_list", "قائمة أدوية السيولة", "قائمة_أدوية_السيولة"],
+  },
+  {
+    dbField: "prediction_confidence",
+    displayName: "نسبة الثقة",
+    keywords: ["prediction confidence", "prediction_confidence", "نسبة الثقة", "نسبة_الثقة", "ثقة التنبؤ"],
+  },
+  {
+    dbField: "systolic_bp",
+    displayName: "الضغط الانقباضي",
+    keywords: ["systolic bp", "systolic_bp", "الضغط الانقباضي", "الضغط_الانقباضي", "انقباضي"],
+  },
+  {
+    dbField: "diastolic_bp",
+    displayName: "الضغط الانبساطي",
+    keywords: ["diastolic bp", "diastolic_bp", "الضغط الانبساطي", "الضغط_الانبساطي", "انبساطي"],
+  },
+  {
+    dbField: "bmi",
+    displayName: "مؤشر كتلة الجسم",
+    keywords: ["bmi", "body mass index", "مؤشر كتلة الجسم", "كتلة الجسم", "bmi"],
+  },
 ];
 
 // Field mappings for preventive care (patient_eligibility table)
