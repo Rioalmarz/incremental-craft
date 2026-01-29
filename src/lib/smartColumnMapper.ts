@@ -645,8 +645,14 @@ export const transformValue = (value: any, dbField: string, fieldMapping?: Field
     return "متوسطة";
   }
   
-  // Numeric fields - extended list
-  if (["age", "patient_age", "days_until_visit", "visit_count", "total_chronic_meds", "cycle_days", "fasting_blood_glucose", "hba1c", "ldl", "med_prediction_confidence", "avg_days_between_visits"].includes(dbField)) {
+  // Numeric fields - extended list including AI prediction fields
+  if ([
+    "age", "patient_age", "days_until_visit", "visit_count", "total_chronic_meds", "cycle_days", 
+    "fasting_blood_glucose", "hba1c", "ldl", "med_prediction_confidence", "avg_days_between_visits",
+    "dm_prediction_index", "htn_prediction_index", "ldl_prediction_index", "prediction_confidence",
+    "dm_medications_count", "htn_medications_count", "dlp_medications_count", "anticoagulant_count",
+    "systolic_bp", "diastolic_bp", "bmi"
+  ].includes(dbField)) {
     const num = Number(value);
     return isNaN(num) ? null : num;
   }
