@@ -1,28 +1,67 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, Brain, TrendingUp } from "lucide-react";
+import { Sparkles, Brain, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { calculatePredictionStatistics, PatientData } from "@/lib/aiPredictionEngine";
+import { useMemo } from "react";
 
 const PredictivePerformanceCard = () => {
   const { data: patients = [] } = useQuery({
-    queryKey: ['patients-prediction-accuracy'],
+    queryKey: ['patients-prediction-stats'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('patients')
-        .select('med_prediction_confidence')
-        .not('med_prediction_confidence', 'is', null);
+        .select('*');
       if (error) throw error;
       return data || [];
     }
   });
 
-  // Calculate average prediction accuracy from real data, or 0 if no data
-  const accuracy = patients.length > 0
-    ? Math.round(patients.reduce((sum, p) => sum + (Number(p.med_prediction_confidence) || 0), 0) / patients.length)
-    : 0;
-  return <Card className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-primary/10 border-primary/20">
+  // Calculate statistics from real patient data
+  const stats = useMemo(() => {
+    if (patients.length === 0) {
+      return {
+        avgConfidence: 0,
+        avgDMIndex: 0,
+        avgHTNIndex: 0,
+        avgLDLIndex: 0,
+        priorityDistribution: { consultant: 0, high: 0, routine: 0 },
+        totalWithPredictions: 0,
+      };
+    }
+
+    const patientData: PatientData[] = patients.map(p => ({
+      id: p.id,
+      name: p.name,
+      has_dm: p.has_dm,
+      has_htn: p.has_htn,
+      has_dyslipidemia: p.has_dyslipidemia,
+      hba1c: p.hba1c ? Number(p.hba1c) : undefined,
+      ldl: p.ldl ? Number(p.ldl) : undefined,
+      systolic_bp: p.systolic_bp,
+      diastolic_bp: p.diastolic_bp,
+      bmi: p.bmi ? Number(p.bmi) : undefined,
+      visit_count: p.visit_count,
+      dm_medications_count: p.dm_medications_count,
+      htn_medications_count: p.htn_medications_count,
+      dlp_medications_count: p.dlp_medications_count,
+      dm_prediction_index: p.dm_prediction_index,
+      htn_prediction_index: p.htn_prediction_index,
+      ldl_prediction_index: p.ldl_prediction_index,
+      priority_level: p.priority_level,
+      prediction_confidence: p.prediction_confidence,
+    }));
+
+    return calculatePredictionStatistics(patientData);
+  }, [patients]);
+
+  const accuracy = stats.avgConfidence;
+  const totalPriority = stats.priorityDistribution.consultant + stats.priorityDistribution.high;
+
+  return (
+    <Card className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-accent/5 to-primary/10 border-primary/20">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-24 h-24 bg-accent/10 rounded-full blur-2xl translate-x-1/2 translate-y-1/2" />
@@ -40,7 +79,7 @@ const PredictivePerformanceCard = () => {
           </div>
           <Badge className="bg-gradient-to-r from-primary to-accent text-background gap-1 shadow-lg">
             <Sparkles className="w-3 h-3" />
-            AI-Assisted Pilot
+            AI-Powered
           </Badge>
         </div>
         
@@ -55,29 +94,39 @@ const PredictivePerformanceCard = () => {
           </div>
           
           {/* Info cards */}
-          <div className="grid grid-cols-2 gap-3 mt-4">
+          <div className="grid grid-cols-3 gap-3 mt-4">
             <div className="bg-background/50 rounded-lg p-3 border border-border/50">
               <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="w-4 h-4 text-success" />
-                <span className="text-xs text-muted-foreground">مرحلة أولى</span>
+                <AlertTriangle className="w-4 h-4 text-destructive" />
+                <span className="text-xs text-muted-foreground">استشاري</span>
               </div>
-              <p className="text-sm font-medium">قابل للتحسين</p>
+              <p className="text-lg font-bold text-destructive">{stats.priorityDistribution.consultant}</p>
             </div>
             <div className="bg-background/50 rounded-lg p-3 border border-border/50">
               <div className="flex items-center gap-2 mb-1">
-                <Brain className="w-4 h-4 text-primary" />
-                <span className="text-xs text-muted-foreground">المصدر</span>
+                <TrendingUp className="w-4 h-4 text-warning" />
+                <span className="text-xs text-muted-foreground">أولوية عالية</span>
               </div>
-              <p className="text-sm font-medium">بيانات فعلية</p>
+              <p className="text-lg font-bold text-warning">{stats.priorityDistribution.high}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-3 border border-border/50">
+              <div className="flex items-center gap-2 mb-1">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="text-xs text-muted-foreground">روتيني</span>
+              </div>
+              <p className="text-lg font-bold text-success">{stats.priorityDistribution.routine}</p>
             </div>
           </div>
           
           {/* Note */}
           <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
-            يعتمد هذا النظام على تحليل البيانات الصحية للتنبؤ بالخدمات الوقائية والعلاجية المطلوبة لكل مستفيد
+            يعتمد هذا النظام على تحليل البيانات الصحية للتنبؤ بالخدمات الوقائية والعلاجية المطلوبة لكل مستفيد.
+            إجمالي المرضى المحللين: {patients.length} مستفيد
           </p>
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
+
 export default PredictivePerformanceCard;
