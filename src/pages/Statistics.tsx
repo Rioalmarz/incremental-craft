@@ -205,6 +205,10 @@ const Statistics = () => {
               <HealthyChildTab patients={patients} />
             </TabsContent>
             
+            <TabsContent value="aiPrediction">
+              <AIPredictionTab patients={patients} />
+            </TabsContent>
+            
             <TabsContent value="teams">
               <MedicalTeamsTab patients={patients} />
             </TabsContent>
