@@ -234,7 +234,10 @@ export type Database = {
           action: string | null
           action_required: string | null
           age: number | null
+          anticoagulant_count: number | null
+          anticoagulant_list: string | null
           avg_days_between_visits: number | null
+          bmi: number | null
           bp_last_visit: string | null
           burden: string | null
           call_date: string | null
@@ -249,6 +252,13 @@ export type Database = {
           cycle_days: number | null
           cycle_type_new: string | null
           days_until_visit: number | null
+          diastolic_bp: number | null
+          dispensing_pattern: string | null
+          dlp_medications_count: number | null
+          dlp_medications_list: string | null
+          dm_medications_count: number | null
+          dm_medications_list: string | null
+          dm_prediction_index: number | null
           doctor: string | null
           eligible_dlp_screening: boolean | null
           eligible_dm_screening: boolean | null
@@ -260,28 +270,39 @@ export type Database = {
           has_dyslipidemia: boolean | null
           has_htn: boolean | null
           hba1c: number | null
+          htn_medications_count: number | null
+          htn_medications_list: string | null
+          htn_prediction_index: number | null
           id: string
           last_visit_date: string | null
           latest_prescription_date: string | null
           ldl: number | null
+          ldl_prediction_index: number | null
           med_prediction_confidence: number | null
           medication_categories: string | null
           name: string
+          name_en: string | null
           national_id: string
           non_delivery_reason: string | null
           obesity_class: string | null
           phone: string | null
           predicted_medications: string | null
           predicted_visit_date: string | null
+          prediction_confidence: number | null
           prescription_with_dosage: string | null
+          priority_level: string | null
+          priority_reason: string | null
           provider_satisfaction_score: number | null
+          registration_status: string | null
           risk_classification: string | null
           satisfaction_score: number | null
           service_delivered: boolean | null
           smoking_status: string | null
           source: string | null
           status: string | null
+          suggested_action: string | null
           symptoms: Json | null
+          systolic_bp: number | null
           team: string | null
           total_chronic_meds: number | null
           updated_at: string
@@ -293,7 +314,10 @@ export type Database = {
           action?: string | null
           action_required?: string | null
           age?: number | null
+          anticoagulant_count?: number | null
+          anticoagulant_list?: string | null
           avg_days_between_visits?: number | null
+          bmi?: number | null
           bp_last_visit?: string | null
           burden?: string | null
           call_date?: string | null
@@ -308,6 +332,13 @@ export type Database = {
           cycle_days?: number | null
           cycle_type_new?: string | null
           days_until_visit?: number | null
+          diastolic_bp?: number | null
+          dispensing_pattern?: string | null
+          dlp_medications_count?: number | null
+          dlp_medications_list?: string | null
+          dm_medications_count?: number | null
+          dm_medications_list?: string | null
+          dm_prediction_index?: number | null
           doctor?: string | null
           eligible_dlp_screening?: boolean | null
           eligible_dm_screening?: boolean | null
@@ -319,28 +350,39 @@ export type Database = {
           has_dyslipidemia?: boolean | null
           has_htn?: boolean | null
           hba1c?: number | null
+          htn_medications_count?: number | null
+          htn_medications_list?: string | null
+          htn_prediction_index?: number | null
           id?: string
           last_visit_date?: string | null
           latest_prescription_date?: string | null
           ldl?: number | null
+          ldl_prediction_index?: number | null
           med_prediction_confidence?: number | null
           medication_categories?: string | null
           name: string
+          name_en?: string | null
           national_id: string
           non_delivery_reason?: string | null
           obesity_class?: string | null
           phone?: string | null
           predicted_medications?: string | null
           predicted_visit_date?: string | null
+          prediction_confidence?: number | null
           prescription_with_dosage?: string | null
+          priority_level?: string | null
+          priority_reason?: string | null
           provider_satisfaction_score?: number | null
+          registration_status?: string | null
           risk_classification?: string | null
           satisfaction_score?: number | null
           service_delivered?: boolean | null
           smoking_status?: string | null
           source?: string | null
           status?: string | null
+          suggested_action?: string | null
           symptoms?: Json | null
+          systolic_bp?: number | null
           team?: string | null
           total_chronic_meds?: number | null
           updated_at?: string
@@ -352,7 +394,10 @@ export type Database = {
           action?: string | null
           action_required?: string | null
           age?: number | null
+          anticoagulant_count?: number | null
+          anticoagulant_list?: string | null
           avg_days_between_visits?: number | null
+          bmi?: number | null
           bp_last_visit?: string | null
           burden?: string | null
           call_date?: string | null
@@ -367,6 +412,13 @@ export type Database = {
           cycle_days?: number | null
           cycle_type_new?: string | null
           days_until_visit?: number | null
+          diastolic_bp?: number | null
+          dispensing_pattern?: string | null
+          dlp_medications_count?: number | null
+          dlp_medications_list?: string | null
+          dm_medications_count?: number | null
+          dm_medications_list?: string | null
+          dm_prediction_index?: number | null
           doctor?: string | null
           eligible_dlp_screening?: boolean | null
           eligible_dm_screening?: boolean | null
@@ -378,28 +430,39 @@ export type Database = {
           has_dyslipidemia?: boolean | null
           has_htn?: boolean | null
           hba1c?: number | null
+          htn_medications_count?: number | null
+          htn_medications_list?: string | null
+          htn_prediction_index?: number | null
           id?: string
           last_visit_date?: string | null
           latest_prescription_date?: string | null
           ldl?: number | null
+          ldl_prediction_index?: number | null
           med_prediction_confidence?: number | null
           medication_categories?: string | null
           name?: string
+          name_en?: string | null
           national_id?: string
           non_delivery_reason?: string | null
           obesity_class?: string | null
           phone?: string | null
           predicted_medications?: string | null
           predicted_visit_date?: string | null
+          prediction_confidence?: number | null
           prescription_with_dosage?: string | null
+          priority_level?: string | null
+          priority_reason?: string | null
           provider_satisfaction_score?: number | null
+          registration_status?: string | null
           risk_classification?: string | null
           satisfaction_score?: number | null
           service_delivered?: boolean | null
           smoking_status?: string | null
           source?: string | null
           status?: string | null
+          suggested_action?: string | null
           symptoms?: Json | null
+          systolic_bp?: number | null
           team?: string | null
           total_chronic_meds?: number | null
           updated_at?: string
