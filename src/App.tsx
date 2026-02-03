@@ -22,6 +22,7 @@ import Profile from "./pages/Profile";
 import DoctorScheduling from "./pages/DoctorScheduling";
 import Eligible from "./pages/Eligible";
 import NotFound from "./pages/NotFound";
+import AnalyzeExcel from "./pages/AnalyzeExcel";
 
 const queryClient = new QueryClient();
 
@@ -50,8 +51,8 @@ const App = () => (
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="/profile" element={<Profile />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
+                  <Route path="/analyze-excel" element={<AnalyzeExcel />} />
                 </Routes>
               </PageTransition>
             </AuthProvider>
