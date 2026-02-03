@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import mahdiProfile from "@/assets/mahdi-profile.jpg";
 import StorytellingScroll from "@/components/StorytellingScroll";
 import { ClipboardList, Stethoscope, CheckCircle, XCircle, Database, BarChart3, Shield, CalendarDays, UserCheck } from "lucide-react";
-
+import * as XLSX from "xlsx";
 const Home = () => {
   const { user, profile, role, signOut, loading, isSuperAdmin } = useAuth();
   const { language, setLanguage, t } = useLanguage();
@@ -31,6 +31,36 @@ const Home = () => {
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 100);
     return () => clearTimeout(timer);
+  }, []);
+
+  // Analyze Excel file on load
+  useEffect(() => {
+    const analyzeFile = async () => {
+      try {
+        const response = await fetch("/ray_Khalid_PHC_TBC_Complete_Report_1.xlsx");
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
+        
+        console.log("=== EXCEL FILE ANALYSIS ===");
+        console.log("Total Sheets:", workbook.SheetNames.length);
+        console.log("Sheet Names:", workbook.SheetNames);
+        
+        workbook.SheetNames.forEach((sheetName, idx) => {
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          const columns = jsonData.length > 0 ? Object.keys(jsonData[0] as object) : [];
+          
+          console.log(`\n--- Sheet ${idx + 1}: ${sheetName} ---`);
+          console.log("Columns:", columns);
+          console.log("Row Count:", jsonData.length);
+          console.log("Sample Data (first 2 rows):", jsonData.slice(0, 2));
+        });
+      } catch (error) {
+        console.error("Error analyzing file:", error);
+      }
+    };
+    
+    analyzeFile();
   }, []);
 
   const handleSignOut = async () => {
