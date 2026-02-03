@@ -298,4 +298,9 @@ export function getMockDashboardStats() {
 }
 
 // Export mock data check
-export const useMockData = import.meta.env.VITE_USE_MOCK_DATA === 'true';
+// Default to mock mode in development when no API is configured
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const MOCK_ENV = import.meta.env.VITE_USE_MOCK_DATA;
+
+// Use mock data if explicitly set to 'true', OR if not set and using localhost
+export const useMockData = MOCK_ENV === 'true' || (MOCK_ENV === undefined && API_BASE_URL.includes('localhost'));
