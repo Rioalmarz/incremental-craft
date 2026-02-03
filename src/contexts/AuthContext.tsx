@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { authService, AuthUser } from "@/services/authService";
+import { api } from "@/lib/api";
 
-type UserRole = "superadmin" | "center" | null;
+type UserRole = "admin" | "physician" | "viewer" | null;
 
+// Profile interface for backward compatibility
 interface Profile {
   id: string;
   user_id: string;
@@ -17,125 +18,88 @@ interface Profile {
 }
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
   profile: Profile | null;
-  role: UserRole;
   loading: boolean;
   signIn: (username: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  isSuperAdmin: boolean;
-  isCenter: boolean;
+  isAdmin: boolean;
+  isPhysician: boolean;
+  isViewer: boolean;
+  isSuperAdmin: boolean; // Backward compatibility
+  isCenter: boolean; // Backward compatibility
+  canEdit: boolean;
+  role: UserRole;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<UserRole>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserData = async (userId: string) => {
-    try {
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (profileData) {
-        setProfile(profileData);
-      }
-
-      // Fetch role
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (roleData) {
-        setRole(roleData.role as UserRole);
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    }
-  };
-
+  // Restore session on mount
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Defer Supabase calls with setTimeout to prevent deadlock
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setRole(null);
-        }
+    const restoreSession = async () => {
+      try {
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Error restoring session:", error);
+        api.clearToken();
+      } finally {
         setLoading(false);
       }
-    );
+    };
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    restoreSession();
   }, []);
 
-  const signIn = async (username: string, password: string) => {
+  const signIn = useCallback(async (username: string, password: string) => {
     try {
-      // Convert username to email format for Supabase auth
-      const email = `${username.toLowerCase()}@tbc.local`;
-      
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        return { error };
-      }
-
+      const response = await authService.login({ username, password });
+      setUser(response.user);
       return { error: null };
     } catch (error) {
+      console.error("Login error:", error);
       return { error: error as Error };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setProfile(null);
-    setRole(null);
-  };
+  const signOut = useCallback(async () => {
+    try {
+      await authService.logout();
+    } finally {
+      setUser(null);
+    }
+  }, []);
 
-  const value = {
+  // Convert AuthUser to Profile for backward compatibility
+  const profile: Profile | null = user ? {
+    id: user.id,
+    user_id: user.id,
+    username: user.username,
+    name_ar: user.name_ar,
+    center_id: user.center_id || null,
+    created_at: new Date().toISOString(),
+    job_title: user.job_title || null,
+    team: user.team_id ? `team${user.team_id}` : null,
+    avatar_url: user.avatar_url || null,
+  } : null;
+
+  const value: AuthContextType = {
     user,
-    session,
     profile,
-    role,
     loading,
     signIn,
     signOut,
-    isSuperAdmin: role === "superadmin",
-    isCenter: role === "center",
+    isAdmin: user?.role === "admin",
+    isPhysician: user?.role === "physician",
+    isViewer: user?.role === "viewer",
+    isSuperAdmin: user?.role === "admin", // Backward compatibility
+    isCenter: user?.role === "physician" || user?.role === "viewer", // Backward compatibility
+    canEdit: user?.role === "admin" || user?.role === "physician",
+    role: user?.role || null,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
